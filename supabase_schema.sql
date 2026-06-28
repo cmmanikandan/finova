@@ -1,226 +1,239 @@
--- FINOVA Supabase SQL Schema Definition (Idempotent Migration Script)
--- Paste this script directly into the Supabase SQL Editor.
+-- ============================================================
+-- FINOVA – Supabase SQL Schema
+-- IDEMPOTENT: Safe to run multiple times without errors.
+-- Paste this into Supabase → SQL Editor → Run
+-- ============================================================
 
--- Enable UUID extension if not already enabled
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Profiles Table (Linked with Supabase Auth users)
+-- ─── 1. PROFILES ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    photo_url TEXT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    photo_url   TEXT,
+    updated_at  TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 2. Accounts Table
+-- ─── 2. ACCOUNTS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.accounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'credit_card', 'debit_card', 'upi', 'wallet', 'custom')),
-    balance NUMERIC(15, 2) DEFAULT 0.00 NOT NULL,
-    icon TEXT DEFAULT '💳' NOT NULL,
-    color TEXT DEFAULT '#2563EB' NOT NULL,
-    is_custom BOOLEAN DEFAULT true NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    type       TEXT NOT NULL CHECK (type IN ('cash','bank','credit_card','debit_card','upi','wallet','custom')),
+    balance    NUMERIC(15,2) NOT NULL DEFAULT 0,
+    icon       TEXT NOT NULL DEFAULT '💳',
+    color      TEXT NOT NULL DEFAULT '#2563EB',
+    is_custom  BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 3. Categories Table
+-- ─── 3. CATEGORIES ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.categories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- NULL if global default
-    name TEXT NOT NULL,
-    icon TEXT NOT NULL,
-    color TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('expense', 'income', 'both')),
-    is_custom BOOLEAN DEFAULT true NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- NULL = global default
+    name       TEXT NOT NULL,
+    icon       TEXT NOT NULL,
+    color      TEXT NOT NULL,
+    type       TEXT NOT NULL CHECK (type IN ('expense','income','both')),
+    is_custom  BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 4. Transactions Table
+-- ─── 4. TRANSACTIONS ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('expense', 'income', 'transfer')),
-    amount NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
-    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-    category_name TEXT NOT NULL, -- cache category name/fallback
-    subcategory TEXT,
-    account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE NOT NULL,
-    to_account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE,
-    date TIMESTAMP WITH TIME ZONE NOT NULL,
-    note TEXT,
-    receipt_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type           TEXT NOT NULL CHECK (type IN ('expense','income','transfer')),
+    amount         NUMERIC(15,2) NOT NULL CHECK (amount > 0),
+    category_id    UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    category_name  TEXT NOT NULL,
+    subcategory    TEXT,
+    account_id     UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+    to_account_id  UUID REFERENCES public.accounts(id) ON DELETE CASCADE,
+    date           TIMESTAMPTZ NOT NULL,
+    note           TEXT,
+    receipt_url    TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 5. Budgets Table
+-- ─── 5. BUDGETS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.budgets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    category_id UUID REFERENCES public.categories(id) ON DELETE CASCADE, -- NULL means 'All Categories'
-    limit_amount NUMERIC(15, 2) NOT NULL CHECK (limit_amount > 0),
-    spent_amount NUMERIC(15, 2) DEFAULT 0.00 NOT NULL,
-    period TEXT DEFAULT 'monthly' NOT NULL CHECK (period IN ('monthly', 'weekly', 'custom')),
-    start_date DATE NOT NULL,
-    end_date DATE,
-    color TEXT DEFAULT '#2563EB' NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name          TEXT NOT NULL,
+    category_id   UUID REFERENCES public.categories(id) ON DELETE CASCADE,
+    limit_amount  NUMERIC(15,2) NOT NULL CHECK (limit_amount > 0),
+    spent_amount  NUMERIC(15,2) NOT NULL DEFAULT 0,
+    period        TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly','weekly','custom')),
+    start_date    DATE NOT NULL,
+    end_date      DATE,
+    color         TEXT NOT NULL DEFAULT '#2563EB',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 6. Goals Table
+-- ─── 6. GOALS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.goals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    name TEXT NOT NULL,
-    target_amount NUMERIC(15, 2) NOT NULL CHECK (target_amount > 0),
-    current_amount NUMERIC(15, 2) DEFAULT 0.00 NOT NULL,
-    target_date DATE NOT NULL,
-    notes TEXT,
-    icon TEXT DEFAULT '🎯' NOT NULL,
-    color TEXT DEFAULT '#2563EB' NOT NULL,
-    status TEXT DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'completed', 'archived')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name           TEXT NOT NULL,
+    target_amount  NUMERIC(15,2) NOT NULL CHECK (target_amount > 0),
+    current_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
+    target_date    DATE NOT NULL,
+    notes          TEXT,
+    icon           TEXT NOT NULL DEFAULT '🎯',
+    color          TEXT NOT NULL DEFAULT '#2563EB',
+    status         TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','completed','archived')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 7. App Settings Table
+-- ─── 7. SETTINGS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.settings (
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
-    currency TEXT DEFAULT 'INR' NOT NULL,
-    currency_symbol TEXT DEFAULT '₹' NOT NULL,
-    theme TEXT DEFAULT 'system' NOT NULL CHECK (theme IN ('light', 'dark', 'system')),
-    pin_enabled BOOLEAN DEFAULT false NOT NULL,
-    pin_hash TEXT,
-    daily_reminder_enabled BOOLEAN DEFAULT false NOT NULL,
-    daily_reminder_time TEXT DEFAULT '21:00' NOT NULL,
-    budget_alerts_enabled BOOLEAN DEFAULT true NOT NULL,
-    language TEXT DEFAULT 'en' NOT NULL
+    user_id                  UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    currency                 TEXT NOT NULL DEFAULT 'INR',
+    currency_symbol          TEXT NOT NULL DEFAULT '₹',
+    theme                    TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('light','dark','system')),
+    pin_enabled              BOOLEAN NOT NULL DEFAULT false,
+    pin_hash                 TEXT,
+    daily_reminder_enabled   BOOLEAN NOT NULL DEFAULT false,
+    daily_reminder_time      TEXT NOT NULL DEFAULT '21:00',
+    budget_alerts_enabled    BOOLEAN NOT NULL DEFAULT true,
+    language                 TEXT NOT NULL DEFAULT 'en'
 );
 
--- Add daily_reminder_time column safely if table existed without it
-ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_reminder_time TEXT DEFAULT '21:00' NOT NULL;
+-- Safe column additions in case settings table existed before without these columns
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_reminder_time    TEXT NOT NULL DEFAULT '21:00';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS budget_alerts_enabled  BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS language                TEXT NOT NULL DEFAULT 'en';
 
--- 8. Streaks Table (Daily Spending Streak Tracker)
+-- ─── 8. STREAKS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.streaks (
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
-    current_streak INTEGER DEFAULT 0 NOT NULL,
-    best_streak INTEGER DEFAULT 0 NOT NULL,
-    last_spent_date DATE,
-    last_failed_day DATE,
-    last_milestone_claimed INTEGER,
-    last_notification_shown_date DATE
+    user_id                       UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    current_streak                INTEGER NOT NULL DEFAULT 0,
+    best_streak                   INTEGER NOT NULL DEFAULT 0,
+    last_spent_date               DATE,
+    last_failed_day               DATE,
+    last_milestone_claimed        INTEGER,
+    last_notification_shown_date  DATE
 );
 
--- 9. Recurring Transactions Table (Scheduled Bills / Subscriptions)
+-- ─── 9. RECURRING TRANSACTIONS ───────────────────────────────
 CREATE TABLE IF NOT EXISTS public.recurring_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
-    amount NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
-    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-    account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE NOT NULL,
-    frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly', 'yearly')),
-    start_date DATE NOT NULL,
-    next_due_date DATE NOT NULL,
-    last_processed_date DATE,
-    note TEXT,
-    active BOOLEAN DEFAULT true NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type                 TEXT NOT NULL CHECK (type IN ('expense','income')),
+    amount               NUMERIC(15,2) NOT NULL CHECK (amount > 0),
+    category_id          UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    account_id           UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+    frequency            TEXT NOT NULL CHECK (frequency IN ('daily','weekly','monthly','yearly')),
+    start_date           DATE NOT NULL,
+    next_due_date        DATE NOT NULL,
+    last_processed_date  DATE,
+    note                 TEXT,
+    active               BOOLEAN NOT NULL DEFAULT true,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ─── AUTOMATIC PROFILE CREATION TRIGGER ─────────────────────────────
--- Auto create a public profile, default settings, and streak tracker when user signs up
+-- ─── AUTO PROFILE / SETTINGS / STREAK TRIGGER ────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 BEGIN
-  -- Insert profile if not exists
   INSERT INTO public.profiles (id, name, email, photo_url)
   VALUES (
     new.id,
     COALESCE(new.raw_user_meta_data->>'full_name', new.email),
-    new.email,
+    COALESCE(new.email, ''),
     new.raw_user_meta_data->>'avatar_url'
   )
   ON CONFLICT (id) DO NOTHING;
-  
-  -- Insert default settings if not exists
+
   INSERT INTO public.settings (user_id)
   VALUES (new.id)
   ON CONFLICT (user_id) DO NOTHING;
 
-  -- Insert default streak values if not exists
   INSERT INTO public.streaks (user_id)
   VALUES (new.id)
   ON CONFLICT (user_id) DO NOTHING;
-  
+
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- Re-create trigger safely
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- ─── ROW LEVEL SECURITY (RLS) POLICIES ────────────────────────────────
--- Enable RLS on all tables
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.streaks ENABLE ROW LEVEL SECURITY;
+-- ─── ENABLE ROW LEVEL SECURITY ───────────────────────────────
+ALTER TABLE public.profiles               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accounts               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budgets                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goals                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.streaks                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.recurring_transactions ENABLE ROW LEVEL SECURITY;
 
--- Profiles Policies
-DROP POLICY IF EXISTS "Allow individual read own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual update own profile" ON public.profiles;
-CREATE POLICY "Allow individual read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Allow individual update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+-- ─── RLS POLICIES ────────────────────────────────────────────
+-- Drop all policies first (idempotent), then recreate
 
--- Accounts Policies
-DROP POLICY IF EXISTS "Allow users to manage own accounts" ON public.accounts;
-CREATE POLICY "Allow users to manage own accounts" ON public.accounts FOR ALL USING (auth.uid() = user_id);
+-- profiles
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
+CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Categories Policies
-DROP POLICY IF EXISTS "Allow select global and custom categories" ON public.categories;
-DROP POLICY IF EXISTS "Allow users to insert/edit/delete own categories" ON public.categories;
-CREATE POLICY "Allow select global and custom categories" ON public.categories FOR SELECT USING (user_id IS NULL OR auth.uid() = user_id);
-CREATE POLICY "Allow users to insert/edit/delete own categories" ON public.categories FOR ALL USING (auth.uid() = user_id);
+-- accounts
+DROP POLICY IF EXISTS "accounts_all_own" ON public.accounts;
+CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid() = user_id);
 
--- Transactions Policies
-DROP POLICY IF EXISTS "Allow users to manage own transactions" ON public.transactions;
-CREATE POLICY "Allow users to manage own transactions" ON public.transactions FOR ALL USING (auth.uid() = user_id);
+-- categories (global defaults readable by all logged-in users; custom ones only by owner)
+DROP POLICY IF EXISTS "categories_select_own_or_global"     ON public.categories;
+DROP POLICY IF EXISTS "categories_insert_update_delete_own" ON public.categories;
+CREATE POLICY "categories_select_own_or_global"
+  ON public.categories FOR SELECT
+  USING (user_id IS NULL OR auth.uid() = user_id);
+CREATE POLICY "categories_insert_update_delete_own"
+  ON public.categories FOR ALL
+  USING (auth.uid() = user_id);
 
--- Budgets Policies
-DROP POLICY IF EXISTS "Allow users to manage own budgets" ON public.budgets;
-CREATE POLICY "Allow users to manage own budgets" ON public.budgets FOR ALL USING (auth.uid() = user_id);
+-- transactions
+DROP POLICY IF EXISTS "transactions_all_own" ON public.transactions;
+CREATE POLICY "transactions_all_own" ON public.transactions FOR ALL USING (auth.uid() = user_id);
 
--- Goals Policies
-DROP POLICY IF EXISTS "Allow users to manage own goals" ON public.goals;
-CREATE POLICY "Allow users to manage own goals" ON public.goals FOR ALL USING (auth.uid() = user_id);
+-- budgets
+DROP POLICY IF EXISTS "budgets_all_own" ON public.budgets;
+CREATE POLICY "budgets_all_own" ON public.budgets FOR ALL USING (auth.uid() = user_id);
 
--- Settings Policies
-DROP POLICY IF EXISTS "Allow users to manage own settings" ON public.settings;
-CREATE POLICY "Allow users to manage own settings" ON public.settings FOR ALL USING (auth.uid() = user_id);
+-- goals
+DROP POLICY IF EXISTS "goals_all_own" ON public.goals;
+CREATE POLICY "goals_all_own" ON public.goals FOR ALL USING (auth.uid() = user_id);
 
--- Streaks Policies
-DROP POLICY IF EXISTS "Allow users to manage own streaks" ON public.streaks;
-CREATE POLICY "Allow users to manage own streaks" ON public.streaks FOR ALL USING (auth.uid() = user_id);
+-- settings
+DROP POLICY IF EXISTS "settings_all_own" ON public.settings;
+CREATE POLICY "settings_all_own" ON public.settings FOR ALL USING (auth.uid() = user_id);
 
--- Recurring Transactions Policies
-DROP POLICY IF EXISTS "Allow users to manage own recurring_transactions" ON public.recurring_transactions;
-CREATE POLICY "Allow users to manage own recurring_transactions" ON public.recurring_transactions FOR ALL USING (auth.uid() = user_id);
+-- streaks
+DROP POLICY IF EXISTS "streaks_all_own" ON public.streaks;
+CREATE POLICY "streaks_all_own" ON public.streaks FOR ALL USING (auth.uid() = user_id);
 
--- ─── DATABASE INDEXES FOR SPEED ──────────────────────────────────────
+-- recurring_transactions
+DROP POLICY IF EXISTS "recurring_transactions_all_own" ON public.recurring_transactions;
+CREATE POLICY "recurring_transactions_all_own" ON public.recurring_transactions FOR ALL USING (auth.uid() = user_id);
+
+-- ─── PERFORMANCE INDEXES ─────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_accounts_user ON public.accounts(user_id);
-CREATE INDEX IF NOT EXISTS idx_budgets_user ON public.budgets(user_id);
-CREATE INDEX IF NOT EXISTS idx_goals_user ON public.goals(user_id);
-CREATE INDEX IF NOT EXISTS idx_streaks_user ON public.streaks(user_id);
-CREATE INDEX IF NOT EXISTS idx_recurring_txns_user ON public.recurring_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_type ON public.transactions(user_id, type);
+CREATE INDEX IF NOT EXISTS idx_accounts_user          ON public.accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_categories_user        ON public.categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_budgets_user           ON public.budgets(user_id);
+CREATE INDEX IF NOT EXISTS idx_goals_user             ON public.goals(user_id);
+CREATE INDEX IF NOT EXISTS idx_streaks_user           ON public.streaks(user_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_user         ON public.recurring_transactions(user_id);
