@@ -460,8 +460,8 @@ const Reports: React.FC = () => {
 
       {/* Export Options Dialog Overlay */}
       {showExportOptions && (
-        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setShowExportOptions(false)}>
-          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', margin: 'auto', gap: '16px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowExportOptions(false)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', gap: '16px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '24px', padding: '24px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Export Statement</h3>
               <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
@@ -558,9 +558,9 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowExportOptions(false)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 2 }} onClick={handleGenerateExport}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '46px', borderRadius: '23px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 700, cursor: 'pointer' }} onClick={() => setShowExportOptions(false)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '23px', fontWeight: 700 }} onClick={handleGenerateExport}>
                 Generate Report
               </button>
             </div>
