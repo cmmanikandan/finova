@@ -415,8 +415,8 @@ const Goals: React.FC = () => {
     const isCompleted = g.status === 'completed';
 
     return (
-      <div className="card tap-scale" style={{ padding: '16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px' }} onClick={() => navigate(`/goals/${g.id}`)}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="list-row" style={{ padding: '16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', flexDirection: 'column', alignItems: 'stretch', gap: '10px' }} onClick={() => navigate(`/goals/${g.id}`)}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <div style={{
               width: '42px', height: '42px', borderRadius: '12px', fontSize: '1.25rem',
@@ -445,7 +445,7 @@ const Goals: React.FC = () => {
           )}
         </div>
 
-        <div className="progress-bar" style={{ height: '6px' }}>
+        <div className="progress-bar" style={{ height: '6px', margin: 0 }}>
           <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: g.color }} />
         </div>
 
@@ -460,29 +460,19 @@ const Goals: React.FC = () => {
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       {/* Sticky top bar */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        background: 'var(--color-card)',
-        borderBottom: '1px solid var(--color-border)',
-        padding: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Goals</h2>
+      <div className="app-bar">
+        <h2>Goals</h2>
         <button id="add-goal-btn" className="btn-primary" style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', boxShadow: 'none' }} onClick={() => navigate('/goals/new')}>
           <Plus size={16} /> New Goal
         </button>
       </div>
 
       {/* Main Content scrollable area */}
-      <div style={{ padding: '16px', paddingBottom: '120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         
         {/* Suggested templates (horizontal chips) */}
-        <div>
-          <h3 style={{ margin: '0 0 10px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Goals</h3>
+        <div style={{ padding: '16px 0 16px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Goals</h3>
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -513,13 +503,12 @@ const Goals: React.FC = () => {
                   padding: '10px 16px',
                   borderRadius: '16px',
                   border: '1.5px solid var(--color-border)',
-                  background: 'var(--color-card)',
+                  background: 'var(--color-bg)',
                   color: 'var(--color-text)',
                   fontSize: '0.8125rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
-                  boxShadow: 'var(--shadow-card)',
                 }}
               >
                 <span>{t.icon}</span>
@@ -532,7 +521,7 @@ const Goals: React.FC = () => {
 
         {/* Active Goals list */}
         {activeGoals.length === 0 ? (
-          <div className="empty-state" style={{ padding: '30px 16px' }}>
+          <div className="empty-state" style={{ padding: '40px 16px' }}>
             <span style={{ fontSize: '3rem' }}>🎯</span>
             <p style={{ margin: '12px 0 4px', fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No active goals</p>
             <p style={{ margin: '0 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Start saving toward something you love</p>
@@ -541,9 +530,9 @@ const Goals: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div>
-            <h3 style={{ margin: '0 0 10px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Goals</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ marginTop: '16px' }}>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Goals</h3>
+            <div className="list-group">
               {activeGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
           </div>
@@ -551,9 +540,9 @@ const Goals: React.FC = () => {
 
         {/* Completed Goals */}
         {completedGoals.length > 0 && (
-          <div>
-            <h3 style={{ margin: '0 0 10px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completed 🎉</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completed 🎉</h3>
+            <div className="list-group">
               {completedGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
           </div>
@@ -561,9 +550,9 @@ const Goals: React.FC = () => {
 
         {/* Archived Goals */}
         {archivedGoals.length > 0 && (
-          <div>
-            <h3 style={{ margin: '0 0 10px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Archived 📦</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Archived 📦</h3>
+            <div className="list-group">
               {archivedGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
           </div>

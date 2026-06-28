@@ -163,23 +163,23 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 5. Monthly Summary (2x2 equal sized cards grid) */}
-        <div className="card" style={{ padding: '16px' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Monthly Summary</h3>
+        {/* 5. Monthly Summary (Flat page section) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3 style={{ margin: '4px 0 4px 4px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Monthly Summary</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div style={{ background: 'var(--color-bg)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
+            <div style={{ background: 'var(--color-card)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
               <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px', fontWeight: 600 }}>Monthly Income</span>
               <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#22C55E' }}>{formatCurrency(stats.income)}</span>
             </div>
-            <div style={{ background: 'var(--color-bg)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
+            <div style={{ background: 'var(--color-card)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
               <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px', fontWeight: 600 }}>Monthly Expense</span>
               <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#EF4444' }}>{formatCurrency(stats.expense)}</span>
             </div>
-            <div style={{ background: 'var(--color-bg)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
+            <div style={{ background: 'var(--color-card)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)' }}>
               <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px', fontWeight: 600 }}>Monthly Savings</span>
               <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#2563EB' }}>{formatCurrency(stats.savings)}</span>
             </div>
-            <div style={{ background: 'var(--color-bg)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ background: 'var(--color-card)', borderRadius: '12px', padding: '12px', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px', fontWeight: 600 }}>Top Category</span>
               {highestSpendCategory ? (
                 <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -192,9 +192,9 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 6. Recent Transactions */}
-        <div className="card" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        {/* 6. Recent Transactions (Flat section with thin dividers) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
             <h3 style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Recent Transactions</h3>
             <button
               onClick={() => navigate('/transactions')}
@@ -205,7 +205,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {recentTxns.length === 0 ? (
-            <div className="empty-state" style={{ padding: '20px 0 10px' }}>
+            <div className="card" style={{ padding: '24px', textAlign: 'center', background: 'var(--color-card)' }}>
               <span style={{ fontSize: '2.5rem' }}>📭</span>
               <p style={{ margin: '8px 0 12px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>No transactions yet</p>
               <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.8125rem', height: '40px' }} onClick={() => openForm('expense')}>
@@ -213,24 +213,28 @@ const Dashboard: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="list-group">
               {recentTxns.map(t => {
                 const cat = getCatInfo(t.category);
                 const isIncome = t.type === 'income';
                 return (
                   <div key={t.id}
+                    className="list-row"
                     onClick={() => navigate(`/transactions/${t.id}`)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                    <div style={{
-                      width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-                      background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
-                    }}>
-                      {cat?.icon || (isIncome ? '💰' : '💸')}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', textTransform: 'capitalize' }}>{cat?.name || t.category}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatDate(t.date)} · {formatTime(t.date)}</div>
+                    style={{ padding: '12px 16px' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+                        background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
+                      }}>
+                        {cat?.icon || (isIncome ? '💰' : '💸')}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', textTransform: 'capitalize', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{cat?.name || t.category}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{formatDate(t.date)} · {formatTime(t.date)}</div>
+                      </div>
                     </div>
                     <div style={{
                       fontSize: '0.875rem', fontWeight: 800,
@@ -245,10 +249,10 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* 7. Goals Preview */}
+        {/* 7. Goals Preview (Flat section with thin dividers) */}
         {goals.length > 0 && (
-          <div className="card" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
               <h3 style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Active Goals</h3>
               <button
                 onClick={() => navigate('/goals')}
@@ -257,19 +261,19 @@ const Dashboard: React.FC = () => {
                 See All <ChevronRight size={14} />
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="list-group">
               {goals.slice(0, 2).map(g => {
                 const pct = percentage(g.currentAmount, g.targetAmount);
                 return (
-                  <div key={g.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div key={g.id} className="list-row" onClick={() => navigate(`/goals/${g.id}`)} style={{ padding: '14px 16px', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '1.25rem' }}>{g.icon}</span>
                         <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>{g.name}</span>
                       </div>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>{Math.round(pct)}%</span>
                     </div>
-                    <div className="progress-bar">
+                    <div className="progress-bar" style={{ margin: 0 }}>
                       <div className="progress-fill" style={{ width: `${pct}%`, background: g.color }} />
                     </div>
                   </div>
@@ -279,10 +283,10 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* 8. Budget Preview */}
+        {/* 8. Budget Preview (Flat section with thin dividers) */}
         {budgets.length > 0 && (
-          <div className="card" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
               <h3 style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Budgets</h3>
               <button
                 onClick={() => navigate('/budgets')}
@@ -291,14 +295,14 @@ const Dashboard: React.FC = () => {
                 See All <ChevronRight size={14} />
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="list-group">
               {budgets.slice(0, 2).map(b => {
                 const pct = percentage(b.spent, b.limit);
                 const cat = getCatInfo(b.category);
                 const overBudget = pct >= 100;
                 return (
-                  <div key={b.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div key={b.id} className="list-row" onClick={() => navigate(`/budgets`)} style={{ padding: '14px 16px', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '1.25rem' }}>{cat?.icon || '📦'}</span>
                         <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>{b.name}</span>
@@ -307,7 +311,7 @@ const Dashboard: React.FC = () => {
                         {formatCurrency(b.spent)} / {formatCurrency(b.limit)}
                       </span>
                     </div>
-                    <div className="progress-bar">
+                    <div className="progress-bar" style={{ margin: 0 }}>
                       <div className="progress-fill" style={{
                         width: `${Math.min(pct, 100)}%`,
                         background: overBudget ? '#EF4444' : pct > 80 ? '#F59E0B' : '#22C55E',

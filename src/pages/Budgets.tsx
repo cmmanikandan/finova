@@ -43,28 +43,18 @@ const Budgets: React.FC = () => {
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       {/* Top App Bar */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        background: 'var(--color-card)',
-        borderBottom: '1px solid var(--color-border)',
-        padding: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Budgets</h2>
+      <div className="app-bar">
+        <h2>Budgets</h2>
         <button id="add-budget-btn" className="btn-primary" style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', boxShadow: 'none' }} onClick={() => navigate('/budgets/new')}>
           <Plus size={16} /> New Budget
         </button>
       </div>
 
       {/* Scrollable list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Summary card */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+        {/* Summary card (Flat) */}
         {budgets.length > 0 && (
-          <div className="card" style={{ padding: '14px 16px' }}>
+          <div style={{ padding: '16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                 Total: {formatCurrency(totalSpent)} of {formatCurrency(totalBudgeted)}
@@ -73,7 +63,7 @@ const Budgets: React.FC = () => {
                 {Math.round(percentage(totalSpent, totalBudgeted))}%
               </span>
             </div>
-            <div className="progress-bar" style={{ height: '8px' }}>
+            <div className="progress-bar" style={{ height: '8px', margin: 0 }}>
               <div className="progress-fill" style={{
                 width: `${Math.min(percentage(totalSpent, totalBudgeted), 100)}%`,
                 background: totalSpent > totalBudgeted ? '#EF4444' : '#2563EB',
@@ -83,7 +73,7 @@ const Budgets: React.FC = () => {
         )}
 
         {budgets.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', padding: '16px' }}>
             <div className="empty-state" style={{ padding: 0 }}>
               <span style={{ fontSize: '3rem' }}>⚖️</span>
               <p style={{ margin: '12px 0 4px', fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No budgets yet</p>
@@ -94,69 +84,71 @@ const Budgets: React.FC = () => {
             </div>
           </div>
         ) : (
-          budgets.map(b => {
-            const pct       = percentage(b.spent, b.limit);
-            const remaining = b.limit - b.spent;
-            const over      = pct >= 100;
-            const warn      = pct >= 80 && !over;
-            const cat       = getCat(b.category);
-            const barColor  = over ? '#EF4444' : warn ? '#F59E0B' : b.color;
+          <div className="list-group">
+            {budgets.map(b => {
+              const pct       = percentage(b.spent, b.limit);
+              const remaining = b.limit - b.spent;
+              const over      = pct >= 100;
+              const warn      = pct >= 80 && !over;
+              const cat       = getCat(b.category);
+              const barColor  = over ? '#EF4444' : warn ? '#F59E0B' : b.color;
 
-            return (
-              <div key={b.id} className="card" style={{ padding: '16px', borderLeft: `5px solid ${barColor}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${barColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
-                      {cat?.icon || '📦'}
+              return (
+                <div key={b.id} style={{ padding: '16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderLeft: `6px solid ${barColor}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${barColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        {cat?.icon || '📦'}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{b.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 600 }}>{b.period} · {cat?.name || b.category}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{b.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 600 }}>{b.period} · {cat?.name || b.category}</div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => navigate(`/budgets/${b.id}`)}
+                        style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                        <Edit2 size={14} />
+                      </button>
+                      <button onClick={() => setDeleteId(b.id)}
+                        style={{ border: 'none', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button onClick={() => navigate(`/budgets/${b.id}`)}
-                      style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
-                      <Edit2 size={14} />
-                    </button>
-                    <button onClick={() => setDeleteId(b.id)}
-                      style={{ border: 'none', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
 
-                <div className="progress-bar" style={{ height: '8px' }}>
-                  <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
-                </div>
+                  <div className="progress-bar" style={{ height: '8px', margin: 0 }}>
+                    <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+                  </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.8125rem' }}>
-                    <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(b.spent)}</span>
-                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}> / {formatCurrency(b.limit)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.8125rem' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(b.spent)}</span>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}> / {formatCurrency(b.limit)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {over && <AlertTriangle size={14} color="#EF4444" />}
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: over ? '#EF4444' : warn ? '#F59E0B' : '#22C55E' }}>
+                        {over ? `Over by ${formatCurrency(b.spent - b.limit)}` : `${formatCurrency(remaining)} left`}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    {over && <AlertTriangle size={14} color="#EF4444" />}
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: over ? '#EF4444' : warn ? '#F59E0B' : '#22C55E' }}>
-                      {over ? `Over by ${formatCurrency(b.spent - b.limit)}` : `${formatCurrency(remaining)} left`}
-                    </span>
-                  </div>
-                </div>
 
-                {(over || warn) && (
-                  <div style={{
-                    padding: '8px 12px', borderRadius: '10px',
-                    background: over ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
-                    color: over ? '#DC2626' : '#D97706', fontSize: '0.75rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                  }}>
-                    <AlertTriangle size={14} />
-                    {over ? 'Budget limit exceeded! Consider tracking your expense tags.' : `Warning: You have spent ${Math.round(pct)}% of this budget.`}
-                  </div>
-                )}
-              </div>
-            );
-          })
+                  {(over || warn) && (
+                    <div style={{
+                      padding: '8px 12px', borderRadius: '10px',
+                      background: over ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+                      color: over ? '#DC2626' : '#D97706', fontSize: '0.75rem', fontWeight: 700,
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      <AlertTriangle size={14} />
+                      {over ? 'Budget limit exceeded! Consider tracking your expense tags.' : `Warning: You have spent ${Math.round(pct)}% of this budget.`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 

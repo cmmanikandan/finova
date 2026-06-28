@@ -499,3 +499,107 @@ body {
   border: 1px solid #E2E8F0 !important;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
 }
+
+/* ── Responsive Phone Bezel Chassis Preview for Desktop ── */
+@media (min-width: 480px) {
+  body {
+    background-color: #0F172A !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: hidden !important;
+  }
+  
+  #root {
+    width: 100%;
+    max-width: 440px;
+    height: calc(100vh - 40px);
+    max-height: 850px;
+    margin: auto;
+    border: 8px solid #334155;
+    border-radius: 36px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    position: relative;
+    background-color: var(--color-bg);
+  }
+
+  .app-shell {
+    height: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  .android-toast {
+    bottom: 80px !important;
+  }
+}
+
+/* ── Standardized Android-like App Bar Header ── */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(56px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  box-shadow: none !important;
+}
+
+.app-bar h1, .app-bar h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+  flex: 1;
+}
+
+/* ── Flat, Full-Bleed Page Spacing & List Rows ── */
+.list-group {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-card);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  outline: none;
+  text-decoration: none;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.list-row:active {
+  background-color: var(--color-border);
+}
+
+.list-row-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.list-row-disabled:active {
+  background-color: transparent;
+}
+

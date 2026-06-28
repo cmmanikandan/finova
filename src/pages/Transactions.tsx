@@ -71,7 +71,7 @@ const SwipeableTransactionItem: React.FC<{
   };
 
   return (
-    <div style={{ position: 'relative', background: '#F87171', overflow: 'hidden', borderRadius: '12px', minHeight: '64px' }}>
+    <div style={{ position: 'relative', background: '#F87171', overflow: 'hidden', minHeight: '64px', borderBottom: '1px solid var(--color-border)' }}>
       {/* Left swipe reveal (Copy Action) */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
@@ -100,14 +100,12 @@ const SwipeableTransactionItem: React.FC<{
         onClick={() => swipeOffset === 0 ? onClick() : setSwipeOffset(0)}
         style={{
           display: 'flex', alignItems: 'center', gap: '0.875rem',
-          padding: '12px 14px',
+          padding: '14px 16px',
           background: 'var(--color-card)',
           transform: `translateX(${swipeOffset}px)`,
           transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative',
           zIndex: 2,
-          border: '1px solid var(--color-border)',
-          borderRadius: '12px',
           cursor: 'pointer'
         }}
       >
@@ -459,7 +457,7 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* List */}
-      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {sortedAndFiltered.length === 0 ? (
           <div className="empty-state">
             <span style={{ fontSize: '3rem' }}>🔍</span>
@@ -471,14 +469,14 @@ const Transactions: React.FC = () => {
           </div>
         ) : (
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
-            <div key={dateLabel} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={dateLabel} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px 6px', background: 'var(--color-bg)' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{dateLabel}</span>
                 <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
                   {txns.length} transaction{txns.length > 1 ? 's' : ''}
                 </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
                 {txns.map(t => {
                   const cat = getCat(t.category);
                   const isIncome = t.type === 'income';

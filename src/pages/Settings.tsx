@@ -72,11 +72,11 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
       </div>
 
       {/* Main Settings Body */}
-      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '16px 0 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {groups.map(g => (
           <div key={g.title}>
             <h3 style={{
-              margin: '0 0 8px 4px',
+              margin: '0 0 8px 16px',
               fontSize: '0.75rem',
               fontWeight: 800,
               color: 'var(--color-text-muted)',
@@ -84,41 +84,32 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
               letterSpacing: '0.5px'
             }}>{g.title}</h3>
             
-            <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-              {g.items.map((item, i) => (
+            <div className="list-group">
+              {g.items.map((item) => (
                 <button
                   key={item.id}
                   id={`settings-${item.id}`}
                   onClick={() => navigate(`/settings/${item.id}`)}
-                  style={{
-                    width: '100%',
-                    height: '56px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '0 16px',
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    borderBottom: i < g.items.length - 1 ? '1px solid var(--color-border)' : 'none',
-                    textAlign: 'left',
-                  }}
+                  className="list-row"
+                  style={{ height: '56px' }}
                 >
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    flexShrink: 0,
-                    background: `${item.color}15`,
-                    color: item.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>{item.icon}</div>
-                  
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)', lineHeight: 1.1 }}>{item.label}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{item.sub}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      flexShrink: 0,
+                      background: `${item.color}15`,
+                      color: item.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>{item.icon}</div>
+                    
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)', lineHeight: 1.1 }}>{item.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{item.sub}</div>
+                    </div>
                   </div>
                   
                   <ChevronRight size={16} color="var(--color-border)" style={{ flexShrink: 0 }} />
@@ -388,9 +379,9 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Categories" onBack={onBack} />
       
-      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {/* Search & Sort Row */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '16px 16px 12px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
             <input
@@ -415,17 +406,17 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
           </button>
         </div>
 
-        {/* Categories List Cards */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Categories List Cards (Flat list group) */}
+        <div className="list-group">
           {processedCats.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
               No categories found
             </div>
           ) : (
-            processedCats.map((c, idx) => {
+            processedCats.map((c) => {
               const isHidden = hiddenCats.includes(c.id);
               return (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: idx < processedCats.length - 1 ? '1px solid var(--color-border)' : 'none', opacity: isHidden ? 0.5 : 1 }}>
+                <div key={c.id} className="list-row" style={{ opacity: isHidden ? 0.5 : 1, cursor: 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem', flexShrink: 0 }}>
                       {c.icon}
@@ -479,6 +470,25 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     </div>
   );
 };
+
+const ACCOUNT_PRESETS = [
+  // Banks
+  { name: 'SBI Bank', type: 'bank', icon: '🏦', color: '#1F4096' },
+  { name: 'HDFC Bank', type: 'bank', icon: '🏦', color: '#1C3F94' },
+  { name: 'ICICI Bank', type: 'bank', icon: '🏦', color: '#E06B26' },
+  { name: 'Axis Bank', type: 'bank', icon: '🏦', color: '#97184A' },
+  { name: 'Kotak Bank', type: 'bank', icon: '🏦', color: '#E61A22' },
+  // Credit Cards
+  { name: 'Visa Card', type: 'credit_card', icon: '💳', color: '#1A1F71' },
+  { name: 'Mastercard', type: 'credit_card', icon: '💳', color: '#EB001B' },
+  { name: 'RuPay Card', type: 'credit_card', icon: '💳', color: '#0957A5' },
+  { name: 'OneCard', type: 'credit_card', icon: '💳', color: '#1E293B' },
+  // UPI
+  { name: 'PhonePe UPI', type: 'upi', icon: '📱', color: '#5F259F' },
+  { name: 'Google Pay', type: 'upi', icon: '📱', color: '#1A73E8' },
+  { name: 'Paytm Wallet', type: 'upi', icon: '📱', color: '#00B9F5' },
+  { name: 'BHIM UPI', type: 'upi', icon: '📱', color: '#F15A24' },
+];
 
 interface AccountsViewProps {
   onBack: () => void;
@@ -616,6 +626,43 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
 
         {/* Form Body */}
         <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+          {/* Quick Presets Selection */}
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Quick Preset</label>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '4px' }}>
+              {ACCOUNT_PRESETS.map(p => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => {
+                    setName(p.name);
+                    setType(p.type as any);
+                    setIcon(p.icon);
+                    setColor(p.color);
+                  }}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '16px',
+                    border: `1.5px solid ${name === p.name ? p.color : 'var(--color-border)'}`,
+                    background: name === p.name ? `${p.color}15` : 'var(--color-card)',
+                    color: name === p.name ? p.color : 'var(--color-text-muted)',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span>{p.icon}</span>
+                  <span>{p.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Account Name</label>
@@ -678,10 +725,10 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Accounts" onBack={onBack} />
       
-      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {/* Search Row */}
-        <div style={{ position: 'relative', width: '100%' }}>
-          <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+        <div style={{ position: 'relative', width: '100%', padding: '16px 16px 12px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
           <input
             type="text"
             placeholder="Search accounts…"
@@ -692,17 +739,17 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
           />
         </div>
 
-        {/* Accounts List Cards */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {/* Accounts List Cards (Flat list group) */}
+        <div className="list-group">
           {processedAccs.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
               No accounts found
             </div>
           ) : (
-            processedAccs.map((a, idx) => {
+            processedAccs.map((a) => {
               const isHidden = hiddenAccs.includes(a.id);
               return (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: idx < processedAccs.length - 1 ? '1px solid var(--color-border)' : 'none', opacity: isHidden ? 0.5 : 1 }}>
+                <div key={a.id} className="list-row" style={{ opacity: isHidden ? 0.5 : 1, cursor: 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${a.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem', flexShrink: 0 }}>
                       {a.icon}
