@@ -112,16 +112,12 @@ body {
 }
 
 /* Page transitions */
-.page-enter {
-  animation: slideLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+[data-transition="forward"] .page-enter {
+  animation: slideLeft 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.slide-left {
-  animation: slideLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
-.slide-right {
-  animation: slideRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+[data-transition="backward"] .page-enter {
+  animation: slideRight 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .fade-in {
@@ -129,13 +125,13 @@ body {
 }
 
 @keyframes slideLeft {
-  from { transform: translateX(100%); opacity: 0.95; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes slideRight {
-  from { transform: translateX(-100%); opacity: 0.95; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes fadeIn {
@@ -173,7 +169,7 @@ body {
 /* Card */
 .card {
   background: var(--color-card);
-  border-radius: var(--radius-xl);
+  border-radius: 16px; /* MD3 Card Radius: 16px */
   box-shadow: var(--shadow-card);
   border: 1px solid var(--color-border);
 }
@@ -190,16 +186,17 @@ body {
 
 /* Buttons */
 .btn-primary {
-  background: linear-gradient(135deg, #2563EB, #3B82F6);
+  height: 52px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: #fff;
   border: none;
-  border-radius: var(--radius-full);
-  font-weight: 600;
+  border-radius: 26px; /* fully rounded for MD3 pill button */
+  font-weight: 700;
   font-size: 0.9375rem;
-  padding: 0.875rem 1.5rem;
+  padding: 0 1.5rem;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  box-shadow: 0 4px 14px 0 rgb(37 99 235 / 0.4);
+  box-shadow: 0 4px 14px 0 rgb(37 99 235 / 0.2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -208,39 +205,41 @@ body {
 .btn-primary:active { transform: scale(0.96); opacity: 0.9; }
 
 .btn-ghost {
+  height: 52px;
   background: transparent;
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-weight: 500;
+  border-radius: 26px; /* fully rounded for MD3 pill button */
+  font-weight: 600;
   font-size: 0.9375rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0 1.5rem;
   cursor: pointer;
   color: var(--color-text);
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
-.btn-ghost:active { background: #F1F5F9; }
+.btn-ghost:active { background: var(--color-bg); }
 
-/* Bottom Nav */
+/* Bottom Nav (Material 3 standard) */
 .bottom-nav {
   position: fixed;
-  bottom: 16px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 448px;
-  height: 72px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 24px;
+  width: 100%;
+  max-width: 480px;
+  height: 80px; /* MD3 spec 80dp */
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
   z-index: 100;
-  transition: background 0.3s, border-color 0.3s;
 }
 
 .nav-item {
@@ -248,20 +247,18 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   flex: 1;
   height: 100%;
-  border-radius: 16px;
   cursor: pointer;
   border: none;
   background: transparent;
-  color: #94A3B8;
+  color: var(--color-text-muted);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   padding: 4px 0;
 }
 
 .nav-item:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
 .nav-item.active {
@@ -272,43 +269,44 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 28px;
-  border-radius: 14px;
-  transition: all 0.2s ease;
+  width: 64px; /* MD3 active pill width */
+  height: 32px; /* MD3 active pill height */
+  border-radius: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item.active .nav-icon-wrapper {
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(37, 99, 235, 0.12); /* MD3 pill background overlay */
   color: var(--color-primary);
 }
 
 .nav-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: -0.1px;
+  font-size: 0.75rem; /* MD3 text size */
+  font-weight: 700;
+  margin-top: 4px;
+  letter-spacing: 0.1px;
 }
 
-/* FAB */
+/* FAB (Material 3 standard) */
 .fab {
   position: fixed;
-  bottom: 104px;
-  right: max(20px, calc(50% - 480px / 2 + 20px));
+  bottom: 96px;
+  right: max(16px, calc(50% - 480px / 2 + 16px));
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
-  border-radius: 28px;
+  background: var(--color-primary);
+  border-radius: 16px; /* MD3 standard shape for FAB */
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
   z-index: 50;
   color: #fff;
 }
-.fab:active { transform: scale(0.9) rotate(45deg); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); }
+.fab:active { transform: scale(0.9); background-color: var(--color-primary-dark); }
 
 
 /* Progress bars */

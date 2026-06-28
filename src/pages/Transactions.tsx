@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Trash2, X, Filter, Pencil, ChevronDown } from 'lucide-react';
+import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Copy, ArrowUpDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigation } from '../context/NavigationContext';
+import { useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
-import AddTransaction from './AddTransaction';
-import TransactionDetails from './TransactionDetails';
 import type { TransactionType } from '../types';
 
 const DATE_FILTERS = ['All', 'Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'];
@@ -29,29 +27,141 @@ function matchDate(txnDate: string, filter: string, startDate?: string, endDate?
     if (startDate && endDate) {
       const s = new Date(startDate);
       const e = new Date(endDate);
-      e.setHours(23, 59, 59, 999); // Inclusive end date
+      e.setHours(23, 59, 59, 999);
       return d >= s && d <= e;
     }
   }
   return true;
 }
 
+const SwipeableTransactionItem: React.FC<{
+  t: any;
+  cat: any;
+  isIncome: boolean;
+  onDuplicate: (t: any) => void;
+  onDelete: (id: string) => void;
+  onClick: () => void;
+}> = ({ t, cat, isIncome, onDuplicate, onDelete, onClick }) => {
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    const diff = e.touches[0].clientX - touchStart;
+    if (diff < -120) setSwipeOffset(-120);
+    else if (diff > 120) setSwipeOffset(120);
+    else setSwipeOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false);
+    if (swipeOffset < -50) {
+      setSwipeOffset(-100);
+    } else if (swipeOffset > 50) {
+      setSwipeOffset(100);
+    } else {
+      setSwipeOffset(0);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', background: '#F87171', overflow: 'hidden', borderRadius: '12px', minHeight: '64px' }}>
+      {/* Left swipe reveal (Copy Action) */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
+        background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+      }}>
+        <button onClick={(e) => { e.stopPropagation(); onDuplicate(t); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+          <Copy size={16} /> Copy
+        </button>
+      </div>
+
+      {/* Right swipe reveal (Delete Action) */}
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: '100px',
+        background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+      }}>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+          <Trash2 size={16} /> Delete
+        </button>
+      </div>
+
+      {/* Main Container */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => swipeOffset === 0 ? onClick() : setSwipeOffset(0)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '0.875rem',
+          padding: '12px 14px',
+          background: 'var(--color-card)',
+          transform: `translateX(${swipeOffset}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative',
+          zIndex: 2,
+          border: '1px solid var(--color-border)',
+          borderRadius: '12px',
+          cursor: 'pointer'
+        }}
+      >
+        <div style={{
+          width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+          background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
+        }}>{cat?.icon || '📦'}</div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
+            {t.subcategory && <span style={{ fontSize: '0.6875rem', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t.subcategory}</span>}
+          </div>
+          {t.note && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{formatTime(t.date)}</div>
+        </div>
+
+        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <div style={{
+            fontSize: '0.9375rem', fontWeight: 800,
+            color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
+          }}>
+            {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Transactions: React.FC = () => {
   const { categories, accounts, refresh } = useApp();
-  const { push } = useNavigation();
+  const navigate = useNavigate();
   const [search, setSearch]             = useState('');
   const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType>('all');
   const [dateFilter, setDateFilter]     = useState('All');
   const [deleteId, setDeleteId]         = useState<string | null>(null);
+  
+  // Sorting State
+  const [sortBy, setSortBy]             = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
 
-  // Advanced Filters State
-  const [showFiltersSheet, setShowFiltersSheet] = useState(false);
+  // Advanced Filters State (renders as a full-screen sub-view)
+  const [showFiltersPage, setShowFiltersPage]   = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedAccount, setSelectedAccount]   = useState('all');
   const [minAmount, setMinAmount]               = useState('');
   const [maxAmount, setMaxAmount]               = useState('');
   const [startDate, setStartDate]               = useState('');
   const [endDate, setEndDate]                   = useState('');
+
+  // Undo Delete Snackbar State
+  const [deletedBackup, setDeletedBackup]       = useState<any | null>(null);
+  const [snackbarMessage, setSnackbarMessage]   = useState<string | null>(null);
 
   const allTxns = db.getTransactions();
 
@@ -67,14 +177,8 @@ const Transactions: React.FC = () => {
     return allTxns.filter(t => {
       if (typeFilter !== 'all' && t.type !== typeFilter) return false;
       if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
-      
-      // Category filter
       if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
-      
-      // Account filter
       if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
-      
-      // Amount range filter
       if (minAmount && t.amount < parseFloat(minAmount)) return false;
       if (maxAmount && t.amount > parseFloat(maxAmount)) return false;
 
@@ -87,12 +191,78 @@ const Transactions: React.FC = () => {
     });
   }, [allTxns, typeFilter, dateFilter, startDate, endDate, selectedCategory, selectedAccount, minAmount, maxAmount, search, categories]);
 
-  const grouped = groupTransactionsByDate(filtered);
+  const sortedAndFiltered = useMemo(() => {
+    const list = [...filtered];
+    if (sortBy === 'date_desc') {
+      list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else if (sortBy === 'date_asc') {
+      list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } else if (sortBy === 'amount_desc') {
+      list.sort((a, b) => b.amount - a.amount);
+    } else if (sortBy === 'amount_asc') {
+      list.sort((a, b) => a.amount - b.amount);
+    }
+    return list;
+  }, [filtered, sortBy]);
 
-  const handleDelete = (id: string) => {
-    db.deleteTransaction(id);
-    setDeleteId(null);
+  const grouped = groupTransactionsByDate(sortedAndFiltered);
+
+  const handleDeleteTrigger = (id: string) => {
+    const target = allTxns.find(t => t.id === id);
+    if (target) {
+      setDeletedBackup(target);
+    }
+    setDeleteId(id);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteId) {
+      db.deleteTransaction(deleteId);
+      setDeleteId(null);
+      refresh();
+      setSnackbarMessage('Transaction deleted');
+      setTimeout(() => {
+        setSnackbarMessage(null);
+      }, 5000);
+    }
+  };
+
+  const handleUndoDelete = () => {
+    if (deletedBackup) {
+      db.addTransaction({
+        type: deletedBackup.type,
+        amount: deletedBackup.amount,
+        category: deletedBackup.category,
+        subcategory: deletedBackup.subcategory,
+        account: deletedBackup.account,
+        toAccount: deletedBackup.toAccount,
+        date: deletedBackup.date,
+        note: deletedBackup.note,
+        receiptUrl: deletedBackup.receiptUrl
+      });
+      setDeletedBackup(null);
+      setSnackbarMessage(null);
+      refresh();
+    }
+  };
+
+  const handleDuplicate = (t: any) => {
+    db.addTransaction({
+      type: t.type,
+      amount: t.amount,
+      category: t.category,
+      subcategory: t.subcategory,
+      account: t.account,
+      toAccount: t.toAccount,
+      date: new Date().toISOString(),
+      note: `${t.note || ''} (Copy)`.trim(),
+      receiptUrl: t.receiptUrl
+    });
     refresh();
+    setSnackbarMessage('Transaction duplicated');
+    setTimeout(() => {
+      setSnackbarMessage(null);
+    }, 3000);
   };
 
   const clearAllFilters = () => {
@@ -107,6 +277,83 @@ const Transactions: React.FC = () => {
 
   const getCat = (id: string) => categories.find(c => c.id === id);
 
+  // If Filters sub-view is requested, render it as a full-screen overlay page instead of a bottom sheet
+  if (showFiltersPage) {
+    return (
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+        {/* App Bar */}
+        <div className="app-bar" style={{ display: 'flex', alignItems: 'center', height: '64px', padding: '0 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
+          <button onClick={() => setShowFiltersPage(false)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+            <ArrowLeft size={22} />
+          </button>
+          <h2 style={{ margin: '0 0 0 12px', fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Filter Transactions</h2>
+          <button className="btn-ghost" style={{ marginLeft: 'auto', height: '36px', borderRadius: '18px', padding: '0 16px', fontSize: '0.8125rem' }} onClick={clearAllFilters}>
+            Clear
+          </button>
+        </div>
+
+        {/* Filter Inputs */}
+        <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="all">All Categories</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              </select>
+              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="all">All Accounts</option>
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+              </select>
+              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount Range</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <input type="number" className="input-field" placeholder="Min Amount (₹)" value={minAmount} onChange={e => setMinAmount(e.target.value)} />
+              <input type="number" className="input-field" placeholder="Max Amount (₹)" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date Filter Mode</label>
+            <div style={{ position: 'relative' }}>
+              <select className="input-field" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                {DATE_FILTERS.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          {dateFilter === 'Custom Date' && (
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Dates</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <input type="date" className="input-field" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <input type="date" className="input-field" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action buttons (sticky footer) */}
+        <div style={{ padding: '16px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '12px' }}>
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { clearAllFilters(); setShowFiltersPage(false); }}>Reset</button>
+          <button className="btn-primary" style={{ flex: 1 }} onClick={() => setShowFiltersPage(false)}>Apply Filters</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       {/* Top bar (Sticky) */}
@@ -116,14 +363,45 @@ const Transactions: React.FC = () => {
         zIndex: 10,
         background: 'var(--color-card)',
         borderBottom: '1px solid var(--color-border)',
-        padding: '1rem 1.25rem 0.75rem',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
       }}>
-        <h2 style={{ margin: '0 0 0.875rem', fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Transactions</h2>
+        {/* Title & Sorting */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Transactions</h2>
+          
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <ArrowUpDown size={14} style={{ color: 'var(--color-text-muted)', marginRight: '4px' }} />
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--color-primary)',
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                paddingRight: '12px'
+              }}
+            >
+              <option value="date_desc">Newest First</option>
+              <option value="date_asc">Oldest First</option>
+              <option value="amount_desc">Amount: High-Low</option>
+              <option value="amount_asc">Amount: Low-High</option>
+            </select>
+            <ChevronDown size={12} style={{ position: 'absolute', right: 0, color: 'var(--color-primary)', pointerEvents: 'none' }} />
+          </div>
+        </div>
 
         {/* Search & Advanced Filters Trigger */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
             <input
               id="txn-search"
               type="text"
@@ -131,7 +409,7 @@ const Transactions: React.FC = () => {
               className="input-field"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.5rem', paddingRight: search ? '2.5rem' : '1rem', minHeight: '44px' }}
+              style={{ paddingLeft: '2.75rem', paddingRight: search ? '2.5rem' : '1rem' }}
             />
             {search && (
               <button onClick={() => setSearch('')} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
@@ -139,117 +417,81 @@ const Transactions: React.FC = () => {
               </button>
             )}
           </div>
-          <button id="filter-options-btn" onClick={() => setShowFiltersSheet(true)} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
-            background: isFilterActive ? 'rgba(37,99,235,0.1)' : 'var(--color-bg)',
-            border: '1.5px solid var(--color-border)', borderRadius: '14px', cursor: 'pointer',
-            color: isFilterActive ? 'var(--color-primary)' : 'var(--color-text-muted)', transition: 'all 0.2s'
+          <button id="filter-options-btn" onClick={() => setShowFiltersPage(true)} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px',
+            background: isFilterActive ? 'rgba(37,99,235,0.1)' : 'var(--color-card)',
+            border: '1.5px solid var(--color-border)', borderRadius: '12px', cursor: 'pointer',
+            color: isFilterActive ? 'var(--color-primary)' : 'var(--color-text-muted)', transition: 'all 0.2s', flexShrink: 0
           }}>
-            <Filter size={18} />
+            <Filter size={20} />
           </button>
         </div>
 
-        {/* Type filter */}
+        {/* Horizontal scroll chips */}
         <div style={{
           display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '0.75rem',
+          gap: '8px',
           overflowX: 'auto',
-          paddingBottom: '2px',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          paddingBottom: '4px'
         }}>
           {(['all', 'expense', 'income', 'transfer'] as const).map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)} className={`chip ${typeFilter === t ? 'chip-active' : 'chip-inactive'}`}>
-              {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '99px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                border: '1px solid var(--color-border)',
+                background: typeFilter === t ? 'var(--color-primary)' : 'var(--color-card)',
+                color: typeFilter === t ? '#fff' : 'var(--color-text-muted)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
+              {t === 'all' ? 'All Transactions' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
-          ))}
-        </div>
-
-        {/* Date filter */}
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}>
-          {DATE_FILTERS.map(f => (
-            <button key={f} onClick={() => setDateFilter(f)} className={`chip ${dateFilter === f ? 'chip-active' : 'chip-inactive'}`}>{f}</button>
           ))}
         </div>
       </div>
 
       {/* List */}
-      <div style={{ padding: '16px 16px 120px' }}>
-        {filtered.length === 0 ? (
+      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {sortedAndFiltered.length === 0 ? (
           <div className="empty-state">
-            <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '64px', opacity: 0.35 }} />
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-muted)' }}>No transactions found</p>
-            <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}
-              onClick={() => push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: 'expense' } })}>
-              <Plus size={16} /> Add Transaction
+            <span style={{ fontSize: '3rem' }}>🔍</span>
+            <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>No transactions found</p>
+            <button className="btn-primary" style={{ height: '44px' }}
+              onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}>
+              <Plus size={18} /> Add Transaction
             </button>
           </div>
         ) : (
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
-            <div key={dateLabel} style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{dateLabel}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  {txns.length} txn{txns.length > 1 ? 's' : ''}
+            <div key={dateLabel} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{dateLabel}</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                  {txns.length} transaction{txns.length > 1 ? 's' : ''}
                 </span>
               </div>
-              <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-                {txns.map((t, i) => {
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {txns.map(t => {
                   const cat = getCat(t.category);
                   const isIncome = t.type === 'income';
                   return (
-                    <div key={t.id}
-                      onClick={() => push({ id: `txn-details-${t.id}`, component: TransactionDetails, props: { transactionId: t.id } })}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '0.875rem',
-                        padding: '0.875rem 1rem',
-                        borderBottom: i < txns.length - 1 ? '1px solid var(--color-border)' : 'none',
-                        cursor: 'pointer',
-                      }}>
-                      <div style={{
-                        width: '42px', height: '42px', borderRadius: '14px', flexShrink: 0,
-                        background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
-                      }}>{cat?.icon || '📦'}</div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
-                          {t.subcategory && <span style={{ fontSize: '0.6875rem', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', color: 'var(--color-text-muted)' }}>{t.subcategory}</span>}
-                        </div>
-                        {t.note && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{formatTime(t.date)}</div>
-                      </div>
-
-                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <div style={{
-                          fontSize: '0.9375rem', fontWeight: 700,
-                          color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
-                        }}>
-                          {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <button
-                            onClick={e => { e.stopPropagation(); push({ id: `edit-${t.id}`, component: AddTransaction, props: { editId: t.id } }); }}
-                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '2px' }}>
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); setDeleteId(t.id); }}
-                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '2px' }}>
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <SwipeableTransactionItem
+                      key={t.id}
+                      t={t}
+                      cat={cat}
+                      isIncome={isIncome}
+                      onDuplicate={handleDuplicate}
+                      onDelete={handleDeleteTrigger}
+                      onClick={() => navigate(`/transactions/${t.id}`)}
+                    />
                   );
                 })}
               </div>
@@ -260,87 +502,58 @@ const Transactions: React.FC = () => {
 
       {/* FAB */}
       <button id="txn-fab-add" className="fab"
-        onClick={() => push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: 'expense' } })}
+        onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}
         aria-label="Add transaction">
-        <Plus size={26} strokeWidth={2.5} />
+        <Plus size={28} strokeWidth={2.5} />
       </button>
 
-      {/* Delete confirm */}
-      {deleteId && (
-        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-          <div className="bottom-sheet">
-            <div className="sheet-handle" />
-            <h3 style={{ margin: '0 0 0.5rem', color: '#0F172A' }}>Delete Transaction?</h3>
-            <p style={{ margin: '0 0 1.25rem', color: '#64748B', fontSize: '0.9375rem' }}>This action cannot be undone.</p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setDeleteId(null)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'linear-gradient(135deg, #EF4444, #DC2626)' }} onClick={() => handleDelete(deleteId)}>Delete</button>
-            </div>
-          </div>
+      {/* Undo Delete Snackbar */}
+      {snackbarMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '96px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '448px',
+          background: '#1E293B',
+          color: '#fff',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          zIndex: 99
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{snackbarMessage}</span>
+          {deletedBackup && snackbarMessage.includes('deleted') && (
+            <button
+              onClick={handleUndoDelete}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#38BDF8',
+                fontWeight: 700,
+                fontSize: '0.8125rem',
+                cursor: 'pointer'
+              }}
+            >
+              UNDO
+            </button>
+          )}
         </div>
       )}
 
-      {/* Filters sheet */}
-      {showFiltersSheet && (
-        <div className="modal-overlay" onClick={() => setShowFiltersSheet(false)}>
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 700, color: '#0F172A' }}>Filter Transactions</h3>
-              <button onClick={() => setShowFiltersSheet(false)} style={{ border: 'none', background: '#F1F5F9', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              {/* Category */}
-              <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Category</label>
-                <div style={{ position: 'relative' }}>
-                  <select className="input-field" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                    <option value="all">All Categories</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                  </select>
-                  <ChevronDown size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-                </div>
-              </div>
-
-              {/* Account */}
-              <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Account</label>
-                <div style={{ position: 'relative' }}>
-                  <select className="input-field" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                    <option value="all">All Accounts</option>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
-                  </select>
-                  <ChevronDown size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-                </div>
-              </div>
-
-              {/* Amount Range */}
-              <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Amount Range</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <input type="number" className="input-field" placeholder="Min Amount (₹)" value={minAmount} onChange={e => setMinAmount(e.target.value)} />
-                  <input type="number" className="input-field" placeholder="Max Amount (₹)" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} />
-                </div>
-              </div>
-
-              {/* Custom Date Range */}
-              {dateFilter === 'Custom Date' && (
-                <div>
-                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Custom Date Range</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                    <input type="date" className="input-field" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                    <input type="date" className="input-field" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={clearAllFilters}>Clear All</button>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={() => setShowFiltersSheet(false)}>Apply</button>
+      {/* Full-page Deletion Confirmation Modal Overlay */}
+      {deleteId && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setDeleteId(null)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Delete Transaction?</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>This transaction will be permanently removed. The account balance and budgets will be automatically adjusted.</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '44px', borderRadius: '22px' }} onClick={() => setDeleteId(null)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, height: '44px', borderRadius: '22px', background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={handleConfirmDelete}>Delete</button>
             </div>
           </div>
         </div>

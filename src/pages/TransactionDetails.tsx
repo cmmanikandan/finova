@@ -1,27 +1,23 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Edit2, Trash2, Calendar, CreditCard, Tag, FileText, Receipt, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigation } from '../context/NavigationContext';
+import { useParams, useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
 import { formatCurrency, formatDate, formatTime } from '../utils/format';
-import AddTransaction from './AddTransaction';
 
-interface TransactionDetailsProps {
-  transactionId: string;
-}
-
-const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transactionId }) => {
-  const { pop, push: pushScreen } = useNavigation();
+const TransactionDetails: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { categories, accounts, refresh } = useApp();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const txn = db.getTransactions().find(t => t.id === transactionId);
+  const txn = db.getTransactions().find(t => t.id === id);
 
   if (!txn) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
         <div style={{ display: 'flex', alignItems: 'center', height: '56px', padding: '0 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
-          <button onClick={pop} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+          <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
             <ArrowLeft size={22} />
           </button>
           <h1 style={{ margin: '0 0 0 12px', fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Details</h1>
@@ -41,7 +37,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transactionId }
   const handleDelete = () => {
     db.deleteTransaction(txn.id);
     refresh();
-    pop();
+    navigate('/transactions');
   };
 
   return (
@@ -56,7 +52,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transactionId }
         paddingTop: 'env(safe-area-inset-top)',
       }}>
         <button
-          onClick={pop}
+          onClick={() => navigate(-1)}
           style={{
             width: '44px', height: '44px', display: 'flex', alignItems: 'center',
             justifyContent: 'center', border: 'none', background: 'transparent',
@@ -75,7 +71,7 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transactionId }
 
         <div style={{ display: 'flex', gap: '4px' }}>
           <button
-            onClick={() => pushScreen({ id: `edit-${txn.id}`, component: AddTransaction, props: { editId: txn.id } })}
+            onClick={() => navigate(`/transactions/${txn.id}/edit`)}
             style={{
               width: '40px', height: '40px', display: 'flex', alignItems: 'center',
               justifyContent: 'center', border: 'none', background: 'transparent',
@@ -180,16 +176,15 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transactionId }
         </div>
       </div>
 
-      {/* Delete Confirmation Sheet */}
+      {/* Delete Confirmation Card Overlay */}
       {showDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <h3 style={{ margin: '0 0 0.5rem', color: 'var(--color-text)' }}>Delete Transaction?</h3>
-            <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>This action is permanent and cannot be undone.</p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1, background: 'linear-gradient(135deg, #EF4444, #DC2626)' }} onClick={handleDelete}>Delete</button>
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setShowDeleteConfirm(false)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Delete Transaction?</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>This transaction will be permanently removed. The account balance and budgets will be automatically adjusted.</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '44px', borderRadius: '22px' }} onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, height: '44px', borderRadius: '22px', background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={handleDelete}>Delete</button>
             </div>
           </div>
         </div>

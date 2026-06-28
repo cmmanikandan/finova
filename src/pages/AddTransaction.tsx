@@ -4,15 +4,10 @@ import {
   ChevronDown, Check, Receipt
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigation } from '../context/NavigationContext';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
 import type { TransactionType } from '../types';
 import { format } from 'date-fns';
-
-interface AddTransactionProps {
-  defaultType?: TransactionType;
-  editId?: string;       // if provided → edit mode
-}
 
 const TYPES: { id: TransactionType; label: string; color: string; bg: string }[] = [
   { id: 'expense',  label: 'Expense',  color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
@@ -20,9 +15,13 @@ const TYPES: { id: TransactionType; label: string; color: string; bg: string }[]
   { id: 'transfer', label: 'Transfer', color: '#2563EB', bg: 'rgba(37,99,235,0.12)' },
 ];
 
-const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense', editId }) => {
-  const { pop } = useNavigation();
+const AddTransaction: React.FC = () => {
+  const { id: editId } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { accounts, categories, refresh } = useApp();
+
+  const defaultType = location.state?.defaultType || 'expense';
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [type,        setType]        = useState<TransactionType>(defaultType);
@@ -103,7 +102,7 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense'
         });
       }
       refresh();
-      pop();
+      navigate(-1);
     } finally {
       setSaving(false);
     }
@@ -137,7 +136,7 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense'
       }}>
         <button
           id="add-txn-back"
-          onClick={pop}
+          onClick={() => navigate(-1)}
           style={{
             width: '44px', height: '44px', display: 'flex', alignItems: 'center',
             justifyContent: 'center', border: 'none', background: 'transparent',
@@ -305,7 +304,7 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense'
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         gap: '4px', padding: '10px 4px', border: 'none', borderRadius: '12px',
-                        background: category === c.id ? `${c.color}18` : '#F8FAFC',
+                        background: category === c.id ? `${c.color}18` : 'var(--color-bg)',
                         cursor: 'pointer', transition: 'all 0.15s',
                         outline: category === c.id ? `2px solid ${c.color}` : 'none',
                       }}
@@ -497,33 +496,23 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense'
       }}>
         <button
           id="add-txn-cancel"
-          onClick={pop}
-          style={{
-            flex: 1, height: '52px', border: '1.5px solid var(--color-border)',
-            borderRadius: '16px', background: 'transparent',
-            fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text-muted)',
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-          }}
+          className="btn-ghost"
+          onClick={() => navigate(-1)}
+          style={{ flex: 1 }}
         >
           Cancel
         </button>
         <button
           id="add-txn-save"
+          className="btn-primary"
           onClick={handleSave}
           disabled={saving}
           style={{
-            flex: 2, height: '52px', border: 'none', borderRadius: '16px',
+            flex: 2,
             background: `linear-gradient(135deg, ${activeType.color}, ${activeType.color}cc)`,
-            color: '#fff', fontWeight: 700, fontSize: '1rem',
-            cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.7 : 1,
-            transition: 'opacity 0.15s, transform 0.1s',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            color: '#fff',
             boxShadow: `0 4px 16px ${activeType.color}40`,
-            fontFamily: 'Inter, sans-serif',
           }}
-          onMouseDown={e => { if (!saving) e.currentTarget.style.transform = 'scale(0.97)'; }}
-          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           {saving ? (
             <>
@@ -533,7 +522,7 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ defaultType = 'expense'
           ) : (
             <>
               <Check size={18} />
-              {editId ? 'Update Transaction' : `Save ${activeType.label}`}
+              {editId ? 'Update' : `Save`}
             </>
           )}
         </button>

@@ -105,12 +105,12 @@ const Reports: React.FC = () => {
         zIndex: 10,
         background: 'var(--color-card)',
         borderBottom: '1px solid var(--color-border)',
-        padding: '1rem 1.25rem 0.75rem',
+        padding: '0 16px 12px',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Reports</h2>
-          <button id="report-export-btn" className="btn-ghost" onClick={() => setShowExportOptions(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.875rem', fontSize: '0.75rem', borderRadius: '10px' }}>
-            <Download size={14} /> Export Report
+        <div className="app-bar" style={{ padding: '16px 0', borderBottom: 'none', minHeight: '64px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }}>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Reports</h2>
+          <button id="report-export-btn" className="btn-ghost" onClick={() => setShowExportOptions(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem' }}>
+            <Download size={15} /> Export Report
           </button>
         </div>
 
@@ -308,33 +308,32 @@ const Reports: React.FC = () => {
 
       </div>
 
-      {/* Export Options Sheet */}
+      {/* Export Options Dialog Overlay (no bottom sheets) */}
       {showExportOptions && (
-        <div className="modal-overlay" onClick={() => setShowExportOptions(false)}>
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setShowExportOptions(false)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Export Reports</h3>
-              <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                 <X size={16} />
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem', borderRadius: '16px' }} onClick={() => handleExport('pdf')}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('pdf')}>
                 <FileText size={24} color="#EF4444" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>PDF Document</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>PDF</span>
               </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem', borderRadius: '16px' }} onClick={() => handleExport('excel')}>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('excel')}>
                 <BarChart3 size={24} color="#22C55E" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>Excel Sheet</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>Excel</span>
               </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem', borderRadius: '16px' }} onClick={() => handleExport('csv')}>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('csv')}>
                 <FileText size={24} color="#3B82F6" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>CSV Format</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>CSV</span>
               </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem', borderRadius: '16px' }} onClick={() => handleExport('json')}>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('json')}>
                 <FileText size={24} color="#7C3AED" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>JSON Format</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>JSON</span>
               </button>
             </div>
           </div>
