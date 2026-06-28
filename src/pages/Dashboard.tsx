@@ -76,11 +76,44 @@ const Dashboard: React.FC = () => {
     const hasDailyLimit = db.getBudgets().length > 0;
     const hasGoals = db.getGoals().length > 0;
     
+    // Configured balances (non-zero balance or added account)
+    const hasAccounts = db.getAccounts().some(a => a.balance !== 0) || db.getAccounts().length > 6;
+    
+    // Customized categories (edited template properties or created new custom ones)
+    const defaultsMap: Record<string, { name: string; icon: string; color: string }> = {
+      food: { name: 'Food', icon: '🍕', color: '#EA580C' },
+      travel: { name: 'Travel', icon: '✈️', color: '#4F46E5' },
+      shopping: { name: 'Shopping', icon: '🛍️', color: '#DB2777' },
+      education: { name: 'Education', icon: '📚', color: '#059669' },
+      medical: { name: 'Medical', icon: '🏥', color: '#DC2626' },
+      bills: { name: 'Bills', icon: '⚡', color: '#D97706' },
+      entertainment: { name: 'Entertainment', icon: '🎮', color: '#7C3AED' },
+      fuel: { name: 'Fuel', icon: '⛽', color: '#0F766E' },
+      hostel: { name: 'Hostel', icon: '🏠', color: '#0369A1' },
+      canteen: { name: 'Canteen', icon: '🍱', color: '#92400E' },
+      stationery: { name: 'Stationery', icon: '✏️', color: '#1D4ED8' },
+      transport: { name: 'Transport', icon: '🚌', color: '#065F46' },
+      salary: { name: 'Salary', icon: '💰', color: '#16A34A' },
+      business: { name: 'Business', icon: '💼', color: '#0891B2' },
+      investment: { name: 'Investment', icon: '📈', color: '#1D4ED8' },
+      freelance: { name: 'Freelance', icon: '💻', color: '#7C3AED' },
+      transfer: { name: 'Transfer', icon: '🔄', color: '#475569' },
+      others: { name: 'Others', icon: '📦', color: '#475569' },
+    };
+    const currentCats = db.getCategories();
+    const hasCategories = currentCats.length !== 18 || currentCats.some(c => {
+      const def = defaultsMap[c.id];
+      if (!def) return true;
+      return c.name !== def.name || c.icon !== def.icon || c.color !== def.color;
+    });
+
     return {
       txns: hasTxns,
       dailyLimit: hasDailyLimit,
       goals: hasGoals,
-      allDone: hasTxns && hasDailyLimit && hasGoals
+      accounts: hasAccounts,
+      categories: hasCategories,
+      allDone: hasTxns && hasDailyLimit && hasGoals && hasAccounts && hasCategories
     };
   }, []);
 
@@ -228,10 +261,22 @@ const Dashboard: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                 {[
                   {
+                    key: 'accounts',
+                    label: 'Configure your account balances',
+                    done: onboardingSteps.accounts,
+                    action: () => navigate('/settings/accounts')
+                  },
+                  {
                     key: 'txns',
-                    label: 'Add your first transaction',
+                    label: 'Add your first transaction log',
                     done: onboardingSteps.txns,
                     action: () => navigate('/transactions/new')
+                  },
+                  {
+                    key: 'categories',
+                    label: 'Customize your category tags & icons',
+                    done: onboardingSteps.categories,
+                    action: () => navigate('/settings/categories')
                   },
                   {
                     key: 'dailyLimit',
