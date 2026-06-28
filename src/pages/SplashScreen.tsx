@@ -1,61 +1,171 @@
 import React, { useEffect, useState } from 'react';
 import logoUrl from '../assets/logo.jpeg';
+import { BrandTitle } from '../components/BrandTitle';
 
 interface SplashScreenProps {
   onDone: () => void;
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
-  const [progress, setProgress] = useState(0);
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
-    const start = Date.now();
-    const duration = 1800;
-    const tick = () => {
-      const elapsed = Date.now() - start;
-      const pct = Math.min((elapsed / duration) * 100, 100);
-      setProgress(pct);
-      if (pct < 100) requestAnimationFrame(tick);
+    // End the splash screen after 3.2s
+    const exitTimer = setTimeout(() => setExiting(true), 2800);
+    const doneTimer = setTimeout(() => onDone(), 3200);
+
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(doneTimer);
     };
-    requestAnimationFrame(tick);
-    const exitTimer = setTimeout(() => setExiting(true), 1900);
-    const doneTimer = setTimeout(() => onDone(), 2300);
-    return () => { clearTimeout(exitTimer); clearTimeout(doneTimer); };
   }, [onDone]);
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#F8FAFC',
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#FFFFFF',
       zIndex: 9999,
       opacity: exiting ? 0 : 1,
-      transition: 'opacity 0.4s ease',
+      transition: 'opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1)',
       pointerEvents: exiting ? 'none' : 'auto',
     }}>
-      {/* Radial blobs */}
-      <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '280px', height: '280px', background: 'radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '220px', height: '220px', background: 'radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+      {/* Corner Glow Blobs */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '320px',
+        height: '320px',
+        background: 'radial-gradient(circle at top left, rgba(45, 125, 255, 0.08), transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: '320px',
+        height: '320px',
+        background: 'radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.08), transparent 70%)',
+        pointerEvents: 'none',
+      }} />
 
-      {/* Centered brand */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'splashScaleIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both' }}>
-        <div style={{ width: '128px', height: '128px', borderRadius: '28px', overflow: 'hidden', boxShadow: '0 12px 40px rgba(37,99,235,0.22)', border: '2px solid rgba(37,99,235,0.12)', marginBottom: '24px' }}>
-          <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      {/* Main Content Area */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '24px',
+      }}>
+        {/* Logo Icon Container */}
+        <div style={{
+          width: '130px',
+          height: '130px',
+          borderRadius: '32px',
+          overflow: 'hidden',
+          boxShadow: '0 16px 40px rgba(8, 26, 69, 0.1)',
+          border: '1px solid rgba(45, 125, 255, 0.08)',
+          background: '#FFFFFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0,
+          transform: 'scale(0.9)',
+          animation: 'logoFadeScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards, logoFloat 4s ease-in-out 0.9s infinite alternate',
+          position: 'relative',
+        }}>
+          {/* Logo glow background */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle, rgba(34, 211, 238, 0.12) 0%, transparent 80%)',
+            pointerEvents: 'none',
+          }} />
+          <img src={logoUrl} alt="FINOVA Logo" style={{ width: '92px', height: '92px', objectFit: 'contain' }} />
         </div>
-        <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: '2.25rem', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-1px' }}>FINOVA</h1>
-        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.9375rem', color: '#64748B', margin: '6px 0 0', fontWeight: 600 }}>Track Money. Build Better Habits.</p>
+
+        {/* Title & Tagline Container */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          {/* Brand Name Text: slides up at 0.8s */}
+          <div style={{
+            opacity: 0,
+            transform: 'translateY(15px)',
+            animation: 'brandSlideUp 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.8s forwards',
+          }}>
+            <BrandTitle size="large" showTagline={false} />
+          </div>
+
+          {/* Tagline: fades in at 1.6s */}
+          <div style={{
+            opacity: 0,
+            animation: 'fadeInText 0.6s ease-out 1.6s forwards',
+            fontFamily: "'Sora', 'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif",
+            fontWeight: 600,
+            letterSpacing: '0.25em',
+            color: '#64748B',
+            fontSize: '0.75rem',
+            marginTop: '12px',
+            textTransform: 'uppercase',
+            textAlign: 'center',
+            lineHeight: 1.5,
+          }}>
+            TRACK MONEY.
+            <br />
+            BUILD BETTER HABITS.
+          </div>
+        </div>
       </div>
 
-      {/* Linear progress bar */}
-      <div style={{ position: 'absolute', bottom: 'calc(2.5rem + env(safe-area-inset-bottom))', left: '48px', right: '48px', height: '4px', background: 'rgba(37,99,235,0.12)', borderRadius: '99px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #2563EB, #3B82F6)', borderRadius: '99px', transition: 'width 0.08s linear' }} />
+      {/* Loading Indicator at Bottom */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'calc(4rem + env(safe-area-inset-bottom))',
+        display: 'flex',
+        gap: '6px',
+        alignItems: 'center',
+        opacity: 0,
+        animation: 'fadeInText 0.4s ease-out 2.0s forwards',
+      }}>
+        <div className="dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2D7DFF', animation: 'bounceDot 1s infinite 0s' }} />
+        <div className="dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22D3EE', animation: 'bounceDot 1s infinite 0.15s' }} />
+        <div className="dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#34D399', animation: 'bounceDot 1s infinite 0.3s' }} />
       </div>
 
+      {/* CSS Animations */}
       <style>{`
-        @keyframes splashScaleIn {
-          from { opacity: 0; transform: scale(0.85); }
-          to   { opacity: 1; transform: scale(1); }
+        @keyframes logoFadeScale {
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        @keyframes logoFloat {
+          0% { transform: translateY(0px); }
+          100% { transform: translateY(-6px); }
+        }
+        @keyframes brandSlideUp {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes fadeInText {
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes bounceDot {
+          0%, 100% { transform: translateY(0); opacity: 0.4; }
+          50% { transform: translateY(-6px); opacity: 1; }
         }
       `}</style>
     </div>

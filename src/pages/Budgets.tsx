@@ -152,7 +152,7 @@ const LimitsTab: React.FC = () => {
   const weeklyColor = settings.weeklyLimitEnabled ? ringColor(weekly.pct) : '#94A3B8';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '110px' }}>
 
       {/* Warning banner */}
       {settings.dailyLimitEnabled && daily.over && (
@@ -528,7 +528,7 @@ const BudgetsListTab: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '110px' }}>
       {budgets.map(b => {
         const pct = b.limit > 0 ? (b.spent / b.limit) * 100 : 0;
         const color = ringColor(pct);

@@ -3,6 +3,8 @@ import { Bell } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import logoUrl from '../assets/logo.jpeg';
 
+import { BrandTitle } from './BrandTitle';
+
 interface HeaderProps {
   onNotification?: () => void;
   onProfile?: () => void;
@@ -18,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
       {/* Left: Logo and FINOVA */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <img src={logoUrl} alt="FINOVA" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain' }} />
-        <span style={{ fontSize: '1.125rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '0.5px' }}>FINOVA</span>
+        <BrandTitle size="small" showTagline={false} />
       </div>
 
       {/* Right: Notification + Avatar */}

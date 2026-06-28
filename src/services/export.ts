@@ -20,7 +20,7 @@ export function exportJSON(transactions: Transaction[]): void {
 export function exportCSV(transactions: Transaction[]): void {
   const headers = ['Date', 'Type', 'Category', 'Subcategory', 'Account', 'Amount', 'Note'];
   const rows = transactions.map(t => [
-    format(new Date(t.date), 'dd/MM/yyyy HH:mm'),
+    format(new Date(t.date), 'dd/MM/yyyy hh:mm a'),
     t.type,
     getCatName(t.category),
     t.subcategory || '',
@@ -37,7 +37,7 @@ export function exportCSV(transactions: Transaction[]): void {
 export async function exportExcel(transactions: Transaction[]): Promise<void> {
   const { utils, writeFile } = await import('xlsx');
   const data = transactions.map(t => ({
-    Date: format(new Date(t.date), 'dd/MM/yyyy HH:mm'),
+    Date: format(new Date(t.date), 'dd/MM/yyyy hh:mm a'),
     Type: t.type,
     Category: getCatName(t.category),
     Subcategory: t.subcategory || '',

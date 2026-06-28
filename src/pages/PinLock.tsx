@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import logoUrl from '../assets/logo.jpeg';
+import { BrandTitle } from '../components/BrandTitle';
 
 interface PinLockProps {
   onUnlock: () => void;
@@ -66,9 +67,9 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
       fontFamily: 'Inter, sans-serif',
     }}>
       {/* Logo */}
-      <img src={logoUrl} alt="FINOVA" style={{ width: '72px', height: '72px', borderRadius: '20px', objectFit: 'contain', marginBottom: '1.25rem', boxShadow: '0 6px 20px rgba(37,99,235,0.15)' }} />
-      <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem', fontWeight: 800, color: '#0F172A' }}>FINOVA</h2>
-      <p style={{ margin: '0 0 2.5rem', color: '#64748B', fontWeight: 500 }}>Enter your PIN to continue</p>
+      <img src={logoUrl} alt="FINOVA" style={{ width: '72px', height: '72px', borderRadius: '20px', objectFit: 'contain', marginBottom: '1.25rem', boxShadow: '0 6px 20px rgba(8,26,69,0.08)' }} />
+      <BrandTitle size="medium" showTagline={false} style={{ marginBottom: '10px' }} />
+      <p style={{ margin: '0 0 2.5rem', color: '#64748B', fontWeight: 600 }}>Enter your PIN to continue</p>
 
       {/* PIN dots */}
       <div style={{

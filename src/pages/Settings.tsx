@@ -12,6 +12,8 @@ import { exportAllData, importAllData } from '../services/db';
 import { CURRENCIES } from '../data/defaults';
 import logoUrl from '../assets/logo.jpeg';
 import { setPIN, clearPIN } from './PinLock';
+import { BrandTitle } from '../components/BrandTitle';
+
 
 type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about' | 'categories' | 'accounts' | 'theme' | 'notifications';
 
@@ -1181,10 +1183,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
         <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ width: '100%', textAlign: 'center', padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <img src={logoUrl} alt="FINOVA" style={{ width: '80px', height: '80px', borderRadius: '20px', objectFit: 'contain' }} />
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>FINOVA</h2>
-              <p style={{ margin: '6px 0 0', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.875rem' }}>Track Money. Build Better Habits.</p>
-            </div>
+            <BrandTitle size="medium" showTagline={true} taglineColor="#1E293B" />
           </div>
 
           <div className="list-group" style={{ width: '100%', marginTop: '20px' }}>

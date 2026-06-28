@@ -5,6 +5,8 @@ import {
   TrendingUp, Target, BarChart3, ArrowRight, ArrowLeft, 
   Zap, Check, Database, PieChart
 } from 'lucide-react';
+import { BrandTitle } from '../components/BrandTitle';
+
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -110,30 +112,26 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       {panel === 'landing' ? (
         <div className="animate-slideup" style={{ zIndex: 10, width: '100%', maxWidth: '430px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
-          {/* Logo & Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '24px', marginTop: '16px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', marginBottom: '24px', marginTop: '16px', textAlign: 'center' }}>
             <div className="animate-float" style={{
-              width: '96px',
-              height: '96px',
-              borderRadius: '26px',
+              width: '80px',
+              height: '80px',
+              borderRadius: '22px',
               overflow: 'hidden',
-              boxShadow: '0 10px 25px rgba(37, 99, 235, 0.15)',
+              boxShadow: '0 8px 24px rgba(8, 26, 69, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: '#FFFFFF',
-              border: '2px solid rgba(37, 99, 235, 0.1)',
+              border: '1.5px solid rgba(45, 125, 255, 0.08)',
             }}>
               <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-1.5px', margin: '8px 0 0', background: 'linear-gradient(135deg, #1E3A8A 30%, #3B82F6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              FINOVA
-            </h1>
-            <p style={{ fontSize: '0.8125rem', color: '#2563EB', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '2.5px' }}>
-              Smart Personal Finance Manager
-            </p>
-            <p style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500, margin: '12px 24px 0', lineHeight: 1.5 }}>
-              Track expenses, manage budgets, build savings goals, and understand your money with beautiful insights.
+            
+            <BrandTitle size="large" showTagline={true} taglineColor="#1E293B" />
+            
+            <p style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500, margin: '6px 24px 0', lineHeight: 1.5 }}>
+              Smart Personal Finance Manager. Track expenses, manage budgets, build savings goals, and understand your money with beautiful insights.
             </p>
           </div>
 
@@ -402,23 +400,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               height: '80px',
               borderRadius: '22px',
               overflow: 'hidden',
-              boxShadow: '0 8px 20px rgba(37, 99, 235, 0.1)',
+              boxShadow: '0 8px 24px rgba(8, 26, 69, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: '#FFFFFF',
-              border: '2px solid rgba(37, 99, 235, 0.1)',
-              marginBottom: '16px',
+              border: '1.5px solid rgba(45, 125, 255, 0.08)',
+              marginBottom: '14px',
             }}>
               <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
 
-            {/* Header titles */}
-            <h2 style={{ fontSize: '1.625rem', fontWeight: 900, color: '#1E293B', margin: 0, letterSpacing: '-0.5px' }}>
-              Welcome Back
-            </h2>
-            <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '6px 0 24px', textAlign: 'center', fontWeight: 500, lineHeight: 1.5 }}>
-              Sign in securely with your Google Account to continue.
+            <BrandTitle size="medium" showTagline={true} taglineColor="#1E293B" style={{ marginBottom: '20px' }} />
+
+            <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0 0 24px', textAlign: 'center', fontWeight: 600, lineHeight: 1.5 }}>
+              Welcome back. Sign in securely with your Google Account to continue.
             </p>
 
             {/* Error Notification */}

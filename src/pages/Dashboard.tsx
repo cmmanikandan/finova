@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
     return 'Good Evening 🌙';
   };
 
-  const currentTimeString = time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const currentTimeString = time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
   const currentDateString = time.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   const now = new Date();
