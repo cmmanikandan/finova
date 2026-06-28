@@ -59,25 +59,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const user = await signInWithEmail('demo@finova.app');
-      if (user) onLogin();
-    } catch (err) {
-      console.error('Demo login error:', err);
-      setError('Demo login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <div style={{
       height: '100%',
       minHeight: '100%',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 40%, #0F172A 100%)',
+      background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 60%, #F1F5F9 100%)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -87,7 +75,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       width: '100%',
       position: 'relative',
       overflow: 'hidden',
-      color: '#F8FAFC',
+      color: '#0F172A',
     }}>
       {/* Background Decorative Mesh Gradients */}
       <div style={{
@@ -128,15 +116,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         .animate-float-rev { animation: floatReverse 7s ease-in-out infinite; }
         .glow-logo { animation: glowPulse 4s infinite; }
         .glass-panel {
-          background: rgba(30, 41, 59, 0.45);
+          background: rgba(255, 255, 255, 0.85);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
         }
         .glass-card-light {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: rgba(0, 0, 0, 0.02);
+          border: 1px solid rgba(0, 0, 0, 0.05);
         }
       `}</style>
 
@@ -159,10 +147,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div>
-              <h1 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '-1px', margin: 0, background: 'linear-gradient(135deg, #FFFFFF 60%, #93C5FD 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <h1 style={{ fontSize: '2.25rem', fontWeight: 900, letterSpacing: '-1px', margin: 0, background: 'linear-gradient(135deg, #0F172A 60%, #2563EB 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 FINOVA
               </h1>
-              <p style={{ fontSize: '0.875rem', color: '#60A5FA', fontWeight: 700, margin: '0.125rem 0 0', textTransform: 'uppercase', letterSpacing: '2px' }}>
+              <p style={{ fontSize: '0.875rem', color: '#2563EB', fontWeight: 700, margin: '0.125rem 0 0', textTransform: 'uppercase', letterSpacing: '2px' }}>
                 Next-Gen Finance Manager
               </p>
             </div>
@@ -179,8 +167,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Balance Preview */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '0.6875rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Balance</div>
-                <div style={{ fontSize: '1.625rem', fontWeight: 800, marginTop: '2px', color: '#FFFFFF' }}>₹1,48,250.00</div>
+                <div style={{ fontSize: '0.6875rem', color: '#475569', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Balance</div>
+                <div style={{ fontSize: '1.625rem', fontWeight: 800, marginTop: '2px', color: '#0F172A' }}>₹1,48,250.00</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(34,197,94,0.15)', color: '#4ADE80', padding: '4px 8px', borderRadius: '99px', fontSize: '0.6875rem', fontWeight: 700 }}>
                 <TrendingUp size={12} /> +12.4%
@@ -188,8 +176,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
 
             {/* Simulated Budget Bar */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '10px 12px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#E2E8F0', marginBottom: '6px' }}>
+            <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '14px', padding: '10px 12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Target size={12} color="#F59E0B" />
                   <span>Savings Goal</span>
@@ -203,25 +191,25 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
             {/* Quick Micro Transaction List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.02)', padding: '8px 10px', borderRadius: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '1rem' }}>☕</span>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FFFFFF' }}>Starbucks Coffee</div>
-                    <div style={{ fontSize: '0.625rem', color: '#94A3B8' }}>Today · 09:30 AM</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F172A' }}>Starbucks Coffee</div>
+                    <div style={{ fontSize: '0.625rem', color: '#475569' }}>Today · 09:30 AM</div>
                   </div>
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#F87171' }}>-₹320.00</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#EF4444' }}>-₹320.00</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '8px 10px', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.02)', padding: '8px 10px', borderRadius: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '1rem' }}>💻</span>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FFFFFF' }}>Freelance Income</div>
-                    <div style={{ fontSize: '0.625rem', color: '#94A3B8' }}>Yesterday · 04:15 PM</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F172A' }}>Freelance Income</div>
+                    <div style={{ fontSize: '0.625rem', color: '#475569' }}>Yesterday · 04:15 PM</div>
                   </div>
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4ADE80' }}>+₹24,500.00</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#22C55E' }}>+₹24,500.00</span>
               </div>
             </div>
           </div>
@@ -249,7 +237,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                   color: f.color,
                   flexShrink: 0,
                 }}>{f.icon}</div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#E2E8F0' }}>{f.title}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>{f.title}</span>
               </div>
             ))}
           </div>
@@ -272,37 +260,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 8px 24px rgba(37,99,235,0.3)',
+                boxShadow: '0 8px 24px rgba(37,99,235,0.18)',
                 transition: 'transform 0.15s ease',
               }}
               onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
               onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
               Get Started <ArrowRight size={18} />
-            </button>
-
-            <button
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="glass-card-light"
-              style={{
-                width: '100%',
-                padding: '0.95rem',
-                borderRadius: '18px',
-                color: '#E2E8F0',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Try Instant Demo
             </button>
           </div>
 
@@ -320,8 +284,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             style={{
               alignSelf: 'flex-start',
               border: 'none',
-              background: 'rgba(255,255,255,0.05)',
-              color: '#94A3B8',
+              background: 'rgba(0,0,0,0.04)',
+              color: '#475569',
               width: '40px',
               height: '40px',
               borderRadius: '12px',
@@ -347,10 +311,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
                 {isSignUp ? 'Create your Account' : 'Welcome Back'}
               </h2>
-              <p style={{ fontSize: '0.8125rem', color: '#94A3B8', margin: '4px 0 0' }}>
+              <p style={{ fontSize: '0.8125rem', color: '#475569', margin: '4px 0 0' }}>
                 {isSignUp ? 'Sign up to lock in your transactions' : 'Sign in to access your dashboard'}
               </p>
             </div>
@@ -380,7 +344,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               
               {/* Email */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: '6px' }}>Email Address</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>Email Address</label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
                   <input
@@ -392,23 +356,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                     style={{
                       width: '100%',
                       padding: '12px 16px 12px 42px',
-                      background: 'rgba(15,23,42,0.6)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--color-border)',
                       borderRadius: '14px',
-                      color: '#FFFFFF',
+                      color: 'var(--color-text)',
                       fontSize: '0.9375rem',
                       outline: 'none',
                       transition: 'border-color 0.2s',
                     }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#3B82F6'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+                    onFocus={e => e.currentTarget.style.borderColor = '#2563EB'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: '6px' }}>Password</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '6px' }}>Password</label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
                   <input
@@ -420,16 +384,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                     style={{
                       width: '100%',
                       padding: '12px 42px 12px 42px',
-                      background: 'rgba(15,23,42,0.6)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--color-border)',
                       borderRadius: '14px',
-                      color: '#FFFFFF',
+                      color: 'var(--color-text)',
                       fontSize: '0.9375rem',
                       outline: 'none',
                       transition: 'border-color 0.2s',
                     }}
-                    onFocus={e => e.currentTarget.style.borderColor = '#3B82F6'}
-                    onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+                    onFocus={e => e.currentTarget.style.borderColor = '#2563EB'}
+                    onBlur={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                   />
                   <button
                     type="button"
@@ -476,9 +440,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
             {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '1.5rem 0' }}>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
               <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>OR CONTINUE WITH</span>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+              <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
             </div>
 
             {/* Google sign-in inside the card */}
@@ -490,8 +454,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 width: '100%',
                 padding: '0.85rem',
                 borderRadius: '14px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--color-border)',
+                background: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -499,8 +463,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '0.875rem',
                 fontWeight: 600,
-                color: '#FFFFFF',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                color: 'var(--color-text)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 transition: 'background 0.2s',
                 opacity: loading ? 0.7 : 1,
               }}
@@ -523,31 +487,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#60A5FA',
+                  color: 'var(--color-primary)',
                   fontSize: '0.8125rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
                 {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-              </button>
-            </div>
-
-            {/* Guest / Demo Link */}
-            <div style={{ textAlign: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94A3B8',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                Continue as Guest (Demo Account)
               </button>
             </div>
 
