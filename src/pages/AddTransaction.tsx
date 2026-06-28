@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   ArrowLeft, Camera, Image as ImageIcon, X,
   ChevronDown, Check, Receipt, AlertTriangle
@@ -21,6 +21,32 @@ const AddTransaction: React.FC = () => {
   const navigate = useNavigate();
   const { accounts, categories, settings, refresh } = useApp();
 
+  // Filter out hidden accounts from select choices (except if currently selected)
+  const [account,     setAccount]     = useState('cash');
+  const [toAccount,   setToAccount]   = useState('');
+
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id) || a.id === account || a.id === toAccount);
+    } catch {
+      return accounts;
+    }
+  }, [accounts, account, toAccount]);
+
+  // Set default visible account on load if not set
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      const visible = accounts.filter(a => !hiddenIds.includes(a.id));
+      if (visible.length > 0 && account === 'cash' && !visible.some(v => v.id === 'cash')) {
+        setAccount(visible[0].id);
+      }
+    } catch {}
+  }, [accounts]);
+
   const defaultType = location.state?.defaultType || 'expense';
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -28,8 +54,6 @@ const AddTransaction: React.FC = () => {
   const [amount,      setAmount]      = useState('');
   const [category,    setCategory]    = useState('');
   const [subcategory, setSubcategory] = useState('');
-  const [account,     setAccount]     = useState(accounts[0]?.id || 'cash');
-  const [toAccount,   setToAccount]   = useState('');
   const [date,        setDate]        = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [note,        setNote]        = useState('');
   const [receipt,     setReceipt]     = useState<string | null>(null);
@@ -379,7 +403,7 @@ const AddTransaction: React.FC = () => {
                 onChange={e => setAccount(e.target.value)}
                 style={{ appearance: 'none', paddingRight: '2.5rem', minHeight: '56px' }}
               >
-                {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+                {visibleAccounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
               </select>
               <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
             </div>
@@ -397,7 +421,7 @@ const AddTransaction: React.FC = () => {
                   style={{ appearance: 'none', paddingRight: '2.5rem', minHeight: '56px' }}
                 >
                   <option value="">Select account…</option>
-                  {accounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+                  {visibleAccounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
                 </select>
                 <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
               </div>

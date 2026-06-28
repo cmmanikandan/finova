@@ -298,7 +298,16 @@ export function getMonthlyStats(year: number, month: number) {
 }
 
 export function getTotalBalance(): number {
-  return getAccounts().reduce((s, a) => s + a.balance, 0);
+  let hiddenIds: string[] = [];
+  try {
+    const raw = localStorage.getItem('finova_hidden_accounts');
+    hiddenIds = raw ? JSON.parse(raw) : [];
+  } catch {
+    hiddenIds = [];
+  }
+  return getAccounts()
+    .filter(a => !hiddenIds.includes(a.id))
+    .reduce((s, a) => s + a.balance, 0);
 }
 
 // ─── Daily / Weekly expense helpers ───────────────────────────────────────────

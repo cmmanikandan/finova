@@ -26,6 +26,16 @@ const Reports: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [accountFilter, setAccountFilter] = useState('all');
 
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id));
+    } catch {
+      return accounts;
+    }
+  }, [accounts]);
+
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
 
@@ -539,7 +549,7 @@ const Reports: React.FC = () => {
               <div style={{ position: 'relative' }}>
                 <select className="input-field" value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
                   <option value="all">All Accounts</option>
-                  {accounts.map(a => (
+                  {visibleAccounts.map(a => (
                     <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
                   ))}
                 </select>

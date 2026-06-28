@@ -1094,14 +1094,24 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
 
   const recurringList: RecurringTransaction[] = useMemo(() => db.getRecurringTransactions(), [formMode]);
 
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id) || a.id === account);
+    } catch {
+      return accounts;
+    }
+  }, [accounts, account]);
+
   // Set default category and account when entering form
   useEffect(() => {
     if (formMode === 'add') {
       const activeCats = categories.filter(c => c.type === type || c.type === 'both');
       if (activeCats.length > 0) setCategory(activeCats[0].id);
-      if (accounts.length > 0) setAccount(accounts[0].id);
+      if (visibleAccounts.length > 0) setAccount(visibleAccounts[0].id);
     }
-  }, [formMode, type, categories, accounts]);
+  }, [formMode, type, categories, visibleAccounts]);
 
   const handleSave = () => {
     const amt = parseFloat(amount);
@@ -1252,7 +1262,7 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
               <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Paying Account</label>
               <div style={{ position: 'relative' }}>
                 <select className="input-field" value={account} onChange={e => setAccount(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                  {accounts.map(a => (
+                  {visibleAccounts.map(a => (
                     <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
                   ))}
                 </select>
