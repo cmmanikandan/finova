@@ -16,6 +16,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
   const [panel, setPanel] = useState<'landing' | 'login'>('landing');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | null>(null);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -341,9 +342,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             gap: '8px',
           }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '0.75rem', fontWeight: 600 }}>
-              <span style={{ color: '#2563EB', cursor: 'pointer' }}>Privacy Policy</span>
+              <span onClick={() => setActiveDoc('privacy')} style={{ color: '#2563EB', cursor: 'pointer' }}>Privacy Policy</span>
               <span style={{ color: '#E2E8F0' }}>|</span>
-              <span style={{ color: '#2563EB', cursor: 'pointer' }}>Terms</span>
+              <span onClick={() => setActiveDoc('terms')} style={{ color: '#2563EB', cursor: 'pointer' }}>Terms of Service</span>
               <span style={{ color: '#E2E8F0' }}>|</span>
               <span style={{ color: '#64748B' }}>v1.3.0</span>
             </div>
@@ -500,11 +501,178 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
             {/* Policy & Terms links */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '0.6875rem', fontWeight: 600, marginTop: '24px', width: '100%' }}>
-              <span style={{ color: '#2563EB', cursor: 'pointer' }}>Privacy Policy</span>
+              <span onClick={() => setActiveDoc('privacy')} style={{ color: '#2563EB', cursor: 'pointer' }}>Privacy Policy</span>
               <span style={{ color: '#E2E8F0' }}>|</span>
-              <span style={{ color: '#2563EB', cursor: 'pointer' }}>Terms of Service</span>
+              <span onClick={() => setActiveDoc('terms')} style={{ color: '#2563EB', cursor: 'pointer' }}>Terms of Service</span>
             </div>
 
+          </div>
+        </div>
+      )}
+      {/* Policy & Terms Modal Overlay */}
+      {activeDoc && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.45)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px',
+          color: '#1E293B',
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '24px',
+            width: '100%',
+            maxWidth: '440px',
+            height: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid #E2E8F0',
+            overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '16px 20px',
+              borderBottom: '1px solid #F1F5F9',
+              background: '#FFFFFF',
+            }}>
+              <button
+                onClick={() => setActiveDoc(null)}
+                style={{
+                  border: '1px solid #E2E8F0',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#475569',
+                  marginRight: '12px',
+                }}
+              >
+                <ArrowLeft size={16} strokeWidth={2.5} />
+              </button>
+              <h3 style={{
+                margin: 0,
+                fontSize: '1.125rem',
+                fontWeight: 800,
+                color: '#081A45',
+                fontFamily: "'Sora', sans-serif"
+              }}>
+                {activeDoc === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+              </h3>
+            </div>
+
+            {/* Scrollable Document Body */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '24px 20px',
+              fontFamily: "'Inter', sans-serif",
+              lineHeight: 1.6,
+              color: '#475569',
+              fontSize: '0.875rem',
+              textAlign: 'left',
+            }}>
+              {activeDoc === 'privacy' ? (
+                <div>
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>1. Introduction</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    Welcome to FINOVA. Your privacy is our highest priority. FINOVA is designed to be a private-first personal finance application where you have complete ownership of your data.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>2. Local Data Sovereignty</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    By default, all your transaction details, budgets, goals, and accounts are stored locally in your browser's secure sandboxed storage (IndexedDB & LocalStorage). Your financial records never leave your device unless you explicitly enable cloud sync.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>3. Cloud Synchronization & Auth</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    If you configure and enable the optional Google Sign-In and Cloud Backup feature:
+                  </p>
+                  <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', fontWeight: 500 }}>
+                    <li style={{ marginBottom: '6px' }}>Your authentication data is handled securely via Google Sign-In.</li>
+                    <li style={{ marginBottom: '6px' }}>Your encrypted data backups are synchronized with a private database instance powered by Supabase.</li>
+                    <li style={{ marginBottom: '6px' }}>We do not monitor, analyze, rent, or sell your financial transaction history.</li>
+                  </ul>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>4. Cookies & Analytics</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    FINOVA is 100% ad-free and tracker-free. We do not use third-party analytics scripts, marketing trackers, or tracking cookies.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>5. Your Rights</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    You can wipe all local application data at any time from the settings tab. If cloud backup is enabled, you may delete your remote cloud backup profile synchronously as well.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>1. Acceptance of Terms</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    By accessing or using FINOVA, you agree to comply with and be bound by these simplified terms. If you do not agree, please do not use the application.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>2. Use of Service</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    FINOVA provides a tool for tracking financial transactions, analyzing expenditures, and setting savings milestones. The service is provided "as is" and "as available" without warranty of any kind.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>3. User Responsibility & Backups</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    Because FINOVA operates locally:
+                  </p>
+                  <ul style={{ margin: '0 0 16px 0', paddingLeft: '20px', fontWeight: 500 }}>
+                    <li style={{ marginBottom: '6px' }}>You are solely responsible for exporting regular data backups.</li>
+                    <li style={{ marginBottom: '6px' }}>We are not liable for data loss caused by clearing browser caches, factory resets, operating system cleaning scripts, or hardware malfunctions.</li>
+                  </ul>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>4. Modifications to Service</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    We reserve the right to modify, suspend, or terminate the application or any features at any time without prior notice.
+                  </p>
+
+                  <h4 style={{ color: '#081A45', fontWeight: 800, fontSize: '0.95rem', margin: '0 0 8px 0', fontFamily: "'Sora', sans-serif" }}>5. Contact & Support</h4>
+                  <p style={{ margin: '0 0 16px 0', fontWeight: 500 }}>
+                    For issues or questions regarding terms, you may inspect the open-source repository or reach out via official project channels.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid #F1F5F9',
+              background: '#F8FAFC',
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}>
+              <button
+                onClick={() => setActiveDoc(null)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#2563EB',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

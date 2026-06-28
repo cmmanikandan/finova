@@ -18,36 +18,24 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
   const configs = {
     small: {
       fontSize: '1.25rem', // 20px
-      oSize: '11px',
-      oStroke: '2.5',
-      oGap: '1.5px',
       taglineSize: '0.5rem', // 8px
       taglineSpacing: '0.22em',
       letterSpacing: '0.02em',
     },
     medium: {
       fontSize: '1.75rem', // 28px
-      oSize: '15px',
-      oStroke: '3.2',
-      oGap: '2.5px',
       taglineSize: '0.625rem', // 10px
       taglineSpacing: '0.25em',
       letterSpacing: '0.02em',
     },
     large: {
       fontSize: '2.625rem', // 42px
-      oSize: '23px',
-      oStroke: '4.5',
-      oGap: '3.5px',
       taglineSize: '0.75rem', // 12px
       taglineSpacing: '0.25em',
       letterSpacing: '0.02em',
     },
     huge: {
       fontSize: '3rem', // 48px
-      oSize: '27px',
-      oStroke: '5',
-      oGap: '4px',
       taglineSize: '0.8125rem', // 13px
       taglineSpacing: '0.25em',
       letterSpacing: '0.02em',
@@ -60,7 +48,7 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', ...style }}>
       {/* Brand letters layout */}
       <div style={{
-        display: 'flex',
+        display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontFamily: "'Sora', 'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif",
@@ -73,17 +61,21 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
         <span>F</span>
         <span>I</span>
         <span>N</span>
-        {/* Special 'O' gradient ring */}
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle' }}>
+        {/* Special 'O' gradient ring - dynamically scales and aligns using em units */}
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '0.74em',
+          height: '0.74em',
+          margin: '0 0.02em',
+          flexShrink: 0,
+        }}>
           <svg
-            width={config.oSize}
-            height={config.oSize}
-            viewBox="0 0 24 24"
-            style={{
-              margin: `0 ${config.oGap}`,
-              flexShrink: 0,
-              overflow: 'visible',
-            }}
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            style={{ overflow: 'visible', display: 'block' }}
           >
             <defs>
               <linearGradient id="special-o-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -93,12 +85,12 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
               </linearGradient>
             </defs>
             <circle
-              cx="12"
-              cy="12"
-              r={12 - parseFloat(config.oStroke) / 2}
+              cx="50"
+              cy="50"
+              r="41.5"
               fill="none"
               stroke="url(#special-o-gradient)"
-              strokeWidth={config.oStroke}
+              strokeWidth="17"
             />
           </svg>
         </span>
@@ -126,3 +118,4 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
     </div>
   );
 };
+export default BrandTitle;
