@@ -94,17 +94,15 @@ const TransactionDetails: React.FC = () => {
       </div>
 
       {/* Scrollable Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-          {/* Amount Card */}
+          {/* Amount Box (Full bleed) */}
           <div style={{
             background: 'var(--color-card)',
-            borderRadius: '24px',
-            padding: '24px',
-            border: '1px solid var(--color-border)',
+            padding: '24px 16px',
+            borderBottom: '1px solid var(--color-border)',
             textAlign: 'center',
-            boxShadow: 'var(--shadow-card)',
           }}>
             <div style={{
               width: '56px', height: '56px', borderRadius: '18px',
@@ -125,8 +123,8 @@ const TransactionDetails: React.FC = () => {
             </p>
           </div>
 
-          {/* Details Card */}
-          <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Details (Flat list group) */}
+          <div className="list-group" style={{ marginTop: '16px' }}>
             <DetailRow icon={<Calendar size={18} />} label="Date & Time">
               <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{formatDate(txn.date)} · {formatTime(txn.date)}</span>
             </DetailRow>
@@ -162,7 +160,7 @@ const TransactionDetails: React.FC = () => {
 
           {/* Receipt Image */}
           {txn.receiptUrl && (
-            <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '24px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
                 <Receipt size={18} />
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Attached Receipt</span>
@@ -200,11 +198,11 @@ interface DetailRowProps {
 }
 
 const DetailRow: React.FC<DetailRowProps> = ({ icon, label, children }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-    <div style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{icon}</div>
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>{label}</div>
-      <div style={{ fontSize: '0.875rem' }}>{children}</div>
+  <div className="list-row" style={{ cursor: 'default', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '12px' }}>
+    <div style={{ color: 'var(--color-text-muted)', flexShrink: 0, width: '20px', display: 'flex', justifyContent: 'center' }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+      <div style={{ fontSize: '0.875rem', marginTop: '2px' }}>{children}</div>
     </div>
   </div>
 );

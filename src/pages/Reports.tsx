@@ -105,12 +105,11 @@ const Reports: React.FC = () => {
         zIndex: 10,
         background: 'var(--color-card)',
         borderBottom: '1px solid var(--color-border)',
-        padding: '0 16px 12px',
       }}>
-        <div className="app-bar" style={{ padding: '16px 0', borderBottom: 'none', minHeight: '64px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Reports</h2>
+        <div className="app-bar" style={{ borderBottom: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }}>
+          <h2>Reports</h2>
           <button id="report-export-btn" className="btn-ghost" onClick={() => setShowExportOptions(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem' }}>
-            <Download size={15} /> Export Report
+            <Download size={15} /> Export
           </button>
         </div>
 
@@ -119,7 +118,7 @@ const Reports: React.FC = () => {
           display: 'flex',
           gap: '0.5rem',
           overflowX: 'auto',
-          paddingBottom: '2px',
+          padding: '0 16px 12px 16px',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
         }}>
@@ -129,43 +128,58 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Main Content (Flat layout) */}
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
 
         {tab === 'Overview' && (
           <>
-            {/* Stats grid (Two Columns) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              {[
-                { label: 'Income',     value: stats.income,  color: '#22C55E', bg: 'rgba(34,197,94,0.1)', icon: <ArrowUpRight size={14} /> },
-                { label: 'Expenses',   value: stats.expense, color: '#EF4444', bg: 'rgba(239,68,68,0.1)', icon: <ArrowDownLeft size={14} /> },
-                { label: 'Net Savings',value: stats.savings, color: '#2563EB', bg: 'rgba(37,99,235,0.1)', icon: <TrendingUp size={14} /> },
-                { label: 'Avg/Day',    value: avgDaily,      color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', icon: <Calendar size={14} /> },
-              ].map(s => (
-                <div key={s.label} style={{ background: s.bg, borderRadius: '16px', padding: '12px', border: '1px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{s.label}</div>
-                    <div style={{ color: s.color }}>{s.icon}</div>
+            {/* Stats block (Full bleed table grid) */}
+            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--color-border)' }}>
+                {[
+                  { label: 'Income',     value: stats.income,  color: '#22C55E', bg: 'transparent', icon: <ArrowUpRight size={14} />, borderRight: '1px solid var(--color-border)' },
+                  { label: 'Expenses',   value: stats.expense, color: '#EF4444', bg: 'transparent', icon: <ArrowDownLeft size={14} />, borderRight: 'none' }
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, padding: '16px', borderRight: s.borderRight }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{s.label}</div>
+                      <div style={{ color: s.color }}>{s.icon}</div>
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
                   </div>
-                  <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                {[
+                  { label: 'Net Savings',value: stats.savings, color: '#2563EB', bg: 'transparent', icon: <TrendingUp size={14} />, borderRight: '1px solid var(--color-border)' },
+                  { label: 'Avg/Day',    value: avgDaily,      color: '#F59E0B', bg: 'transparent', icon: <Calendar size={14} />, borderRight: 'none' }
+                ].map(s => (
+                  <div key={s.label} style={{ background: s.bg, padding: '16px', borderRight: s.borderRight }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{s.label}</div>
+                      <div style={{ color: s.color }}>{s.icon}</div>
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Extra Stats Cards (Two Columns) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '4px' }}>Highest Category</div>
-                <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{highestCategory}</div>
+            {/* Extra Stats list group */}
+            <div className="list-group" style={{ marginTop: '16px' }}>
+              <div className="list-row" style={{ cursor: 'default' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Highest Category</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{highestCategory}</span>
               </div>
-              <div className="card" style={{ padding: '12px' }}>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '4px' }}>Txn Count</div>
-                <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{txnCount} logs</div>
+              <div className="list-row" style={{ cursor: 'default' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Txn Count</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{txnCount} logs</span>
               </div>
             </div>
 
-            {/* Monthly bar chart */}
-            <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
-              <h4 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Income vs Expense</h4>
+            {/* Monthly bar chart (Full bleed) */}
+            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden', marginTop: '20px' }}>
+              <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Income vs Expense</h4>
               <div style={{ width: '100%', height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData} barCategoryGap="25%" barGap={4}>
@@ -180,9 +194,9 @@ const Reports: React.FC = () => {
               </div>
             </div>
 
-            {/* Savings line chart */}
-            <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
-              <h4 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Savings Trend</h4>
+            {/* Savings line chart (Full bleed) */}
+            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden', marginTop: '20px' }}>
+              <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Savings Trend</h4>
               <div style={{ width: '100%', height: 180 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthlyData}>
@@ -201,14 +215,14 @@ const Reports: React.FC = () => {
         {tab === 'Category' && (
           <>
             {categoryData.length === 0 ? (
-              <div className="empty-state">
+              <div className="empty-state" style={{ padding: '60px 16px' }}>
                 <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '64px', opacity: 0.3 }} />
                 <p style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>No expenses this month</p>
               </div>
             ) : (
               <>
-                <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
-                  <h4 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Category Breakdown</h4>
+                <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden' }}>
+                  <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category Breakdown</h4>
                   <div style={{ width: '100%', height: 240 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -221,22 +235,22 @@ const Reports: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="list-group" style={{ marginTop: '20px' }}>
                   {categoryData.map((item, i) => {
                     const pct = percentage(item.value, stats.expense);
                     return (
-                      <div key={i}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div key={i} className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', cursor: 'default' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <span style={{ fontSize: '1rem' }}>{item.icon}</span>
-                            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>{item.name}</span>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{item.name}</span>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(item.value)}</span>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(item.value)}</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginLeft: '0.375rem', fontWeight: 600 }}>{Math.round(pct)}%</span>
                           </div>
                         </div>
-                        <div className="progress-bar">
+                        <div className="progress-bar" style={{ margin: 0, height: '6px' }}>
                           <div className="progress-fill" style={{ width: `${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length] }} />
                         </div>
                       </div>
@@ -249,8 +263,8 @@ const Reports: React.FC = () => {
         )}
 
         {tab === 'Monthly' && (
-          <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
-            <h4 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>6-Month Comparison</h4>
+          <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden' }}>
+            <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>6-Month Comparison</h4>
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} barCategoryGap="25%" barGap={4}>
@@ -269,8 +283,8 @@ const Reports: React.FC = () => {
         )}
 
         {tab === 'Yearly' && (
-          <div className="card" style={{ padding: '16px', overflow: 'hidden' }}>
-            <h4 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>12-Month Area Trend</h4>
+          <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden' }}>
+            <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>12-Month Area Trend</h4>
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={yearlyData}>
@@ -298,8 +312,8 @@ const Reports: React.FC = () => {
         )}
 
         {tab === 'Calendar' && (
-          <div className="card" style={{ padding: '16px' }}>
-            <h4 style={{ margin: '0 0 10px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>
+          <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', padding: '20px 16px' }}>
+            <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {format(now, 'MMMM yyyy')} — Daily Spend
             </h4>
             <CalendarView transactions={stats.transactions} year={now.getFullYear()} month={now.getMonth()} />
