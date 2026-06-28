@@ -1,20 +1,34 @@
-// Auth service – Supabase Google Auth with localStorage session persistence
+// Auth service – Firebase Google Auth as primary identity provider with Supabase Auth token sync
 import type { User } from '../types';
-import { getSupabase, isSupabaseConfigured } from './supabase';
+import { app } from './firebase';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged as fbOnAuthStateChanged, signOut as fbSignOut } from 'firebase/auth';
+import { getSupabase } from './supabase';
+
+const FIREBASE_CONFIGURED = !!(
+  import.meta.env.VITE_FIREBASE_API_KEY &&
+  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN
+);
+
+export const isFirebaseConfigured = FIREBASE_CONFIGURED;
+
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+provider.addScope('email');
+provider.addScope('profile');
 
 const supabase = getSupabase();
 
 type AuthCallback = (user: User | null) => void;
 const listeners: AuthCallback[] = [];
 
-function mapSupabaseUser(su: any): User {
+function mapFirebaseUser(fu: any): User {
   return {
-    uid: su.id,
-    name: su.user_metadata?.full_name || su.email || 'User',
-    email: su.email || '',
+    uid: fu.uid,
+    name: fu.displayName || 'User',
+    email: fu.email || '',
     photoURL:
-      su.user_metadata?.avatar_url ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(su.user_metadata?.full_name || 'U')}&background=2563EB&color=fff&size=128`,
+      fu.photoURL ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(fu.displayName || 'U')}&background=2563EB&color=fff&size=128`,
   };
 }
 
@@ -25,15 +39,25 @@ function notifyListeners(user: User | null) {
 
 // ─── Sign In ──────────────────────────────────────────────────────────────────
 export async function signInWithGoogle(): Promise<User | null> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
-    return null; // OAuth redirects the page
+  if (FIREBASE_CONFIGURED) {
+    const result = await signInWithPopup(auth, provider);
+    const user = mapFirebaseUser(result.user);
+    
+    // Get Firebase ID token and sync it to Supabase Auth session
+    if (supabase) {
+      try {
+        const idToken = await result.user.getIdToken();
+        await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+      } catch (e) {
+        console.error('Failed to sync Firebase Auth token with Supabase:', e);
+      }
+    }
+
+    notifyListeners(user);
+    return user;
   }
 
   // Demo fallback
@@ -49,8 +73,13 @@ export async function signInWithGoogle(): Promise<User | null> {
 
 // ─── Sign Out ─────────────────────────────────────────────────────────────────
 export async function signOut(): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    await supabase.auth.signOut();
+  if (FIREBASE_CONFIGURED) {
+    await fbSignOut(auth);
+  }
+  if (supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
   }
   localStorage.removeItem('finova_user');
   notifyListeners(null);
@@ -60,43 +89,45 @@ export async function signOut(): Promise<void> {
 export function onAuthStateChanged(callback: AuthCallback): () => void {
   listeners.push(callback);
 
-  if (isSupabaseConfigured && supabase) {
-    // Listen to Supabase Auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (session?.user) {
-        const user = mapSupabaseUser(session.user);
+  if (FIREBASE_CONFIGURED) {
+    // Firebase handles session persistence; sync it to Supabase
+    const unsub = fbOnAuthStateChanged(auth, async (fu) => {
+      if (fu) {
+        const user = mapFirebaseUser(fu);
         localStorage.setItem('finova_user', JSON.stringify(user));
+
+        if (supabase) {
+          try {
+            const idToken = await fu.getIdToken();
+            await supabase.auth.signInWithIdToken({
+              provider: 'google',
+              token: idToken,
+            });
+          } catch (e) {
+            console.error('Failed to sync Firebase session with Supabase:', e);
+          }
+        }
+
         callback(user);
       } else {
+        if (supabase) {
+          try {
+            await supabase.auth.signOut();
+          } catch {}
+        }
         localStorage.removeItem('finova_user');
         callback(null);
       }
     });
 
-    // Run callback immediately with current session if exists
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const user = mapSupabaseUser(session.user);
-        localStorage.setItem('finova_user', JSON.stringify(user));
-        callback(user);
-      } else {
-        const stored = localStorage.getItem('finova_user');
-        try {
-          callback(stored ? (JSON.parse(stored) as User) : null);
-        } catch {
-          callback(null);
-        }
-      }
-    });
-
     return () => {
-      subscription.unsubscribe();
+      unsub();
       const idx = listeners.indexOf(callback);
       if (idx !== -1) listeners.splice(idx, 1);
     };
   }
 
-  // Fallback demo auth
+  // No Firebase – read from localStorage immediately
   const stored = localStorage.getItem('finova_user');
   try {
     callback(stored ? (JSON.parse(stored) as User) : null);
@@ -108,4 +139,21 @@ export function onAuthStateChanged(callback: AuthCallback): () => void {
     const idx = listeners.indexOf(callback);
     if (idx !== -1) listeners.splice(idx, 1);
   };
+}
+
+export function getCurrentUser(): User | null {
+  const stored = localStorage.getItem('finova_user');
+  try { return stored ? (JSON.parse(stored) as User) : null; } catch { return null; }
+}
+
+export async function signInWithEmail(email: string): Promise<User | null> {
+  const name = email.split('@')[0];
+  const user: User = {
+    uid: 'email-user-' + Math.random().toString(36).substring(2, 9),
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    email: email,
+    photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563EB&color=fff&size=128`,
+  };
+  notifyListeners(user);
+  return user;
 }
