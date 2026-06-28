@@ -367,8 +367,60 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* 1.6. Daily Limit Widget */}
+        {/* 1. Full-Width Balance Card — padded inside the page */}
+        <div style={{ padding: '16px 16px 0' }}>
+          <div className="balance-gradient" style={{
+            borderRadius: '20px',
+            padding: '24px 20px 20px',
+            color: '#fff',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-elevated)',
+          }}>
+            {/* Decorative circles (pointerEvents none to prevent blocking eye button click) */}
+            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '110px', height: '110px', background: 'rgba(255,255,255,0.07)', borderRadius: '50%', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-30px', left: '25%', width: '130px', height: '130px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+            <p style={{ margin: 0, fontSize: '0.6875rem', opacity: 0.8, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Total Balance</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 16px' }}>
+              <h2 style={{ margin: 0, fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
+                {hideBalance ? '₹••••••' : formatCurrency(balance)}
+              </h2>
+              <button
+                onClick={toggleHideBalance}
+                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0, zIndex: 5, position: 'relative' }}
+                aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
+              >
+                {hideBalance ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {/* Inline stats inside the balance card */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '14px' }}>
+              {[
+                { label: 'Income',  value: hideBalance ? '••••' : formatCurrency(stats.income),  icon: <TrendingUp size={12} />,  color: 'rgba(134,239,172,1)' },
+                { label: 'Expense', value: hideBalance ? '••••' : formatCurrency(stats.expense), icon: <TrendingDown size={12} />, color: 'rgba(252,165,165,1)' },
+                { label: 'Savings', value: hideBalance ? '••••' : formatCurrency(stats.savings), icon: <TrendingUp size={12} />,  color: stats.savings >= 0 ? 'rgba(147,197,253,1)' : 'rgba(252,165,165,1)' },
+              ].map((item, i) => (
+                <div key={item.label} style={{
+                  display: 'flex', flexDirection: 'column', gap: '2px',
+                  paddingLeft: i > 0 ? '12px' : 0,
+                  borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: item.color, opacity: 0.9 }}>
+                    {item.icon}
+                    <span style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</span>
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#fff' }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Daily Budget Limit Progress Card — rendered under the balance card */}
         {settings.dailyLimitEnabled && settings.dailyLimit > 0 && (
-          <div style={{ padding: '10px 16px 0' }}>
+          <div style={{ padding: '12px 16px 0' }}>
             <button
               onClick={() => navigate('/budgets')}
               style={{
@@ -408,57 +460,6 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
         )}
-
-        {/* 2. Full-Width Balance Card — padded inside the page */}
-        <div style={{ padding: '16px 16px 0' }}>
-          <div className="balance-gradient" style={{
-            borderRadius: '20px',
-            padding: '24px 20px 20px',
-            color: '#fff',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: 'var(--shadow-elevated)',
-          }}>
-            {/* Decorative circles */}
-            <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '110px', height: '110px', background: 'rgba(255,255,255,0.07)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', bottom: '-30px', left: '25%', width: '130px', height: '130px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-
-            <p style={{ margin: 0, fontSize: '0.6875rem', opacity: 0.8, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Total Balance</p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 16px' }}>
-              <h2 style={{ margin: 0, fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
-                {hideBalance ? '₹••••••' : formatCurrency(balance)}
-              </h2>
-              <button
-                onClick={toggleHideBalance}
-                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}
-                aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
-              >
-                {hideBalance ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-
-            {/* Inline stats inside the balance card */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '14px' }}>
-              {[
-                { label: 'Income',  value: hideBalance ? '••••' : formatCurrency(stats.income),  icon: <TrendingUp size={12} />,  color: 'rgba(134,239,172,1)' },
-                { label: 'Expense', value: hideBalance ? '••••' : formatCurrency(stats.expense), icon: <TrendingDown size={12} />, color: 'rgba(252,165,165,1)' },
-                { label: 'Savings', value: hideBalance ? '••••' : formatCurrency(stats.savings), icon: <TrendingUp size={12} />,  color: stats.savings >= 0 ? 'rgba(147,197,253,1)' : 'rgba(252,165,165,1)' },
-              ].map((item, i) => (
-                <div key={item.label} style={{
-                  display: 'flex', flexDirection: 'column', gap: '2px',
-                  paddingLeft: i > 0 ? '12px' : 0,
-                  borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.15)' : 'none',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: item.color, opacity: 0.9 }}>
-                    {item.icon}
-                    <span style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</span>
-                  </div>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#fff' }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* 3. Quick Actions */}
         <p className="section-header">Quick Actions</p>
