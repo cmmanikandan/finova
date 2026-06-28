@@ -15,16 +15,55 @@ import PinLock from './pages/PinLock';
 import BottomNav from './components/BottomNav';
 import { ScrollRestoration } from './components/ScrollRestoration';
 import { AndroidBackHandler, PageTransitionTracker } from './components/AndroidBackHandler';
+import * as db from './services/db';
 import './index.css';
 
 const AppContent: React.FC = () => {
   const { user, loading, settings } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
+  const [showReminderToast, setShowReminderToast] = useState(false);
 
   useEffect(() => {
     setUnlocked(!settings.pinEnabled);
   }, [settings.pinEnabled]);
+
+  useEffect(() => {
+    if (!user || !settings.dailyReminderEnabled) return;
+
+    const checkReminder = () => {
+      const now = new Date();
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTimeVal = `${String(currentHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
+      
+      const targetTimeVal = settings.dailyReminderTime || '21:00';
+      
+      if (currentTimeVal >= targetTimeVal) {
+        const spentToday = db.getDailyExpenses(now.toISOString());
+        if (spentToday === 0) {
+          const formatLocalDate = (d: Date) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+          const todayStr = formatLocalDate(now);
+          const lastDismissed = localStorage.getItem('finova_last_reminder_dismissed_date');
+          
+          if (lastDismissed !== todayStr) {
+            setShowReminderToast(true);
+          }
+        }
+      }
+    };
+
+    // Run check immediately
+    checkReminder();
+
+    const interval = setInterval(checkReminder, 60000);
+    return () => clearInterval(interval);
+  }, [user, settings.dailyReminderEnabled, settings.dailyReminderTime]);
 
   if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
 
@@ -92,6 +131,60 @@ const AppContent: React.FC = () => {
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </div>
+
+      {showReminderToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '76px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '400px',
+          background: 'linear-gradient(135deg, #7C3AED, #6366F1)',
+          color: '#fff',
+          borderRadius: '18px',
+          padding: '14px 18px',
+          boxShadow: '0 10px 30px rgba(99,102,241,0.25)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 99999,
+          animation: 'slideUp 0.3s ease-out',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 800 }}>🔔 Daily Log Reminder</div>
+            <div style={{ fontSize: '0.75rem', marginTop: '2px', opacity: 0.9, fontWeight: 500 }}>
+              Don't forget to log your daily expenses to keep your streak alive!
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              const formatLocalDate = (d: Date) => {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+              };
+              localStorage.setItem('finova_last_reminder_dismissed_date', formatLocalDate(new Date()));
+              setShowReminderToast(false);
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: '#fff',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              flexShrink: 0,
+              marginLeft: '12px',
+            }}
+          >
+            Got it
+          </button>
+        </div>
+      )}
 
       <BottomNav />
     </div>

@@ -1,5 +1,5 @@
 // Database service – LocalStorage backed (Supabase ready)
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { syncToSupabase } from './supabaseSync';
@@ -12,6 +12,7 @@ const KEYS = {
   categories: 'finova_categories',
   settings: 'finova_settings',
   streakData: 'finova_streak_data',
+  recurring: 'finova_recurring',
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -520,6 +521,100 @@ export function get7DaySpending(): { date: string; amount: number; label: string
   return result;
 }
 
+// ─── Recurring Transactions ──────────────────────────────────────────────────
+export function getRecurringTransactions(): RecurringTransaction[] {
+  return load<RecurringTransaction[]>(KEYS.recurring, []);
+}
+
+export function addRecurringTransaction(rt: Omit<RecurringTransaction, 'id'>): RecurringTransaction {
+  const list = getRecurringTransactions();
+  const item: RecurringTransaction = { ...rt, id: uuidv4() };
+  list.push(item);
+  save(KEYS.recurring, list);
+  syncToSupabase('recurring' as any, item as any);
+  return item;
+}
+
+export function updateRecurringTransaction(rt: RecurringTransaction): void {
+  const list = getRecurringTransactions();
+  const idx = list.findIndex(item => item.id === rt.id);
+  if (idx !== -1) {
+    list[idx] = rt;
+    save(KEYS.recurring, list);
+    syncToSupabase('recurring' as any, rt as any);
+  }
+}
+
+export function deleteRecurringTransaction(id: string): void {
+  let list = getRecurringTransactions();
+  list = list.filter(item => item.id !== id);
+  save(KEYS.recurring, list);
+}
+
+export function processRecurringTransactions(): boolean {
+  const allRecurring = getRecurringTransactions();
+  if (allRecurring.length === 0) return false;
+
+  const now = new Date();
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const todayStr = formatLocalDate(now);
+  let changed = false;
+
+  for (const rt of allRecurring) {
+    if (!rt.active) continue;
+
+    let nextDue = new Date(rt.nextDueDate + 'T00:00:00');
+    let updatedNextDue = new Date(nextDue);
+    let lastProcessed = rt.lastProcessedDate;
+    let itemMutated = false;
+
+    while (formatLocalDate(updatedNextDue) <= todayStr) {
+      const curStr = formatLocalDate(updatedNextDue);
+      
+      const txn: Omit<Transaction, 'id' | 'createdAt'> = {
+        type: rt.type,
+        amount: rt.amount,
+        category: rt.category,
+        account: rt.account,
+        date: new Date(curStr + 'T12:00:00').toISOString(),
+        note: rt.note ? `${rt.note} (Auto-recurring)` : 'Auto-recurring bill',
+      };
+      
+      addTransaction(txn);
+      lastProcessed = curStr;
+      itemMutated = true;
+      changed = true;
+
+      // Increment next due date
+      if (rt.frequency === 'daily') {
+        updatedNextDue.setDate(updatedNextDue.getDate() + 1);
+      } else if (rt.frequency === 'weekly') {
+        updatedNextDue.setDate(updatedNextDue.getDate() + 7);
+      } else if (rt.frequency === 'monthly') {
+        updatedNextDue.setMonth(updatedNextDue.getMonth() + 1);
+      } else if (rt.frequency === 'yearly') {
+        updatedNextDue.setFullYear(updatedNextDue.getFullYear() + 1);
+      }
+    }
+
+    if (itemMutated) {
+      rt.nextDueDate = formatLocalDate(updatedNextDue);
+      rt.lastProcessedDate = lastProcessed;
+    }
+  }
+
+  if (changed) {
+    save(KEYS.recurring, allRecurring);
+  }
+  return changed;
+}
+
 // ─── Backup / restore ─────────────────────────────────────────────────────────
 export function exportAllData(): object {
   return {
@@ -532,6 +627,7 @@ export function exportAllData(): object {
     categories: load(KEYS.categories, []),
     settings: load(KEYS.settings, {}),
     streakData: load(KEYS.streakData, {}),
+    recurring: load(KEYS.recurring, []),
   };
 }
 
@@ -543,4 +639,5 @@ export function importAllData(data: any): void {
   if (data.categories)   save(KEYS.categories, data.categories);
   if (data.settings)     save(KEYS.settings, data.settings);
   if (data.streakData)   save(KEYS.streakData, data.streakData);
+  if (data.recurring)    save(KEYS.recurring, data.recurring);
 }

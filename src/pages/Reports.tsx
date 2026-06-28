@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
-import { Download, FileText, Calendar, BarChart3, TrendingUp, ArrowUpRight, ArrowDownLeft, X } from 'lucide-react';
+import { Download, Calendar, TrendingUp, ArrowUpRight, ArrowDownLeft, X, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
 import { formatCurrency, percentage } from '../utils/format';
@@ -17,6 +17,14 @@ const Reports: React.FC = () => {
   const { categories, accounts } = useApp();
   const [tab, setTab] = useState('Overview');
   const [showExportOptions, setShowExportOptions] = useState(false);
+
+  // Export Filters State
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | 'csv' | 'json'>('pdf');
+  const [dateRangeFilter, setDateRangeFilter] = useState<'all' | 'this_month' | 'last_month' | 'this_week' | 'custom'>('this_month');
+  const [customStartDate, setCustomStartDate] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
+  const [customEndDate, setCustomEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [accountFilter, setAccountFilter] = useState('all');
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
@@ -101,12 +109,64 @@ const Reports: React.FC = () => {
     );
   };
 
-  const handleExport = (formatType: 'pdf' | 'csv' | 'excel' | 'json') => {
-    const txns = db.getTransactions();
-    if (formatType === 'pdf') exportPDF(txns);
-    else if (formatType === 'csv') exportCSV(txns);
-    else if (formatType === 'excel') exportExcel(txns);
-    else if (formatType === 'json') exportJSON(txns);
+  const handleGenerateExport = async () => {
+    let txns = db.getTransactions();
+
+    // 1. Filter by Date Range
+    const today = new Date();
+    let start = new Date(0); // far past
+    let end = new Date(); // today
+    
+    if (dateRangeFilter === 'this_month') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+    } else if (dateRangeFilter === 'last_month') {
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      end = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
+    } else if (dateRangeFilter === 'this_week') {
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      start = new Date(today.setDate(diff));
+      start.setHours(0,0,0,0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23,59,59,999);
+    } else if (dateRangeFilter === 'custom') {
+      start = new Date(customStartDate + 'T00:00:00');
+      end = new Date(customEndDate + 'T23:59:59');
+    }
+
+    txns = txns.filter(t => {
+      const d = new Date(t.date);
+      return d >= start && d <= end;
+    });
+
+    // 2. Filter by Category
+    if (categoryFilter !== 'all') {
+      txns = txns.filter(t => t.category === categoryFilter);
+    }
+
+    // 3. Filter by Account
+    if (accountFilter !== 'all') {
+      txns = txns.filter(t => t.account === accountFilter);
+    }
+
+    // 4. Trigger Export
+    if (exportFormat === 'pdf') {
+      const filterSummary = {
+        range: dateRangeFilter === 'custom' ? `${customStartDate} to ${customEndDate}` : dateRangeFilter.replace('_', ' ').toUpperCase(),
+        category: categoryFilter === 'all' ? 'All' : categories.find(c => c.id === categoryFilter)?.name || 'Custom',
+        account: accountFilter === 'all' ? 'All' : accounts.find(a => a.id === accountFilter)?.name || 'Custom',
+      };
+      await exportPDF(txns, filterSummary);
+    } else if (exportFormat === 'csv') {
+      exportCSV(txns);
+    } else if (exportFormat === 'excel') {
+      exportExcel(txns);
+    } else if (exportFormat === 'json') {
+      exportJSON(txns);
+    }
+
     setShowExportOptions(false);
   };
 
@@ -388,34 +448,113 @@ const Reports: React.FC = () => {
 
       </div>
 
-      {/* Export Options Dialog Overlay (no bottom sheets) */}
+      {/* Export Options Dialog Overlay */}
       {showExportOptions && (
         <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setShowExportOptions(false)}>
-          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', margin: 'auto', gap: '16px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Export Reports</h3>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Export Statement</h3>
               <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                 <X size={16} />
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('pdf')}>
-                <FileText size={24} color="#EF4444" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>PDF</span>
-              </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('excel')}>
-                <BarChart3 size={24} color="#22C55E" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>Excel</span>
-              </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('csv')}>
-                <FileText size={24} color="#3B82F6" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>CSV</span>
-              </button>
-              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', gap: '8px', borderRadius: '16px', height: 'auto' }} onClick={() => handleExport('json')}>
-                <FileText size={24} color="#7C3AED" />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', marginTop: '4px' }}>JSON</span>
+
+            {/* Format Selection */}
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Select Format</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                {[
+                  { key: 'pdf', label: 'PDF', color: '#EF4444' },
+                  { key: 'excel', label: 'Excel', color: '#22C55E' },
+                  { key: 'csv', label: 'CSV', color: '#3B82F6' },
+                  { key: 'json', label: 'JSON', color: '#7C3AED' }
+                ].map(item => (
+                  <button
+                    key={item.key}
+                    onClick={() => setExportFormat(item.key as any)}
+                    style={{
+                      padding: '10px 4px',
+                      borderRadius: '12px',
+                      border: '1.5px solid',
+                      borderColor: exportFormat === item.key ? item.color : 'var(--color-border)',
+                      background: exportFormat === item.key ? `${item.color}10` : 'transparent',
+                      color: exportFormat === item.key ? item.color : 'var(--color-text)',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date Range Scope */}
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Date Range</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={dateRangeFilter} onChange={e => setDateRangeFilter(e.target.value as any)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  <option value="this_month">This Month</option>
+                  <option value="last_month">Last Month</option>
+                  <option value="this_week">This Week</option>
+                  <option value="all">All Time</option>
+                  <option value="custom">Custom Date Range</option>
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Custom Dates Inputs */}
+            {dateRangeFilter === 'custom' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Start Date</label>
+                  <input type="date" className="input-field" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} style={{ padding: '8px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>End Date</label>
+                  <input type="date" className="input-field" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} style={{ padding: '8px' }} />
+                </div>
+              </div>
+            )}
+
+            {/* Category Filter */}
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Category</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  <option value="all">All Categories</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Account Filter */}
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Account</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  <option value="all">All Accounts</option>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowExportOptions(false)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 2 }} onClick={handleGenerateExport}>
+                Generate Report
               </button>
             </div>
+
           </div>
         </div>
       )}

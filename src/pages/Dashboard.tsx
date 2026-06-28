@@ -59,7 +59,7 @@ const QuickAction: React.FC<{
 );
 
 const Dashboard: React.FC = () => {
-  const { user, categories, settings } = useApp();
+  const { user, categories, settings, refresh } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -68,6 +68,14 @@ const Dashboard: React.FC = () => {
     const timer = setInterval(() => setTime(new Date()), 10000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    // Process any due recurring subscriptions/bills
+    const changed = db.processRecurringTransactions();
+    if (changed) {
+      refresh();
+    }
+  }, [refresh]);
 
   const getGreeting = () => {
     const hr = time.getHours();
@@ -91,6 +99,21 @@ const Dashboard: React.FC = () => {
   // Daily limit status
   const dailyStatus = useMemo(() => db.getDailyLimitStatus(), []);
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
+
+  // Filter bills due within 7 days
+  const upcomingBills = useMemo(() => {
+    const list = db.getRecurringTransactions();
+    const activeRecurring = list.filter(rt => rt.active);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + 7);
+    
+    return activeRecurring.filter(rt => {
+      const due = new Date(rt.nextDueDate + 'T00:00:00');
+      return due >= today && due <= targetDate;
+    }).sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
+  }, []);
 
   const openForm = (type: TransactionType) => {
     navigate('/transactions/new', { state: { defaultType: type } });
@@ -242,6 +265,45 @@ const Dashboard: React.FC = () => {
           <QuickAction icon={<ChevronRight size={20} />}   label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
         </div>
 
+        {/* Upcoming Bills Alert widget */}
+        {upcomingBills.length > 0 && (
+          <>
+            <p className="section-header">Upcoming Bills</p>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {upcomingBills.map(rt => {
+                const cat = getCatInfo(rt.category);
+                
+                // Date logic to count due days
+                const diffTime = new Date(rt.nextDueDate + 'T00:00:00').getTime() - new Date().setHours(0,0,0,0);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const dueLabel = diffDays === 0 ? 'Due today' : diffDays === 1 ? 'Due tomorrow' : `Due in ${diffDays} days (${rt.nextDueDate})`;
+                
+                return (
+                  <div key={rt.id} className="card-elevated" style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 16px', borderLeft: '4px solid #8B5CF6', cursor: 'pointer'
+                  }} onClick={() => navigate('/settings/recurring')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '1.25rem' }}>{cat?.icon || '📦'}</span>
+                      <div>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                          {rt.note || cat?.name || 'Auto Bill'}
+                        </div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>
+                          {dueLabel}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.875rem', color: rt.type === 'expense' ? '#DC2626' : '#16A34A' }}>
+                      {rt.type === 'expense' ? '-' : '+'}₹{rt.amount.toLocaleString()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {/* 4. Monthly Summary */}
         <p className="section-header">Monthly Summary</p>
         <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -293,7 +355,7 @@ const Dashboard: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                       <div style={{
                         width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                        background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
+                        background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : `${cat?.color || '#EF4444'}15`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
                       }}>
                         {cat?.icon || (isIncome ? '💰' : '💸')}

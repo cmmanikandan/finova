@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   User, DollarSign, HardDrive, Shield, Info, LogOut,
   ChevronRight, Download, Upload, Trash2, Palette, Bell, Grid, CreditCard, Plus, Heart,
-  ArrowLeft, Pencil, Search, ArrowUpDown, Eye, EyeOff, ChevronDown
+  ArrowLeft, Pencil, Search, ArrowUpDown, Eye, EyeOff, ChevronDown, RefreshCw, Clock
 } from 'lucide-react';
+import type { RecurringTransaction } from '../types';
 import { useApp } from '../context/AppContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { signOut } from '../services/auth';
@@ -15,7 +16,7 @@ import { setPIN, clearPIN } from './PinLock';
 import { BrandTitle } from '../components/BrandTitle';
 
 
-type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about' | 'categories' | 'accounts' | 'theme' | 'notifications';
+type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about' | 'categories' | 'accounts' | 'theme' | 'notifications' | 'recurring';
 
 const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) => {
   const { user, settings } = useApp();
@@ -37,6 +38,7 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
         { id: 'profile',       icon: <User size={20} />,       label: 'My Profile',       sub: user?.name || 'View profile details', color: '#2563EB' },
         { id: 'categories',    icon: <Grid size={20} />,       label: 'Categories',       sub: 'Manage expense & income tags', color: '#EA580C' },
         { id: 'accounts',      icon: <CreditCard size={20} />, label: 'Accounts',         sub: 'Manage cash, bank & cards', color: '#16A34A' },
+        { id: 'recurring',     icon: <RefreshCw size={20} />,  label: 'Recurring Bills',   sub: 'Manage automated repeats & schedules', color: '#8B5CF6' },
       ]
     },
     {
@@ -894,6 +896,7 @@ interface NotificationsViewProps {
 const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings, saveSettings }) => {
   const [budgetAlerts, setBudgetAlerts] = useState(settings.budgetAlertsEnabled);
   const [dailyReminder, setDailyReminder] = useState(settings.dailyReminderEnabled);
+  const [reminderTime, setReminderTime] = useState(settings.dailyReminderTime || '21:00');
 
   const toggleBudget = () => {
     const val = !budgetAlerts;
@@ -912,7 +915,13 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
       }
     }
     setDailyReminder(val);
-    saveSettings({ ...settings, dailyReminderEnabled: val });
+    saveSettings({ ...settings, dailyReminderEnabled: val, dailyReminderTime: reminderTime });
+  };
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const timeVal = e.target.value;
+    setReminderTime(timeVal);
+    saveSettings({ ...settings, dailyReminderTime: timeVal });
   };
 
   return (
@@ -941,6 +950,30 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
               <span className="m3-slider" />
             </label>
           </div>
+
+          {dailyReminder && (
+            <div className="list-row" style={{ cursor: 'default', background: 'var(--color-bg)' }}>
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.875rem' }}>Reminder Time</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Choose what time you'd like to get notified</div>
+              </div>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={handleTimeChange}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid var(--color-border)',
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text)',
+                  background: 'var(--color-card)',
+                  fontFamily: "'Sora', sans-serif"
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1035,6 +1068,348 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+interface RecurringViewProps {
+  onBack: () => void;
+  refresh: () => void;
+}
+
+const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
+  const { categories, accounts } = useApp();
+  const [formMode, setFormMode] = useState<'list' | 'add' | 'edit'>('list');
+  const [editId, setEditId] = useState<string | null>(null);
+
+  // Form Fields
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [category, setCategory] = useState('');
+  const [account, setAccount] = useState('');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState('');
+  const [active, setActive] = useState(true);
+
+  const recurringList: RecurringTransaction[] = useMemo(() => db.getRecurringTransactions(), [formMode]);
+
+  // Set default category and account when entering form
+  useEffect(() => {
+    if (formMode === 'add') {
+      const activeCats = categories.filter(c => c.type === type || c.type === 'both');
+      if (activeCats.length > 0) setCategory(activeCats[0].id);
+      if (accounts.length > 0) setAccount(accounts[0].id);
+    }
+  }, [formMode, type, categories, accounts]);
+
+  const handleSave = () => {
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+    if (!category) {
+      alert('Please select a category.');
+      return;
+    }
+    if (!account) {
+      alert('Please select an account.');
+      return;
+    }
+
+    const payload = {
+      type,
+      amount: amt,
+      category,
+      account,
+      frequency,
+      startDate,
+      nextDueDate: startDate, // Set initially to start date
+      note: note.trim(),
+      active,
+    };
+
+    if (formMode === 'add') {
+      db.addRecurringTransaction(payload);
+    } else if (formMode === 'edit' && editId) {
+      const original = recurringList.find((r: RecurringTransaction) => r.id === editId);
+      if (original) {
+        db.updateRecurringTransaction({
+          ...original,
+          ...payload,
+          id: editId,
+          // Keep nextDueDate unchanged unless startDate has changed
+          nextDueDate: original.startDate === startDate ? original.nextDueDate : startDate,
+        });
+      }
+    }
+
+    // Reset
+    setAmount('');
+    setNote('');
+    setFormMode('list');
+    setEditId(null);
+    refresh();
+  };
+
+  const startEdit = (rt: RecurringTransaction) => {
+    setEditId(rt.id);
+    setAmount(String(rt.amount));
+    setType(rt.type);
+    setCategory(rt.category);
+    setAccount(rt.account);
+    setFrequency(rt.frequency);
+    setStartDate(rt.startDate);
+    setNote(rt.note || '');
+    setActive(rt.active);
+    setFormMode('edit');
+  };
+
+  const startAdd = () => {
+    setAmount('');
+    setType('expense');
+    setFrequency('monthly');
+    setStartDate(new Date().toISOString().slice(0, 10));
+    setNote('');
+    setActive(true);
+    setFormMode('add');
+  };
+
+  const toggleActive = (rt: RecurringTransaction) => {
+    db.updateRecurringTransaction({
+      ...rt,
+      active: !rt.active,
+    });
+    refresh();
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this recurring transaction?')) {
+      db.deleteRecurringTransaction(id);
+      refresh();
+    }
+  };
+
+  if (formMode === 'add' || formMode === 'edit') {
+    const activeCats = categories.filter(c => c.type === type || c.type === 'both');
+    return (
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
+        <BackHeader title={formMode === 'add' ? 'Add Recurring' : 'Edit Recurring'} onBack={() => setFormMode('list')} />
+        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          <div className="card" style={{ gap: '16px' }}>
+            {/* Amount input */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Amount</label>
+              <input type="number" placeholder="0.00" className="input-field" value={amount} onChange={e => setAmount(e.target.value)} style={{ fontSize: '1.25rem', fontWeight: 800 }} />
+            </div>
+
+            {/* Type selector */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Type</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button onClick={() => setType('expense')} style={{ padding: '10px', borderRadius: '12px', border: '1.5px solid', borderColor: type === 'expense' ? 'var(--color-primary)' : 'var(--color-border)', background: type === 'expense' ? 'rgba(37,99,235,0.06)' : 'transparent', color: type === 'expense' ? 'var(--color-primary)' : 'var(--color-text)', fontWeight: 700, cursor: 'pointer' }}>Expense</button>
+                <button onClick={() => setType('income')} style={{ padding: '10px', borderRadius: '12px', border: '1.5px solid', borderColor: type === 'income' ? 'var(--color-primary)' : 'var(--color-border)', background: type === 'income' ? 'rgba(37,99,235,0.06)' : 'transparent', color: type === 'income' ? 'var(--color-primary)' : 'var(--color-text)', fontWeight: 700, cursor: 'pointer' }}>Income</button>
+              </div>
+            </div>
+
+            {/* Frequency selection */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Repeat Cycle</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={frequency} onChange={e => setFrequency(e.target.value as any)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  <option value="daily">Every Day</option>
+                  <option value="weekly">Every Week</option>
+                  <option value="monthly">Every Month</option>
+                  <option value="yearly">Every Year</option>
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Start Date */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Start Date</label>
+              <input type="date" className="input-field" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            </div>
+
+            {/* Category dropdown */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Category</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={category} onChange={e => setCategory(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  {activeCats.map(c => (
+                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Account dropdown */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Paying Account</label>
+              <div style={{ position: 'relative' }}>
+                <select className="input-field" value={account} onChange={e => setAccount(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Description / Note</label>
+              <input type="text" placeholder="Rent, Internet bills, pocket money…" className="input-field" value={note} onChange={e => setNote(e.target.value)} />
+            </div>
+
+            {/* Active toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text)' }}>Active Status</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Temporarily disable calculations if checked off</div>
+              </div>
+              <button
+                onClick={() => setActive(!active)}
+                style={{
+                  width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                  background: active ? 'var(--color-primary)' : 'var(--color-border)',
+                  position: 'relative', transition: 'background-color 0.2s', padding: 0
+                }}
+              >
+                <div style={{
+                  width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
+                  position: 'absolute', top: '3px', left: active ? '23px' : '3px',
+                  transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }} />
+              </button>
+            </div>
+
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setFormMode('list')}>Cancel</button>
+            <button className="btn-primary" style={{ flex: 2 }} onClick={handleSave}>Save Bill</button>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
+      <BackHeader title="Recurring Bills" onBack={onBack} />
+      
+      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        
+        {recurringList.length === 0 ? (
+          <div style={{ padding: '40px 24px', textAlign: 'center', background: 'var(--color-card)', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔄</div>
+            <div style={{ fontWeight: 800, color: 'var(--color-text)', marginBottom: '4px' }}>No recurring bills configured</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, lineHeight: 1.45 }}>
+              Create automatic transactions for repeating subscriptions, rent, salaries, or pocket money.
+            </div>
+            <button onClick={startAdd} className="btn-primary" style={{ marginTop: '20px', display: 'inline-flex', alignSelf: 'center', padding: '10px 20px', fontSize: '0.8125rem' }}>
+              Create First Scheduled Bill
+            </button>
+          </div>
+        ) : (
+          recurringList.map((rt: RecurringTransaction) => {
+            const cat = categories.find(c => c.id === rt.category);
+            const acc = accounts.find(a => a.id === rt.account);
+            
+            return (
+              <div key={rt.id} className="card" style={{
+                padding: '16px', border: '1.5px solid var(--color-border)', borderRadius: '18px',
+                opacity: rt.active ? 1 : 0.6, gap: '14px', position: 'relative'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '12px',
+                      background: `${cat?.color || '#2563EB'}15`, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem'
+                    }}>
+                      {cat?.icon || '📦'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--color-text)' }}>
+                        {rt.note || cat?.name || 'Auto Expense'}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                        <span style={{
+                          fontSize: '0.625rem', fontWeight: 800, color: rt.type === 'expense' ? '#DC2626' : '#16A34A',
+                          background: rt.type === 'expense' ? '#FEF2F2' : '#F0FDF4', padding: '1px 6px', borderRadius: '4px'
+                        }}>
+                          {rt.type.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          • {rt.frequency.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.0625rem', color: rt.type === 'expense' ? '#DC2626' : '#16A34A' }}>
+                      {rt.type === 'expense' ? '-' : '+'}₹{rt.amount.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>
+                      Via: {acc?.name || 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  background: 'var(--color-bg)', padding: '10px 14px', borderRadius: '12px',
+                  fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--color-border)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-secondary)' }}>
+                    <Clock size={12} />
+                    <span>Next Due: <strong>{rt.nextDueDate}</strong></span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    {/* Toggle Active status */}
+                    <button
+                      onClick={() => toggleActive(rt)}
+                      style={{
+                        padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border)',
+                        background: rt.active ? 'rgba(34,197,94,0.1)' : 'transparent',
+                        color: rt.active ? '#16A34A' : 'var(--color-text-muted)',
+                        fontSize: '0.6875rem', fontWeight: 700, cursor: 'pointer'
+                      }}
+                    >
+                      {rt.active ? 'Active' : 'Paused'}
+                    </button>
+                    
+                    <button onClick={() => startEdit(rt)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '0.6875rem', fontWeight: 700 }}>
+                      Edit
+                    </button>
+                    
+                    <button onClick={() => handleDelete(rt.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', fontSize: '0.6875rem', fontWeight: 700 }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })
+        )}
+
+      </div>
+
+      {recurringList.length > 0 && (
+        <button className="fab" onClick={startAdd} aria-label="Add Recurring" style={{ bottom: '24px' }}>
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
+      )}
     </div>
   );
 };
@@ -1159,7 +1534,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
                 </div>
                 <button id="clear-data-btn" onClick={() => {
                   if (window.confirm('Are you absolutely sure? This cannot be undone.')) {
-                    ['finova_transactions','finova_budgets','finova_goals','finova_accounts','finova_categories','finova_streak_data'].forEach(k => localStorage.removeItem(k));
+                    ['finova_transactions','finova_budgets','finova_goals','finova_accounts','finova_categories','finova_streak_data','finova_recurring'].forEach(k => localStorage.removeItem(k));
                     refresh();
                     alert('All data cleared.');
                   }
@@ -1250,6 +1625,10 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
 
   if (view === 'accounts') {
     return <AccountsView onBack={onBack} accounts={accounts} refresh={refresh} />;
+  }
+
+  if (view === 'recurring') {
+    return <RecurringView onBack={onBack} refresh={refresh} />;
   }
 
   if (view === 'theme') {

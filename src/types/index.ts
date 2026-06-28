@@ -84,6 +84,7 @@ export interface AppSettings {
   weeklyLimit: number;
   // Savings
   savingsGoalPercent: number; // Target savings rate %
+  dailyReminderTime?: string; // e.g. "21:00"
 }
 
 // Computed status shapes (not stored)
@@ -104,5 +105,19 @@ export interface StreakData {
   lastFailedDay?: string;        // YYYY-MM-DD
   lastMilestoneClaimed?: number; // e.g. 3, 7, 15, 30, 50, 100, 365
   lastNotificationShownDate?: string; // YYYY-MM-DD
+}
+
+export interface RecurringTransaction {
+  id: string;
+  type: 'expense' | 'income';
+  amount: number;
+  category: string;
+  account: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  startDate: string; // YYYY-MM-DD
+  nextDueDate: string; // YYYY-MM-DD
+  lastProcessedDate?: string;
+  note?: string;
+  active: boolean;
 }
 

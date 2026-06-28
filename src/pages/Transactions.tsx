@@ -112,7 +112,7 @@ const SwipeableTransactionItem: React.FC<{
       >
         <div style={{
           width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-          background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
+          background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : `${cat?.color || '#EF4444'}15`,
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
         }}>{cat?.icon || '📦'}</div>
 
