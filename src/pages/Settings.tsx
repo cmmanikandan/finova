@@ -73,6 +73,41 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
 
       {/* Main Settings Body */}
       <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+        {/* Profile Card */}
+        <div style={{ padding: '16px 16px 8px' }}>
+          <div
+            className="card-elevated"
+            onClick={() => navigate('/settings/profile')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              cursor: 'pointer',
+              background: 'var(--color-card)',
+              transition: 'background-color 0.15s',
+            }}
+          >
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border)', flexShrink: 0 }}>
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{
+                  width: '100%', height: '100%',
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontWeight: 700, fontSize: '1.125rem',
+                }}>
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{user?.name || 'User'}</h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{user?.email}</p>
+            </div>
+            <ChevronRight size={18} color="var(--color-text-muted)" style={{ marginRight: '-4px' }} />
+          </div>
+        </div>
         {groups.map(g => (
           <div key={g.title}>
             <p className="section-header">{g.title}</p>
@@ -422,16 +457,12 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
                       {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
 
-                    {c.isCustom && (
-                      <>
-                        <button onClick={() => startEdit(c)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
-                          <Pencil size={15} />
-                        </button>
-                        <button onClick={() => handleDelete(c.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
-                          <Trash2 size={15} />
-                        </button>
-                      </>
-                    )}
+                    <button onClick={() => startEdit(c)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
+                      <Pencil size={15} />
+                    </button>
+                    <button onClick={() => handleDelete(c.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               );
@@ -441,7 +472,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
       </div>
 
       {/* FAB to Add Custom Category */}
-      <button className="fab" onClick={startAdd} aria-label="Add Category" style={{ bottom: '96px' }}>
+      <button className="fab" onClick={startAdd} aria-label="Add Category" style={{ bottom: '24px' }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
     </div>
@@ -777,7 +808,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
       </div>
 
       {/* FAB to Add Custom Account */}
-      <button className="fab" onClick={startAdd} aria-label="Add Account" style={{ bottom: '96px' }}>
+      <button className="fab" onClick={startAdd} aria-label="Add Account" style={{ bottom: '24px' }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
     </div>

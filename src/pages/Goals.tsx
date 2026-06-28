@@ -462,9 +462,6 @@ const Goals: React.FC = () => {
       {/* Sticky top bar */}
       <div className="app-bar">
         <h2>Goals</h2>
-        <button id="add-goal-btn" className="btn-primary" style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', boxShadow: 'none' }} onClick={() => navigate('/goals/new')}>
-          <Plus size={16} /> New Goal
-        </button>
       </div>
 
       {/* Main Content scrollable area */}
@@ -558,6 +555,11 @@ const Goals: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* FAB to Add Goal */}
+      <button id="add-goal-fab" className="fab" onClick={() => navigate('/goals/new')} aria-label="Add Goal">
+        <Plus size={28} strokeWidth={2.5} />
+      </button>
     </div>
   );
 };

@@ -45,9 +45,6 @@ const Budgets: React.FC = () => {
       {/* Top App Bar */}
       <div className="app-bar">
         <h2>Budgets</h2>
-        <button id="add-budget-btn" className="btn-primary" style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', boxShadow: 'none' }} onClick={() => navigate('/budgets/new')}>
-          <Plus size={16} /> New Budget
-        </button>
       </div>
 
       {/* Scrollable list */}
@@ -165,6 +162,10 @@ const Budgets: React.FC = () => {
           </div>
         </div>
       )}
+      {/* FAB to Add Budget */}
+      <button id="add-budget-fab" className="fab" onClick={() => navigate('/budgets/new')} aria-label="Add Budget">
+        <Plus size={28} strokeWidth={2.5} />
+      </button>
     </div>
   );
 };
