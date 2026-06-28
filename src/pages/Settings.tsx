@@ -805,7 +805,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
       </button>
     </div>
   );
-}
+};
 
 interface NotificationsViewProps {
   onBack: () => void;
@@ -840,9 +840,9 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Notifications" onBack={onBack} />
-      <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+        <div className="list-group" style={{ marginTop: '16px' }}>
+          <div className="list-row" style={{ cursor: 'default' }}>
             <div>
               <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Budget Limit Alerts</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Notify when category spends reach 80% and 100%</div>
@@ -850,7 +850,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
             <input type="checkbox" checked={budgetAlerts} onChange={toggleBudget} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '20px' }}>
+          <div className="list-row" style={{ cursor: 'default' }}>
             <div>
               <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Daily Summary & Reminders</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Remind to log transactions and goal progress</div>
@@ -914,24 +914,26 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="App Security" onBack={onBack} />
-      <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {step === 'toggle' && (
-          <div className="card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>PIN Lock Screen</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Ask for a 4-digit PIN when launching FINOVA</div>
+          <div className="list-group" style={{ marginTop: '16px' }}>
+            <div className="list-row" style={{ cursor: 'default' }}>
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>PIN Lock Screen</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Ask for a 4-digit PIN when launching FINOVA</div>
+              </div>
+              <button className={pinEnabled ? 'btn-ghost' : 'btn-primary'} style={{ padding: '8px 16px', fontSize: '0.8125rem' }} onClick={handleToggle}>
+                {pinEnabled ? 'Disable PIN' : 'Enable PIN'}
+              </button>
             </div>
-            <button className={pinEnabled ? 'btn-ghost' : 'btn-primary'} style={{ padding: '8px 16px', fontSize: '0.8125rem' }} onClick={handleToggle}>
-              {pinEnabled ? 'Disable PIN' : 'Enable PIN'}
-            </button>
           </div>
         )}
 
         {step === 'setup_pin' && (
-          <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
             <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)' }}>Set 4-Digit PIN</h4>
             <input type="password" maxLength={4} className="input-field" placeholder="Enter new PIN" value={pinInput} onChange={e => setPinInput(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('toggle')}>Cancel</button>
               <button className="btn-primary" style={{ flex: 1 }} onClick={handleSetup}>Next</button>
             </div>
@@ -939,10 +941,10 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
         )}
 
         {step === 'confirm_pin' && (
-          <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
             <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)' }}>Confirm PIN</h4>
             <input type="password" maxLength={4} className="input-field" placeholder="Confirm PIN" value={pinConfirm} onChange={e => setPinConfirm(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('setup_pin')}>Back</button>
               <button className="btn-primary" style={{ flex: 1 }} onClick={handleConfirm}>Enable PIN</button>
             </div>
@@ -960,20 +962,20 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Currency" onBack={onBack} />
-        <div style={{ padding: '20px 16px 120px' }}>
-          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-            {CURRENCIES.map((c, i) => (
+        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+          <div className="list-group" style={{ marginTop: '16px' }}>
+            {CURRENCIES.map((c) => (
               <button key={c.code} onClick={() => saveSettings({ ...settings, currency: c.code, currencySymbol: c.symbol })}
+                className="list-row"
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: '1rem',
-                  padding: '1rem', border: 'none', background: settings.currency === c.code ? 'rgba(37,99,235,0.05)' : 'transparent',
-                  cursor: 'pointer', borderBottom: i < CURRENCIES.length - 1 ? '1px solid var(--color-border)' : 'none',
-                  textAlign: 'left',
+                  background: settings.currency === c.code ? 'rgba(37,99,235,0.05)' : 'transparent',
                 }}>
-                <div style={{ fontWeight: 800, fontSize: '1.25rem', width: '2.5rem', color: 'var(--color-primary)' }}>{c.symbol}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>{c.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{c.code}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: '1.25rem', width: '2.5rem', color: 'var(--color-primary)' }}>{c.symbol}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>{c.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{c.code}</div>
+                  </div>
                 </div>
                 {settings.currency === c.code && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
               </button>
@@ -1022,29 +1024,30 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Backup & Restore" onBack={onBack} />
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <img src={logoUrl} alt="FINOVA" style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'contain' }} />
+        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ textAlign: 'center', padding: '24px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
+            <img src={logoUrl} alt="FINOVA" style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'contain', margin: '0 auto' }} />
             <p style={{ margin: '12px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600, lineHeight: 1.4 }}>Keep your data safe by exporting regular backups.</p>
           </div>
 
-          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+          <div className="list-group" style={{ marginTop: '16px' }}>
             {[
               { id: 'export-backup', icon: <Download size={20} />, label: 'Export Backup', sub: 'Save data as JSON file', color: '#22C55E', action: handleExport },
               { id: 'import-backup', icon: <Upload size={20} />,   label: 'Restore Backup', sub: 'Import from JSON file', color: '#2563EB', action: handleImport },
-            ].map((item, i) => (
-              <button key={item.id} id={item.id} onClick={item.action}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: i === 0 ? '1px solid var(--color-border)' : 'none', textAlign: 'left' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: `${item.color}15`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.875rem' }}>{item.label}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{item.sub}</div>
+            ].map((item) => (
+              <button key={item.id} id={item.id} onClick={item.action} className="list-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: `${item.color}15`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.875rem' }}>{item.label}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{item.sub}</div>
+                  </div>
                 </div>
               </button>
             ))}
           </div>
 
-          <div className="card" style={{ padding: '16px', border: '1.5px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.03)' }}>
+          <div style={{ padding: '20px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', marginTop: '20px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
               <Trash2 size={20} color="#EF4444" style={{ flexShrink: 0 }} />
               <div>
@@ -1075,14 +1078,16 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="About FINOVA" onBack={onBack} />
-        <div style={{ padding: '30px 16px 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-          <img src={logoUrl} alt="FINOVA" style={{ width: '96px', height: '96px', borderRadius: '24px', objectFit: 'contain', boxShadow: 'var(--shadow-elevated)' }} />
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>FINOVA</h2>
-            <p style={{ margin: '6px 0 0', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.9375rem' }}>Track Money. Build Better Habits.</p>
+        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '100%', textAlign: 'center', padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <img src={logoUrl} alt="FINOVA" style={{ width: '80px', height: '80px', borderRadius: '20px', objectFit: 'contain' }} />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>FINOVA</h2>
+              <p style={{ margin: '6px 0 0', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.875rem' }}>Track Money. Build Better Habits.</p>
+            </div>
           </div>
 
-          <div className="card" style={{ width: '100%', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="list-group" style={{ width: '100%', marginTop: '20px' }}>
             {[
               ['Version', '1.0.0'],
               ['Platform', 'Progressive Web App'],
@@ -1090,16 +1095,18 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
               ['Pricing', 'Free Forever'],
               ['Ads', 'None. Ever.'],
             ].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div key={k} className="list-row" style={{ cursor: 'default' }}>
                 <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{k}</span>
                 <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{v}</span>
               </div>
             ))}
           </div>
 
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.6, fontWeight: 600 }}>
-            FINOVA is a personal finance management app built to help you track money and build better financial habits. Your data never leaves your device.
-          </p>
+          <div style={{ padding: '24px 16px' }}>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.6, fontWeight: 600 }}>
+              FINOVA is a personal finance management app built to help you track money and build better financial habits. Your data never leaves your device.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -1109,22 +1116,25 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Profile" onBack={onBack} />
-        <div style={{ padding: '30px 16px 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--color-border)' }}>
-            {user?.photoURL
-              ? <img src={user.photoURL} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '2rem' }}>
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
-            }
+        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '100%', textAlign: 'center', padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--color-border)' }}>
+              {user?.photoURL
+                ? <img src={user.photoURL} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '1.75rem' }}>
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+              }
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--color-text)' }}>{user?.name}</div>
+              <div style={{ color: 'var(--color-text-muted)', marginTop: '4px', fontWeight: 600, fontSize: '0.8125rem' }}>{user?.email}</div>
+            </div>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)' }}>{user?.name}</div>
-            <div style={{ color: 'var(--color-text-muted)', marginTop: '4px', fontWeight: 600, fontSize: '0.875rem' }}>{user?.email}</div>
-          </div>
-          <div className="card" style={{ width: '100%', padding: '16px' }}>
+
+          <div className="list-group" style={{ width: '100%', marginTop: '20px' }}>
             {[['Name', user?.name || ''], ['Email', user?.email || ''], ['Auth', 'Google Account']].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div key={k} className="list-row" style={{ cursor: 'default' }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>{k}</span>
                 <span style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.875rem' }}>{v}</span>
               </div>
@@ -1147,25 +1157,25 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Theme Selector" onBack={onBack} />
-        <div style={{ padding: '20px 16px 120px' }}>
-          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-            {(['light', 'dark', 'system'] as const).map((t, i) => (
+        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+          <div className="list-group" style={{ marginTop: '16px' }}>
+            {(['light', 'dark', 'system'] as const).map((t) => (
               <button key={t} onClick={() => saveSettings({ ...settings, theme: t })}
+                className="list-row"
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: '1rem',
-                  padding: '1rem', border: 'none', background: settings.theme === t ? 'rgba(37,99,235,0.05)' : 'transparent',
-                  cursor: 'pointer', borderBottom: i < 2 ? '1px solid var(--color-border)' : 'none',
-                  textAlign: 'left',
+                  background: settings.theme === t ? 'rgba(37,99,235,0.05)' : 'transparent',
                 }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Palette size={20} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--color-text)', textTransform: 'capitalize' }}>{t} Mode</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    {t === 'light' && 'Always light layout'}
-                    {t === 'dark' && 'Always sleek dark theme'}
-                    {t === 'system' && 'Match device system preferences'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Palette size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text)', textTransform: 'capitalize' }}>{t} Mode</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      {t === 'light' && 'Always light layout'}
+                      {t === 'dark' && 'Always sleek dark theme'}
+                      {t === 'system' && 'Match device system preferences'}
+                    </div>
                   </div>
                 </div>
                 {settings.theme === t && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
