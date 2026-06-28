@@ -41,15 +41,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
 };
 
 export const CURRENCIES = [
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
-  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
-  { code: 'CAD', symbol: 'CA$', name: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee', flag: '🇮🇳' },
+  { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
+  { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
+  { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵' },
+  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', flag: '🇦🇪' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', flag: '🇸🇬' },
+  { code: 'CAD', symbol: 'CA$', name: 'Canadian Dollar', flag: '🇨🇦' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', flag: '🇦🇺' },
 ];
 
 export const GOAL_TEMPLATES = [

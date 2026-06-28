@@ -177,14 +177,13 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
 
       {/* Logout Dialog */}
       {showLogoutConfirm && (
-        <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
-          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <h3 style={{ margin: '0 0 0.5rem', color: 'var(--color-text)' }}>Sign Out?</h3>
-            <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-muted)', fontSize: '0.875rem', fontWeight: 600 }}>Your data will remain safely stored on this device.</p>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
-              <button id="confirm-logout-btn" className="btn-primary" style={{ flex: 1, background: 'linear-gradient(135deg, #EF4444, #DC2626)' }} onClick={handleLogout}>Sign Out</button>
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setShowLogoutConfirm(false)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Sign Out?</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>Your data will remain safely stored on this device.</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '44px', borderRadius: '22px' }} onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
+              <button id="confirm-logout-btn" className="btn-primary" style={{ flex: 1, height: '44px', borderRadius: '22px', background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={handleLogout}>Sign Out</button>
             </div>
           </div>
         </div>
@@ -279,9 +278,16 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     setFormMode('edit');
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Delete this category? All associated transactions will remain.')) {
-      db.deleteCategory(id);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleDeleteTrigger = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      db.deleteCategory(deleteId);
+      setDeleteId(null);
       refresh();
     }
   };
@@ -460,7 +466,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
                     <button onClick={() => startEdit(c)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => handleDelete(c.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
+                    <button onClick={() => handleDeleteTrigger(c.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -475,6 +481,26 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
       <button className="fab" onClick={startAdd} aria-label="Add Category" style={{ bottom: '24px' }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteId && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setDeleteId(null)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Delete Category?</h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+              {categories.find(c => c.id === deleteId)?.isCustom
+                ? 'Are you sure you want to delete this custom category? Associated transactions will remain.'
+                : 'System categories cannot be deleted. You can hide them using the eye icon instead.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '44px', borderRadius: '22px' }} onClick={() => setDeleteId(null)}>Cancel</button>
+              {categories.find(c => c.id === deleteId)?.isCustom && (
+                <button className="btn-primary" style={{ flex: 1, height: '44px', borderRadius: '22px', background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={confirmDelete}>Delete</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -590,10 +616,25 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     setFormMode('edit');
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Delete this account? Associated transactions will remain.')) {
-      db.deleteAccount(id);
-      refresh();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleDeleteTrigger = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      const acc = accounts.find(a => a.id === deleteId);
+      if (acc && !acc.isCustom) {
+        // System account - hide instead of delete
+        toggleHideAccount(deleteId);
+        setDeleteId(null);
+      } else {
+        // Custom account - delete
+        db.deleteAccount(deleteId);
+        setDeleteId(null);
+        refresh();
+      }
     }
   };
 
@@ -790,14 +831,19 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
                         <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDelete(a.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
+                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
                           <Trash2 size={15} />
                         </button>
                       </>
                     ) : (
-                      <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }} title="Edit Balance">
-                        <Pencil size={15} />
-                      </button>
+                      <>
+                        <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }} title="Edit Balance">
+                          <Pencil size={15} />
+                        </button>
+                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }} title="Hide Account">
+                          <EyeOff size={15} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -811,6 +857,28 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
       <button className="fab" onClick={startAdd} aria-label="Add Account" style={{ bottom: '24px' }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
+
+      {/* Delete / Hide Confirmation Dialog */}
+      {deleteId && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', padding: '16px' }} onClick={() => setDeleteId(null)}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '340px', margin: 'auto', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>
+              {accounts.find(a => a.id === deleteId)?.isCustom ? 'Delete Account?' : 'Hide Account?'}
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+              {accounts.find(a => a.id === deleteId)?.isCustom
+                ? 'Are you sure you want to delete this custom account? Associated transactions will remain.'
+                : 'System accounts cannot be deleted. We will hide this account from your active lists instead.'}
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '44px', borderRadius: '22px' }} onClick={() => setDeleteId(null)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, height: '44px', borderRadius: '22px', background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={confirmDelete}>
+                {accounts.find(a => a.id === deleteId)?.isCustom ? 'Delete' : 'Hide'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -855,7 +923,10 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
               <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Budget Limit Alerts</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Notify when category spends reach 80% and 100%</div>
             </div>
-            <input type="checkbox" checked={budgetAlerts} onChange={toggleBudget} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+            <label className="m3-switch">
+              <input type="checkbox" checked={budgetAlerts} onChange={toggleBudget} />
+              <span className="m3-slider" />
+            </label>
           </div>
 
           <div className="list-row" style={{ cursor: 'default' }}>
@@ -863,7 +934,10 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
               <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Daily Summary & Reminders</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Remind to log transactions and goal progress</div>
             </div>
-            <input type="checkbox" checked={dailyReminder} onChange={toggleDaily} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+            <label className="m3-switch">
+              <input type="checkbox" checked={dailyReminder} onChange={toggleDaily} />
+              <span className="m3-slider" />
+            </label>
           </div>
         </div>
       </div>
@@ -979,13 +1053,31 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
                   background: settings.currency === c.code ? 'rgba(37,99,235,0.05)' : 'transparent',
                 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                  <div style={{ fontWeight: 800, fontSize: '1.25rem', width: '2.5rem', color: 'var(--color-primary)' }}>{c.symbol}</div>
+                  <div style={{ fontSize: '1.5rem', width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {(c as any).flag || '🌐'}
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>{c.name}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text)', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span>{c.name}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', background: 'rgba(37,99,235,0.08)', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>{c.symbol}</span>
+                    </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{c.code}</div>
                   </div>
                 </div>
-                {settings.currency === c.code && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  border: `2px solid ${settings.currency === c.code ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {settings.currency === c.code && (
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-primary)' }} />
+                  )}
+                </div>
               </button>
             ))}
           </div>

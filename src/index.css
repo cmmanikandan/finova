@@ -322,11 +322,11 @@ body {
 .fab {
   position: fixed;
   bottom: 96px;
-  right: 16px;
-  width: 56px;
-  height: 56px;
+  right: 20px;
+  width: 64px;
+  height: 64px;
   background: var(--color-primary);
-  border-radius: 16px;
+  border-radius: 18px;
   border: none;
   cursor: pointer;
   display: flex;
@@ -358,12 +358,13 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  z-index: 200;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: 24px 16px;
 }
 .bottom-sheet {
   background: var(--color-card);
@@ -519,4 +520,51 @@ select.input-field {
 .section-gap {
   height: 24px;
 }
+
+/* Material Design 3 Custom Switch Slider */
+.m3-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 32px;
+  flex-shrink: 0;
+}
+.m3-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.m3-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--color-border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 32px;
+  border: 2px solid var(--color-text-muted);
+}
+.m3-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 6px;
+  bottom: 6px;
+  background-color: var(--color-text-muted);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+.m3-switch input:checked + .m3-slider {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.m3-switch input:checked + .m3-slider:before {
+  transform: translateX(20px);
+  background-color: #ffffff;
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+}
+
 
