@@ -61,7 +61,18 @@ const QuickAction: React.FC<{
 const Dashboard: React.FC = () => {
   const { user, categories, settings, refresh } = useApp();
   const navigate = useNavigate();
-  const [hideBalance, setHideBalance] = useState(false);
+  const [hideBalance, setHideBalance] = useState(() => {
+    return localStorage.getItem('finova_hide_balance') === 'true';
+  });
+
+  const toggleHideBalance = () => {
+    setHideBalance(prev => {
+      const next = !prev;
+      localStorage.setItem('finova_hide_balance', String(next));
+      return next;
+    });
+  };
+
   const [time, setTime] = useState(new Date());
 
   // Onboarding welcome card state
@@ -418,7 +429,7 @@ const Dashboard: React.FC = () => {
                 {hideBalance ? '₹••••••' : formatCurrency(balance)}
               </h2>
               <button
-                onClick={() => setHideBalance(v => !v)}
+                onClick={toggleHideBalance}
                 style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}
                 aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
               >
