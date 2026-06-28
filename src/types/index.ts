@@ -48,10 +48,11 @@ export interface Budget {
   category: string;
   limit: number;
   spent: number;
-  period: 'monthly' | 'weekly' | 'custom';
+  period: 'monthly' | 'weekly' | 'daily' | 'custom';
   startDate: string;
   endDate?: string;
   color: string;
+  alertThreshold?: number; // % to warn at, default 80
 }
 
 export interface Goal {
@@ -76,4 +77,21 @@ export interface AppSettings {
   dailyReminderEnabled: boolean;
   budgetAlertsEnabled: boolean;
   language: string;
+  // Daily & Weekly limits
+  dailyLimitEnabled: boolean;
+  dailyLimit: number;
+  weeklyLimitEnabled: boolean;
+  weeklyLimit: number;
+  // Savings
+  savingsGoalPercent: number; // Target savings rate %
+}
+
+// Computed status shapes (not stored)
+export interface LimitStatus {
+  spent: number;
+  limit: number;
+  pct: number;     // 0-100+
+  over: boolean;
+  warn: boolean;   // >= alertThreshold %
+  remaining: number;
 }

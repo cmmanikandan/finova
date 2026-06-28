@@ -38,6 +38,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dailyReminderEnabled: false,
   budgetAlertsEnabled: true,
   language: 'en',
+  // Daily & Weekly limits
+  dailyLimitEnabled: false,
+  dailyLimit: 500,
+  weeklyLimitEnabled: false,
+  weeklyLimit: 3000,
+  // Savings
+  savingsGoalPercent: 20,
 };
 
 export const CURRENCIES = [

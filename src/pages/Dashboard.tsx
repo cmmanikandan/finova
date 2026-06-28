@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
-  ChevronRight, TrendingUp, TrendingDown, Sliders, Eye, EyeOff
+  ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +59,7 @@ const QuickAction: React.FC<{
 );
 
 const Dashboard: React.FC = () => {
-  const { user, categories } = useApp();
+  const { user, categories, settings } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(false);
   const [time, setTime] = useState(new Date());
@@ -88,23 +88,9 @@ const Dashboard: React.FC = () => {
 
   const getCatInfo = (catId: string) => categories.find(c => c.id === catId);
 
-  // Calculate highest spending category
-  const highestSpendCategory = useMemo(() => {
-    const map: Record<string, number> = {};
-    stats.transactions.filter(t => t.type === 'expense').forEach(t => {
-      map[t.category] = (map[t.category] || 0) + t.amount;
-    });
-    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
-    if (sorted.length > 0) {
-      const cat = categories.find(c => c.id === sorted[0][0]);
-      return {
-        name: cat?.name || sorted[0][0],
-        icon: cat?.icon || '📦',
-        amount: sorted[0][1],
-      };
-    }
-    return null;
-  }, [stats.transactions, categories]);
+  // Daily limit status
+  const dailyStatus = useMemo(() => db.getDailyLimitStatus(), []);
+  const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
 
   const openForm = (type: TransactionType) => {
     navigate('/transactions/new', { state: { defaultType: type } });
@@ -150,6 +136,49 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 1.6. Daily Limit Widget */}
+        {settings.dailyLimitEnabled && settings.dailyLimit > 0 && (
+          <div style={{ padding: '10px 16px 0' }}>
+            <button
+              onClick={() => navigate('/budgets')}
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: '14px',
+                background: dailyStatus.over ? '#FEF2F2' : dailyStatus.warn ? '#FFFBEB' : 'var(--color-card)',
+                border: `1.5px solid ${dailyStatus.over ? '#FECACA' : dailyStatus.warn ? '#FDE68A' : 'var(--color-border)'}`,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: 'var(--shadow-subtle)',
+              }}
+            >
+              <div style={{ flexShrink: 0 }}>
+                {dailyStatus.over
+                  ? <AlertTriangle size={20} color="#DC2626" />
+                  : <Zap size={20} color={dailyStatus.warn ? '#D97706' : '#2563EB'} />}
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: dailyStatus.over ? '#DC2626' : dailyStatus.warn ? '#D97706' : 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {dailyStatus.over ? '⚠️ Daily Limit Exceeded' : dailyStatus.warn ? '⚠️ Approaching Daily Limit' : 'Day Budget'}
+                </div>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)', marginTop: '2px' }}>
+                  {settings.currencySymbol}{formatCurrency(dailyStatus.spent).replace(settings.currencySymbol, '')} spent of {settings.currencySymbol}{formatCurrency(settings.dailyLimit).replace(settings.currencySymbol, '')}
+                </div>
+              </div>
+              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: dailyStatus.over ? '#DC2626' : '#2563EB' }}>
+                  {Math.round(dailyStatus.pct)}%
+                </div>
+                {/* Mini progress bar */}
+                <div style={{ width: '60px', height: '4px', borderRadius: '99px', background: 'var(--color-border)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '99px',
+                    width: `${Math.min(dailyStatus.pct, 100)}%`,
+                    background: dailyStatus.over ? '#DC2626' : dailyStatus.warn ? '#F59E0B' : '#22C55E',
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* 2. Full-Width Balance Card — padded inside the page */}
         <div style={{ padding: '16px 16px 0' }}>
@@ -209,7 +238,7 @@ const Dashboard: React.FC = () => {
           <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.1)"  onClick={() => openForm('income')} />
           <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.1)"  onClick={() => openForm('transfer')} />
           <QuickAction icon={<Target size={20} />}         label="Goals"      color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/goals')} />
-          <QuickAction icon={<Sliders size={20} />}        label="Budgets"    color="#7C3AED" bg="rgba(124,58,237,0.1)" onClick={() => navigate('/budgets')} />
+          <QuickAction icon={<Zap size={20} />}            label="Day Limit"  color="#7C3AED" bg="rgba(124,58,237,0.1)" onClick={() => navigate('/budgets')} />
           <QuickAction icon={<ChevronRight size={20} />}   label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
         </div>
 
@@ -217,18 +246,16 @@ const Dashboard: React.FC = () => {
         <p className="section-header">Monthly Summary</p>
         <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {[
-            { label: 'Income',   value: stats.income,   color: '#16A34A' },
-            { label: 'Expenses', value: stats.expense,  color: '#DC2626' },
-            { label: 'Savings',  value: stats.savings,  color: stats.savings >= 0 ? '#2563EB' : '#DC2626' },
-            { label: 'Top Category', value: null, extra: highestSpendCategory
-                ? `${highestSpendCategory.icon} ${highestSpendCategory.name}`
-                : 'None', color: 'var(--color-text)' },
+            { label: 'Income',      value: stats.income,  color: '#16A34A', asStr: null },
+            { label: 'Expenses',    value: stats.expense, color: '#DC2626', asStr: null },
+            { label: 'Savings',     value: stats.savings, color: stats.savings >= 0 ? '#2563EB' : '#DC2626', asStr: null },
+            { label: 'Savings Rate', value: null, color: savingsRate >= 20 ? '#16A34A' : savingsRate < 0 ? '#DC2626' : '#2563EB', asStr: `${savingsRate}%` },
           ].map(item => (
             <div key={item.label} className="card-elevated" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <span className="text-caption" style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{item.label}</span>
               {item.value !== null
                 ? <span className="text-body" style={{ fontWeight: 800, color: item.color }}>{formatCurrency(item.value)}</span>
-                : <span className="text-caption" style={{ fontWeight: 700, color: item.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.extra}</span>
+                : <span className="text-body" style={{ fontWeight: 800, color: item.color }}>{item.asStr}</span>
               }
             </div>
           ))}

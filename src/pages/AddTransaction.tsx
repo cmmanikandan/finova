@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft, Camera, Image as ImageIcon, X,
-  ChevronDown, Check, Receipt
+  ChevronDown, Check, Receipt, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
@@ -19,7 +19,7 @@ const AddTransaction: React.FC = () => {
   const { id: editId } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { accounts, categories, refresh } = useApp();
+  const { accounts, categories, settings, refresh } = useApp();
 
   const defaultType = location.state?.defaultType || 'expense';
 
@@ -36,6 +36,7 @@ const AddTransaction: React.FC = () => {
   const [saving,      setSaving]      = useState(false);
   const [amtFocused,  setAmtFocused]  = useState(false);
   const [showCatGrid, setShowCatGrid] = useState(false);
+  const [warnDismissed, setWarnDismissed] = useState(false);
 
   const amountRef = useRef<HTMLInputElement>(null);
   const fileRef   = useRef<HTMLInputElement>(null);
@@ -64,6 +65,13 @@ const AddTransaction: React.FC = () => {
   const formattedAmount = amount
     ? Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00';
+
+  // Daily limit check
+  const dailyStatus = db.getDailyLimitStatus();
+  const newAmount = parseFloat(amount) || 0;
+  const projectedSpend = dailyStatus.spent + newAmount;
+  const willExceedLimit = settings.dailyLimitEnabled && settings.dailyLimit > 0 && type === 'expense' && !editId && projectedSpend > settings.dailyLimit;
+  const showLimitWarning = willExceedLimit && !warnDismissed && newAmount > 0;
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -206,6 +214,33 @@ const AddTransaction: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* ── Daily Limit Warning Banner ── */}
+        {showLimitWarning && (
+          <div style={{
+            margin: '16px 16px 0',
+            background: '#FFFBEB',
+            border: '1.5px solid #FDE68A',
+            borderRadius: '14px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+          }}>
+            <AlertTriangle size={18} color="#D97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#92400E' }}>
+                ⚠️ This will exceed your daily limit
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#B45309', marginTop: '2px' }}>
+                Today: {settings.currencySymbol}{dailyStatus.spent.toLocaleString()} spent of {settings.currencySymbol}{settings.dailyLimit.toLocaleString()} limit. Adding {settings.currencySymbol}{newAmount.toLocaleString()} = {settings.currencySymbol}{projectedSpend.toLocaleString()} total ({Math.round((projectedSpend / settings.dailyLimit) * 100)}%)
+              </div>
+            </div>
+            <button onClick={() => setWarnDismissed(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D97706', flexShrink: 0, padding: '0' }}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* ── Amount Card ── */}
         <div style={{

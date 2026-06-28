@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User, Transaction, Budget, Goal, Account, Category, AppSettings } from '../types';
 import { onAuthStateChanged } from '../services/auth';
 import * as db from '../services/db';
+import { setSupabaseUserId } from '../services/supabaseSync';
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -65,6 +66,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsub = onAuthStateChanged(u => {
       setUser(u);
       setLoading(false);
+      setSupabaseUserId(u ? u.uid : null);
       if (u) refresh();
     });
     return unsub;

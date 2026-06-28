@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, ChevronRight, CheckCircle, Archive, Trash2, ArrowLeft, ArrowUpRight, ArrowDownLeft, Award } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, ChevronRight, CheckCircle, Archive, Trash2, ArrowLeft, ArrowUpRight, ArrowDownLeft, Award, TrendingUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import * as db from '../services/db';
@@ -42,6 +42,98 @@ const ProgressRing: React.FC<{ percentage: number; color: string; size?: number 
       <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>{Math.round(percentage)}%</span>
         <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>saved</span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Savings Info Card ────────────────────────────────────────────────────────
+const SavingsInfoCard: React.FC = () => {
+  const { settings } = useApp();
+  const now = new Date();
+  const { income, expense, savings } = useMemo(
+    () => db.getMonthlyStats(now.getFullYear(), now.getMonth()),
+    []
+  );
+  const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
+  const cs = settings.currencySymbol;
+
+  const rateColor = savingsRate >= 20 ? '#16A34A' : savingsRate >= 10 ? '#D97706' : savingsRate < 0 ? '#DC2626' : '#2563EB';
+
+  return (
+    <div style={{
+      margin: '14px 16px',
+      background: 'var(--color-card)',
+      borderRadius: '20px',
+      border: '1.5px solid var(--color-border)',
+      overflow: 'hidden',
+      boxShadow: 'var(--shadow-card)',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: '10px',
+      }}>
+        <TrendingUp size={20} color="rgba(255,255,255,0.9)" />
+        <div>
+          <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#fff' }}>Your Savings This Month</div>
+          <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
+            {now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '14px 16px', gap: '8px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Income</div>
+          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#16A34A', marginTop: '3px' }}>{cs}{income.toLocaleString()}</div>
+        </div>
+        <div style={{ textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}>
+          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Expenses</div>
+          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#DC2626', marginTop: '3px' }}>{cs}{expense.toLocaleString()}</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saved</div>
+          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: savings >= 0 ? '#2563EB' : '#DC2626', marginTop: '3px' }}>
+            {savings >= 0 ? '' : '-'}{cs}{Math.abs(savings).toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* Savings rate bar */}
+      <div style={{ padding: '0 16px 14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Savings Rate</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: 800, color: rateColor }}>{savingsRate}%</span>
+        </div>
+        <div style={{ height: '6px', borderRadius: '99px', background: 'var(--color-border)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: '99px',
+            width: `${Math.max(0, Math.min(savingsRate, 100))}%`,
+            background: rateColor,
+            transition: 'width 0.5s ease',
+          }} />
+        </div>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '6px', lineHeight: 1.4 }}>
+          {savingsRate >= 20 ? '🎉 Great! You\'re hitting your savings target.' :
+           savingsRate >= 10 ? '👍 Good progress. Try to reach 20% for financial health.' :
+           savingsRate < 0 ? '⚠️ You spent more than you earned this month.' :
+           '💡 Add income and reduce expenses to improve your savings rate.'}
+        </div>
+      </div>
+
+      {/* How savings works */}
+      <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px', background: '#F8FAFF' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)', marginBottom: '6px' }}>💡 How Savings Goals Work</div>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>
+          • Create a goal with a <strong>target amount</strong> (e.g. ₹50,000 for a laptop)<br />
+          • Use <strong>Deposit</strong> to manually track money you set aside for a goal<br />
+          • Use <strong>Withdraw</strong> when you dip into your savings<br />
+          • Goals are <em>separate from your account balance</em> — they are savings buckets<br />
+          • When you hit 100% of a target, the goal auto-marks as <strong>Completed 🎉</strong>
+        </div>
       </div>
     </div>
   );
@@ -468,7 +560,10 @@ const Goals: React.FC = () => {
 
       {/* Main Content scrollable area */}
       <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
-        
+
+        {/* Savings Info Card */}
+        <SavingsInfoCard />
+
         {/* Suggested templates (horizontal chips) */}
         <div style={{ padding: '16px 0 16px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
           <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Goals</h3>

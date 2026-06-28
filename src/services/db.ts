@@ -1,7 +1,8 @@
 // Database service – LocalStorage backed (Supabase ready)
-import type { Transaction, Budget, Goal, Account, Category, AppSettings } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
+import { syncToSupabase } from './supabaseSync';
 
 const KEYS = {
   transactions: 'finova_transactions',
@@ -55,6 +56,9 @@ export function addTransaction(data: Omit<Transaction, 'id' | 'createdAt'>): Tra
   if (data.type === 'expense') {
     updateBudgetSpent(data.category, data.amount, data.date);
   }
+
+  // Supabase sync
+  syncToSupabase('transactions', t as unknown as Record<string, unknown>);
 
   return t;
 }
@@ -133,6 +137,9 @@ export function deleteTransaction(id: string): void {
   }
 
   save(KEYS.transactions, txns.filter(t => t.id !== id));
+
+  // Supabase sync
+  syncToSupabase('transactions', { id } as unknown as Record<string, unknown>, 'delete');
 }
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
@@ -269,7 +276,8 @@ export function deleteGoal(id: string): void {
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 export function getSettings(): AppSettings {
-  return load<AppSettings>(KEYS.settings, { ...DEFAULT_SETTINGS });
+  const stored = load<Partial<AppSettings>>(KEYS.settings, {});
+  return { ...DEFAULT_SETTINGS, ...stored };
 }
 
 export function saveSettings(settings: AppSettings): void {
@@ -289,6 +297,104 @@ export function getMonthlyStats(year: number, month: number) {
 
 export function getTotalBalance(): number {
   return getAccounts().reduce((s, a) => s + a.balance, 0);
+}
+
+// ─── Daily / Weekly expense helpers ───────────────────────────────────────────
+export function getDailyExpenses(dateISO: string): number {
+  const d = new Date(dateISO);
+  const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+  return getTransactions()
+    .filter(t => {
+      if (t.type !== 'expense') return false;
+      const td = new Date(t.date);
+      return td.getFullYear() === y && td.getMonth() === m && td.getDate() === day;
+    })
+    .reduce((s, t) => s + t.amount, 0);
+}
+
+export function getWeeklyExpenses(): number {
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+  return getTransactions()
+    .filter(t => t.type === 'expense' && new Date(t.date) >= weekAgo)
+    .reduce((s, t) => s + t.amount, 0);
+}
+
+export function getDailyLimitStatus(): LimitStatus {
+  const settings = getSettings();
+  const spent = getDailyExpenses(new Date().toISOString());
+  const limit = settings.dailyLimit || 0;
+  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+  return {
+    spent,
+    limit,
+    pct: Math.min(pct, 999),
+    over: pct > 100,
+    warn: pct >= 80 && pct <= 100,
+    remaining: Math.max(0, limit - spent),
+  };
+}
+
+export function getWeeklyLimitStatus(): LimitStatus {
+  const settings = getSettings();
+  const spent = getWeeklyExpenses();
+  const limit = settings.weeklyLimit || 0;
+  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+  return {
+    spent,
+    limit,
+    pct: Math.min(pct, 999),
+    over: pct > 100,
+    warn: pct >= 80 && pct <= 100,
+    remaining: Math.max(0, limit - spent),
+  };
+}
+
+// ─── Savings rate ─────────────────────────────────────────────────────────────
+export function getSavingsRate(year: number, month: number): number {
+  const { income, savings } = getMonthlyStats(year, month);
+  if (income === 0) return 0;
+  return Math.round((savings / income) * 100);
+}
+
+// ─── Budget Streak ────────────────────────────────────────────────────────────
+// Count consecutive days (going back from today) where daily expenses <= dailyLimit.
+// Returns 0 if daily limits not enabled or no transactions recorded.
+export function getBudgetStreak(): number {
+  const settings = getSettings();
+  if (!settings.dailyLimitEnabled || settings.dailyLimit <= 0) return 0;
+  const limit = settings.dailyLimit;
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const spent = getDailyExpenses(d.toISOString());
+    // A day with 0 spend (no data) counts as safe
+    if (spent <= limit) {
+      streak++;
+    } else {
+      break; // streak broken
+    }
+  }
+  return streak;
+}
+
+// ─── 7-day spending heatmap (for mini bar chart) ──────────────────────────────
+export function get7DaySpending(): { date: string; amount: number; label: string }[] {
+  const result: { date: string; amount: number; label: string }[] = [];
+  const today = new Date();
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    result.push({
+      date: d.toISOString(),
+      amount: getDailyExpenses(d.toISOString()),
+      label: i === 0 ? 'Today' : DAYS[d.getDay()],
+    });
+  }
+  return result;
 }
 
 // ─── Backup / restore ─────────────────────────────────────────────────────────
