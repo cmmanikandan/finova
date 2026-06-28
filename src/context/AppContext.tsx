@@ -3,6 +3,12 @@ import type { User, Transaction, Budget, Goal, Account, Category, AppSettings } 
 import { onAuthStateChanged } from '../services/auth';
 import * as db from '../services/db';
 
+function applyTheme(theme: 'light' | 'dark' | 'system') {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+}
+
 interface AppContextType {
   user: User | null;
   loading: boolean;
@@ -42,7 +48,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGoals(db.getGoals());
     setAccounts(db.getAccounts());
     setCategories(db.getCategories());
-    setSettings(db.getSettings());
+    const s = db.getSettings();
+    setSettings(s);
+    applyTheme(s.theme);
   }, []);
 
   useEffect(() => {
@@ -57,6 +65,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const saveSettings = useCallback((s: AppSettings) => {
     db.saveSettings(s);
     setSettings(s);
+    applyTheme(s.theme);
   }, []);
 
   return (

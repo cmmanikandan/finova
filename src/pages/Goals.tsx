@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, ChevronRight, CheckCircle } from 'lucide-react';
+import { Plus, X, ChevronRight, CheckCircle, Archive, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
 import type { Goal } from '../types';
@@ -14,6 +14,7 @@ const Goals: React.FC = () => {
 
   const activeGoals    = goals.filter(g => g.status === 'active');
   const completedGoals = goals.filter(g => g.status === 'completed');
+  const archivedGoals  = goals.filter(g => g.status === 'archived');
 
   const handleAddAmount = () => {
     if (!addAmountGoal || !addAmt || parseFloat(addAmt) <= 0) return;
@@ -25,6 +26,26 @@ const Goals: React.FC = () => {
     setAddAmountGoal(null);
     setAddAmt('');
     refresh();
+  };
+
+  const handleArchive = (id: string) => {
+    db.updateGoal(id, { status: 'archived' });
+    setAddAmountGoal(null);
+    refresh();
+  };
+
+  const handleUnarchive = (id: string) => {
+    db.updateGoal(id, { status: 'active' });
+    setAddAmountGoal(null);
+    refresh();
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this goal?')) {
+      db.deleteGoal(id);
+      setAddAmountGoal(null);
+      refresh();
+    }
   };
 
   const GoalCard = ({ g }: { g: Goal }) => {
@@ -41,16 +62,22 @@ const Goals: React.FC = () => {
             }}>{g.icon}</div>
             <div>
               <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9375rem' }}>{g.name}</div>
-              {daysLeft > 0
-                ? <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{daysLeft} days left</div>
-                : <div style={{ fontSize: '0.75rem', color: '#EF4444' }}>Overdue!</div>
-              }
+              {g.status === 'archived' ? (
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Archived</div>
+              ) : daysLeft > 0 ? (
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{daysLeft} days left</div>
+              ) : (
+                <div style={{ fontSize: '0.75rem', color: '#EF4444' }}>Overdue!</div>
+              )}
             </div>
           </div>
-          {g.status === 'completed'
-            ? <CheckCircle size={20} color="#22C55E" />
-            : <ChevronRight size={18} color="#CBD5E1" />
-          }
+          {g.status === 'completed' ? (
+            <CheckCircle size={20} color="#22C55E" />
+          ) : g.status === 'archived' ? (
+            <Archive size={20} color="#94A3B8" />
+          ) : (
+            <ChevronRight size={18} color="#CBD5E1" />
+          )}
         </div>
 
         <div className="progress-bar" style={{ marginBottom: '0.5rem' }}>
@@ -114,6 +141,15 @@ const Goals: React.FC = () => {
             {completedGoals.map(g => <GoalCard key={g.id} g={g} />)}
           </>
         )}
+
+        {archivedGoals.length > 0 && (
+          <>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.5rem' }}>
+              Archived 📦 · {archivedGoals.length}
+            </div>
+            {archivedGoals.map(g => <GoalCard key={g.id} g={g} />)}
+          </>
+        )}
       </div>
 
       {/* Add Goal Form */}
@@ -142,6 +178,21 @@ const Goals: React.FC = () => {
               onChange={e => setAddAmt(e.target.value)}
               style={{ marginBottom: '1rem' }}
             />
+            {/* Archive & Delete actions */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {addAmountGoal.status !== 'archived' ? (
+                <button className="btn-ghost" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderColor: '#E2E8F0', fontSize: '0.8125rem' }} onClick={() => handleArchive(addAmountGoal.id)}>
+                  <Archive size={14} /> Archive
+                </button>
+              ) : (
+                <button className="btn-ghost" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderColor: '#E2E8F0', fontSize: '0.8125rem' }} onClick={() => handleUnarchive(addAmountGoal.id)}>
+                  <Plus size={14} /> Restore
+                </button>
+              )}
+              <button className="btn-ghost" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', borderColor: '#FEE2E2', color: '#EF4444', fontSize: '0.8125rem' }} onClick={() => handleDelete(addAmountGoal.id)}>
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setAddAmountGoal(null)}>Cancel</button>
               <button className="btn-primary" style={{ flex: 2 }} onClick={handleAddAmount}>Add Savings</button>

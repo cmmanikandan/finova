@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Image } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
 import type { TransactionType } from '../types';
@@ -22,10 +22,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSaved, def
   const [type, setType] = useState<TransactionType>(defaultType);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
   const [account, setAccount] = useState(accounts[0]?.id || 'cash');
   const [toAccount, setToAccount] = useState('');
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [note, setNote] = useState('');
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const filteredCats = categories.filter(c => c.type === type || c.type === 'both');
@@ -40,10 +42,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSaved, def
         type,
         amount: parseFloat(amount),
         category: type === 'transfer' ? 'transfer' : category,
+        subcategory: type === 'transfer' ? undefined : (subcategory || undefined),
         account,
         toAccount: type === 'transfer' ? toAccount : undefined,
         date: new Date(date).toISOString(),
         note: note || undefined,
+        receiptUrl: receiptPreview || undefined,
       });
       refresh();
       onSaved();
@@ -124,6 +128,21 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSaved, def
             </div>
           )}
 
+          {/* Subcategory */}
+          {type !== 'transfer' && category && (
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Subcategory (optional)</label>
+              <input
+                id="txn-subcategory"
+                type="text"
+                className="input-field"
+                placeholder="e.g. Starbucks, Xerox, Semester Fees"
+                value={subcategory}
+                onChange={e => setSubcategory(e.target.value)}
+              />
+            </div>
+          )}
+
           {/* Account */}
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>
@@ -161,6 +180,44 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSaved, def
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Note (optional)</label>
             <input id="txn-note" type="text" className="input-field" placeholder="Add a note…" value={note} onChange={e => setNote(e.target.value)} />
+          </div>
+
+          {/* Receipt Image */}
+          <div>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Receipt Image (optional)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1rem',
+                border: '1.5px dashed var(--color-border)', borderRadius: '12px', cursor: 'pointer',
+                fontSize: '0.875rem', fontWeight: 500, color: '#64748B', background: '#FAFBFC'
+              }}>
+                <Image size={18} />
+                <span>Choose Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setReceiptPreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              {receiptPreview && (
+                <div style={{ position: 'relative', width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src={receiptPreview} alt="Receipt Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => setReceiptPreview(null)} style={{
+                    position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', border: 'none',
+                    borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: '#fff', fontSize: '10px', cursor: 'pointer'
+                  }}>×</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
@@ -38,6 +38,24 @@ const Dashboard: React.FC = () => {
   const recentTxns = db.getTransactions().slice(0, 5);
 
   const getCatInfo = (catId: string) => categories.find(c => c.id === catId);
+
+  // Calculate highest spending category
+  const highestSpendCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    stats.transactions.filter(t => t.type === 'expense').forEach(t => {
+      map[t.category] = (map[t.category] || 0) + t.amount;
+    });
+    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) {
+      const cat = categories.find(c => c.id === sorted[0][0]);
+      return {
+        name: cat?.name || sorted[0][0],
+        icon: cat?.icon || '📦',
+        amount: sorted[0][1],
+      };
+    }
+    return null;
+  }, [stats.transactions, categories]);
 
   const openForm = (type: TransactionType) => { setFormType(type); setShowForm(true); };
 
@@ -83,6 +101,38 @@ const Dashboard: React.FC = () => {
             <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.08)"  onClick={() => openForm('income')} />
             <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.08)"  onClick={() => openForm('transfer')} />
             <QuickAction icon={<Target size={20} />}         label="Add Goal"   color="#F59E0B" bg="rgba(245,158,11,0.08)" onClick={() => {}} />
+          </div>
+        </div>
+        {/* Monthly Summary */}
+        <div className="card" style={{ padding: '1.125rem' }}>
+          <h3 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: '#0F172A' }}>Monthly Summary</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '2px' }}>Monthly Income</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#22C55E' }}>{formatCurrency(stats.income)}</span>
+              </div>
+              <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '2px' }}>Monthly Expense</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#EF4444' }}>{formatCurrency(stats.expense)}</span>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '2px' }}>Monthly Savings</span>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: '#2563EB' }}>{formatCurrency(stats.savings)}</span>
+              </div>
+              <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginBottom: '2px' }}>Top Expense Cat</span>
+                {highestSpendCategory ? (
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {highestSpendCategory.icon} {highestSpendCategory.name} ({formatCurrency(highestSpendCategory.amount)})
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#94A3B8' }}>N/A</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

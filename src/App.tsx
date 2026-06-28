@@ -1,20 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import SplashScreen from './pages/SplashScreen';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Budgets from './pages/Budgets';
 import Reports from './pages/Reports';
 import Goals from './pages/Goals';
 import Settings from './pages/Settings';
+import PinLock from './pages/PinLock';
 import BottomNav from './components/BottomNav';
 import type { NavTab } from './components/BottomNav';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading } = useApp();
+  const { user, loading, settings } = useApp();
   const [splashDone, setSplashDone]   = useState(false);
+  const [unlocked, setUnlocked]       = useState(false);
   const [activeTab, setActiveTab]     = useState<NavTab>('home');
+
+  useEffect(() => {
+    if (!settings.pinEnabled) {
+      setUnlocked(true);
+    } else {
+      setUnlocked(false);
+    }
+  }, [settings.pinEnabled]);
 
   if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
   if (loading)     return (
@@ -24,11 +35,13 @@ const AppContent: React.FC = () => {
     </div>
   );
   if (!user)       return <LandingPage onLogin={() => setActiveTab('home')} />;
+  if (settings.pinEnabled && !unlocked) return <PinLock onUnlock={() => setUnlocked(true)} />;
 
   const renderPage = () => {
     switch (activeTab) {
       case 'home':         return <Dashboard />;
       case 'transactions': return <Transactions />;
+      case 'budgets':      return <Budgets />;
       case 'reports':      return <Reports />;
       case 'goals':        return <Goals />;
       case 'settings':     return <Settings onLogout={() => {}} />;

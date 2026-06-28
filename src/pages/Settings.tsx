@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import {
   User, DollarSign, HardDrive, Shield, Info, LogOut,
-  ChevronRight, Download, Upload, Trash2, X
+  ChevronRight, Download, Upload, Trash2, X, Palette, Bell, Grid, CreditCard, Plus
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { signOut } from '../services/auth';
-import { exportAllData, importAllData } from '../services/db';
+import { exportAllData, importAllData, addCategory, deleteCategory, addAccount, deleteAccount } from '../services/db';
 import { CURRENCIES } from '../data/defaults';
 import logoUrl from '../assets/logo.jpeg';
+import { setPIN, clearPIN } from './PinLock';
 
-type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about';
+type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about' | 'categories' | 'accounts' | 'theme' | 'notifications';
 
 const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) => {
   const { user, settings } = useApp();
@@ -22,15 +23,19 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
   };
 
   const MENU = [
-    { id: 'profile',  icon: <User size={20} />,       label: 'Profile',          sub: user?.name || '', color: '#2563EB' },
-    { id: 'currency', icon: <DollarSign size={20} />,  label: 'Currency',         sub: `${settings.currency} (${settings.currencySymbol})`, color: '#22C55E' },
-    { id: 'backup',   icon: <HardDrive size={20} />,   label: 'Backup & Restore', sub: 'Export or restore data', color: '#F59E0B' },
-    { id: 'security', icon: <Shield size={20} />,      label: 'Security',         sub: settings.pinEnabled ? 'PIN enabled' : 'No lock', color: '#7C3AED' },
-    { id: 'about',    icon: <Info size={20} />,        label: 'About',            sub: 'FINOVA v1.0', color: '#0891B2' },
+    { id: 'profile',       icon: <User size={20} />,       label: 'Profile',          sub: user?.name || '', color: '#2563EB' },
+    { id: 'categories',    icon: <Grid size={20} />,       label: 'Categories',       sub: 'Manage expense & income categories', color: '#EA580C' },
+    { id: 'accounts',      icon: <CreditCard size={20} />, label: 'Accounts',       sub: 'Manage cash, bank & cards', color: '#16A34A' },
+    { id: 'theme',         icon: <Palette size={20} />,    label: 'Theme',            sub: settings.theme.charAt(0).toUpperCase() + settings.theme.slice(1), color: '#7C3AED' },
+    { id: 'notifications', icon: <Bell size={20} />,       label: 'Notifications',    sub: 'Alerts & Reminders settings', color: '#EF4444' },
+    { id: 'currency',      icon: <DollarSign size={20} />,  label: 'Currency',         sub: `${settings.currency} (${settings.currencySymbol})`, color: '#22C55E' },
+    { id: 'backup',        icon: <HardDrive size={20} />,   label: 'Backup & Restore', sub: 'Export or restore data', color: '#F59E0B' },
+    { id: 'security',      icon: <Shield size={20} />,      label: 'Security',         sub: settings.pinEnabled ? 'PIN enabled' : 'No lock', color: '#0F766E' },
+    { id: 'about',         icon: <Info size={20} />,        label: 'About',            sub: 'FINOVA v1.0', color: '#0891B2' },
   ];
 
   if (view !== 'main') {
-    return <SubView view={view} onBack={() => setView('main')} onLogout={handleLogout} />;
+    return <SubView view={view} onBack={() => setView('main')} />;
   }
 
   return (
@@ -112,8 +117,8 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
   );
 };
 
-const SubView: React.FC<{ view: SettingsView; onBack: () => void; onLogout: () => void }> = ({ view, onBack }) => {
-  const { user, settings, saveSettings, refresh } = useApp();
+const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, onBack }) => {
+  const { user, settings, saveSettings, refresh, categories, accounts } = useApp();
 
   const BackHeader = ({ title }: { title: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '1rem 1.25rem', background: '#fff', borderBottom: '1px solid #F1F5F9' }}>
@@ -274,31 +279,439 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void; onLogout: () =
     );
   }
 
-  // Profile view
+  if (view === 'profile') {
+    return (
+      <div className="page-enter">
+        <BackHeader title="Profile" />
+        <div style={{ padding: '2rem 1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #E2E8F0' }}>
+            {user?.photoURL
+              ? <img src={user.photoURL} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #2563EB, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '2rem' }}>
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+            }
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#0F172A' }}>{user?.name}</div>
+            <div style={{ color: '#64748B', marginTop: '0.25rem' }}>{user?.email}</div>
+          </div>
+          <div className="card" style={{ width: '100%', padding: '1.25rem' }}>
+            {[['Name', user?.name || ''], ['Email', user?.email || ''], ['Auth', 'Google Account']].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <span style={{ color: '#64748B', fontSize: '0.9375rem' }}>{k}</span>
+                <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'categories') {
+    const [name, setName] = useState('');
+    const [type, setType] = useState<'expense' | 'income'>('expense');
+    const [icon, setIcon] = useState('🍕');
+    const [color, setColor] = useState('#2563EB');
+    const [showAddForm, setShowAddForm] = useState(false);
+
+    const handleAdd = () => {
+      if (!name) return;
+      addCategory({ name, type, icon, color });
+      setName('');
+      setShowAddForm(false);
+      refresh();
+    };
+
+    const handleDelete = (id: string) => {
+      if (window.confirm('Delete this category?')) {
+        deleteCategory(id);
+        refresh();
+      }
+    };
+
+    return (
+      <div className="page-enter">
+        <BackHeader title="Categories" />
+        <div style={{ padding: '1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <button className="btn-primary" onClick={() => setShowAddForm(true)}>
+            <Plus size={16} /> Add Custom Category
+          </button>
+
+          {showAddForm && (
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, fontWeight: 700 }}>New Category</h4>
+                <button onClick={() => setShowAddForm(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Name</label>
+                <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Subscriptions" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Type</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {(['expense', 'income'] as const).map(t => (
+                    <button key={t} onClick={() => setType(t)} className={`chip ${type === t ? 'chip-active' : 'chip-inactive'}`} style={{ flex: 1, justifyContent: 'center' }}>
+                      {t === 'expense' ? 'Expense' : 'Income'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Select Icon</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxHeight: '100px', overflowY: 'auto', padding: '4px', background: '#F8FAFC', borderRadius: '10px' }}>
+                  {['🍕', '✈️', '🛍️', '📚', '🏥', '⚡', '🎮', '⛽', '🏠', '🍱', '✏️', '🚌', '💰', '💼', '📈', '💻', '📦', '🔑', '🎨', '👔'].map(emoji => (
+                    <button key={emoji} onClick={() => setIcon(emoji)} style={{ fontSize: '1.25rem', padding: '0.375rem', background: icon === emoji ? '#E2E8F0' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Color</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {['#EA580C', '#4F46E5', '#DB2777', '#059669', '#DC2626', '#D97706', '#7C3AED', '#0F766E', '#1D4ED8', '#475569'].map(c => (
+                    <button key={c} onClick={() => setColor(c)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: c, border: color === c ? '3px solid #0F172A' : 'none', cursor: 'pointer' }} />
+                  ))}
+                </div>
+              </div>
+
+              <button className="btn-primary" onClick={handleAdd}>Save Category</button>
+            </div>
+          )}
+
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {categories.map((c, idx) => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: idx < categories.length - 1 ? '1px solid #F8FAFC' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                    {c.icon}
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>{c.name}</span>
+                    <span style={{ fontSize: '0.6875rem', color: '#94A3B8', marginLeft: '0.5rem', textTransform: 'uppercase' }}>{c.type}</span>
+                  </div>
+                </div>
+                {c.isCustom ? (
+                  <button onClick={() => handleDelete(c.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444' }}>
+                    <Trash2 size={16} />
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '0.6875rem', color: '#94A3B8', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>System</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'accounts') {
+    const [name, setName] = useState('');
+    const [balance, setBalance] = useState('');
+    const [type, setType] = useState<'cash' | 'bank' | 'credit_card' | 'debit_card' | 'upi' | 'wallet' | 'custom'>('bank');
+    const [icon, setIcon] = useState('🏦');
+    const [color, setColor] = useState('#2563EB');
+    const [showAddForm, setShowAddForm] = useState(false);
+
+    const handleAdd = () => {
+      if (!name || !balance) return;
+      addAccount({
+        name,
+        type,
+        balance: parseFloat(balance),
+        icon,
+        color
+      });
+      setName('');
+      setBalance('');
+      setShowAddForm(false);
+      refresh();
+    };
+
+    const handleDelete = (id: string) => {
+      if (window.confirm('Delete this account? All associated transaction references will remain but balance logic will be deleted.')) {
+        deleteAccount(id);
+        refresh();
+      }
+    };
+
+    return (
+      <div className="page-enter">
+        <BackHeader title="Accounts" />
+        <div style={{ padding: '1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <button className="btn-primary" onClick={() => setShowAddForm(true)}>
+            <Plus size={16} /> Add Custom Account
+          </button>
+
+          {showAddForm && (
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, fontWeight: 700 }}>New Account</h4>
+                <button onClick={() => setShowAddForm(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Account Name</label>
+                <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. HDFC Bank" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Initial Balance</label>
+                <input type="number" className="input-field" value={balance} onChange={e => setBalance(e.target.value)} placeholder="₹ 0" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Type</label>
+                <div style={{ position: 'relative' }}>
+                  <select className="input-field" value={type} onChange={e => setType(e.target.value as any)} style={{ appearance: 'none' }}>
+                    <option value="cash">Cash</option>
+                    <option value="bank">Bank Account</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="debit_card">Debit Card</option>
+                    <option value="upi">UPI / Net Banking</option>
+                    <option value="wallet">Wallet</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                  <ChevronRight size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: '#94A3B8', pointerEvents: 'none' }} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Select Icon</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '4px', background: '#F8FAFC', borderRadius: '10px' }}>
+                  {['💵', '🏦', '💳', '📱', '👛', '💼', '💰'].map(emoji => (
+                    <button key={emoji} onClick={() => setIcon(emoji)} style={{ fontSize: '1.25rem', padding: '0.375rem', background: icon === emoji ? '#E2E8F0' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Color</label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {['#16A34A', '#1D4ED8', '#7C3AED', '#0891B2', '#EA580C', '#D97706', '#E11D48'].map(c => (
+                    <button key={c} onClick={() => setColor(c)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: c, border: color === c ? '3px solid #0F172A' : 'none', cursor: 'pointer' }} />
+                  ))}
+                </div>
+              </div>
+
+              <button className="btn-primary" onClick={handleAdd}>Save Account</button>
+            </div>
+          )}
+
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {accounts.map((a, idx) => (
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', borderBottom: idx < accounts.length - 1 ? '1px solid #F8FAFC' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${a.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                    {a.icon}
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>{a.name}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginLeft: '0.5rem' }}>(₹{a.balance.toLocaleString()})</span>
+                  </div>
+                </div>
+                {a.isCustom ? (
+                  <button onClick={() => handleDelete(a.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444' }}>
+                    <Trash2 size={16} />
+                  </button>
+                ) : (
+                  <span style={{ fontSize: '0.6875rem', color: '#94A3B8', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px' }}>System</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'theme') {
+    return (
+      <div className="page-enter">
+        <BackHeader title="Theme Selector" />
+        <div style={{ padding: '1.25rem', paddingBottom: '6rem' }}>
+          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+            {(['light', 'dark', 'system'] as const).map((t, i) => (
+              <button key={t} onClick={() => saveSettings({ ...settings, theme: t })}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '1rem',
+                  padding: '1rem', border: 'none', background: settings.theme === t ? 'rgba(37,99,235,0.04)' : 'transparent',
+                  cursor: 'pointer', borderBottom: i < 2 ? '1px solid #F8FAFC' : 'none',
+                  textAlign: 'left',
+                }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Palette size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: '#0F172A', textTransform: 'capitalize' }}>{t} Mode</div>
+                  <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                    {t === 'light' && 'Always light layout'}
+                    {t === 'dark' && 'Always sleek dark theme'}
+                    {t === 'system' && 'Match device system preferences'}
+                  </div>
+                </div>
+                {settings.theme === t && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563EB' }} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'notifications') {
+    const [budgetAlerts, setBudgetAlerts] = useState(settings.budgetAlertsEnabled);
+    const [dailyReminder, setDailyReminder] = useState(settings.dailyReminderEnabled);
+
+    const toggleBudget = () => {
+      const val = !budgetAlerts;
+      setBudgetAlerts(val);
+      saveSettings({ ...settings, budgetAlertsEnabled: val });
+    };
+
+    const toggleDaily = async () => {
+      const val = !dailyReminder;
+      if (val) {
+        const { requestNotificationPermission } = await import('../services/notifications');
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          alert('Notification permission was blocked. Please enable it in browser settings.');
+          return;
+        }
+      }
+      setDailyReminder(val);
+      saveSettings({ ...settings, dailyReminderEnabled: val });
+    };
+
+    return (
+      <div className="page-enter">
+        <BackHeader title="Notifications" />
+        <div style={{ padding: '1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>Budget Limit Alerts</div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Notify when category spends reach 80% and 100%</div>
+              </div>
+              <input type="checkbox" checked={budgetAlerts} onChange={toggleBudget} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>Daily Summary & Reminders</div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Remind to log transactions and goal progress</div>
+              </div>
+              <input type="checkbox" checked={dailyReminder} onChange={toggleDaily} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'security') {
+    const [pinEnabled, setPinEnabled] = useState(settings.pinEnabled);
+    const [pinInput, setPinInput] = useState('');
+    const [pinConfirm, setPinConfirm] = useState('');
+    const [step, setStep] = useState<'toggle' | 'setup_pin' | 'confirm_pin'>('toggle');
+
+    const handleToggle = () => {
+      if (pinEnabled) {
+        clearPIN();
+        setPinEnabled(false);
+        saveSettings({ ...settings, pinEnabled: false });
+        alert('PIN Lock disabled successfully.');
+      } else {
+        setStep('setup_pin');
+      }
+    };
+
+    const handleSetup = () => {
+      if (pinInput.length !== 4 || isNaN(Number(pinInput))) {
+        alert('PIN must be 4 digits.');
+        return;
+      }
+      setStep('confirm_pin');
+    };
+
+    const handleConfirm = () => {
+      if (pinConfirm !== pinInput) {
+        alert('PINs do not match. Restarting setup.');
+        setStep('setup_pin');
+        setPinInput('');
+        setPinConfirm('');
+        return;
+      }
+      setPIN(pinConfirm);
+      setPinEnabled(true);
+      saveSettings({ ...settings, pinEnabled: true });
+      setStep('toggle');
+      setPinInput('');
+      setPinConfirm('');
+      alert('PIN Lock enabled successfully!');
+    };
+
+    return (
+      <div className="page-enter">
+        <BackHeader title="App Security" />
+        <div style={{ padding: '1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {step === 'toggle' && (
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>PIN Lock Screen</div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Ask for a 4-digit PIN when launching FINOVA</div>
+              </div>
+              <button className={pinEnabled ? 'btn-ghost' : 'btn-primary'} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={handleToggle}>
+                {pinEnabled ? 'Disable PIN' : 'Enable PIN'}
+              </button>
+            </div>
+          )}
+
+          {step === 'setup_pin' && (
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ margin: 0, fontWeight: 700 }}>Set 4-Digit PIN</h4>
+              <input type="password" maxLength={4} className="input-field" placeholder="Enter new PIN" value={pinInput} onChange={e => setPinInput(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('toggle')}>Cancel</button>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={handleSetup}>Next</button>
+              </div>
+            </div>
+          )}
+
+          {step === 'confirm_pin' && (
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ margin: 0, fontWeight: 700 }}>Confirm PIN</h4>
+              <input type="password" maxLength={4} className="input-field" placeholder="Confirm PIN" value={pinConfirm} onChange={e => setPinConfirm(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('setup_pin')}>Back</button>
+                <button className="btn-primary" style={{ flex: 1 }} onClick={handleConfirm}>Enable PIN</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-enter">
-      <BackHeader title="Profile" />
-      <div style={{ padding: '2rem 1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-        <div style={{ width: '88px', height: '88px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #E2E8F0' }}>
-          {user?.photoURL
-            ? <img src={user.photoURL} alt={user?.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #2563EB, #3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '2rem' }}>
-                {user?.name?.charAt(0) || 'U'}
-              </div>
-          }
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#0F172A' }}>{user?.name}</div>
-          <div style={{ color: '#64748B', marginTop: '0.25rem' }}>{user?.email}</div>
-        </div>
-        <div className="card" style={{ width: '100%', padding: '1.25rem' }}>
-          {[['Name', user?.name || ''], ['Email', user?.email || ''], ['Auth', 'Google Account']].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#64748B', fontSize: '0.9375rem' }}>{k}</span>
-              <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.9375rem' }}>{v}</span>
-            </div>
-          ))}
-        </div>
+      <BackHeader title="Settings Subview" />
+      <div style={{ padding: '2rem 1.25rem', textAlign: 'center' }}>
+        <p>Subview not found</p>
       </div>
     </div>
   );

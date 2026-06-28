@@ -90,6 +90,11 @@ export function addAccount(data: Omit<Account, 'id'>): Account {
   return acc;
 }
 
+export function deleteAccount(id: string): void {
+  const accounts = getAccounts();
+  save(KEYS.accounts, accounts.filter(a => a.id !== id));
+}
+
 // ─── Categories ───────────────────────────────────────────────────────────────
 export function getCategories(): Category[] {
   return load<Category[]>(KEYS.categories, DEFAULT_CATEGORIES.map(c => ({ ...c })));
@@ -101,6 +106,11 @@ export function addCategory(data: Omit<Category, 'id'>): Category {
   cats.push(cat);
   save(KEYS.categories, cats);
   return cat;
+}
+
+export function deleteCategory(id: string): void {
+  const cats = getCategories();
+  save(KEYS.categories, cats.filter(c => c.id !== id));
 }
 
 // ─── Budgets ──────────────────────────────────────────────────────────────────

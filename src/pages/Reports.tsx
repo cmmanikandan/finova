@@ -1,19 +1,22 @@
 import React, { useMemo, useState } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, Legend
+  ResponsiveContainer, LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
+import { Download, FileText, Calendar, BarChart3, TrendingUp, ArrowUpRight, ArrowDownLeft, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
 import { formatCurrency, percentage } from '../utils/format';
 import { format, subMonths } from 'date-fns';
+import { exportPDF, exportCSV, exportExcel, exportJSON } from '../services/export';
 
-const TABS = ['Overview', 'Category', 'Monthly', 'Calendar'];
+const TABS = ['Overview', 'Category', 'Monthly', 'Yearly', 'Calendar'];
 const PIE_COLORS = ['#EF4444','#F59E0B','#22C55E','#2563EB','#7C3AED','#0891B2','#EA580C','#DB2777','#059669'];
 
 const Reports: React.FC = () => {
   const { categories } = useApp();
   const [tab, setTab] = useState('Overview');
+  const [showExportOptions, setShowExportOptions] = useState(false);
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
@@ -44,7 +47,23 @@ const Reports: React.FC = () => {
     });
   }, []);
 
+  // Yearly comparison (last 12 months)
+  const yearlyData = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const d = subMonths(now, 11 - i);
+      const s = db.getMonthlyStats(d.getFullYear(), d.getMonth());
+      return {
+        month: format(d, 'MMM yy'),
+        income: s.income,
+        expense: s.expense,
+        savings: s.savings,
+      };
+    });
+  }, []);
+
   const avgDaily = stats.expense / (now.getDate() || 1);
+  const highestCategory = categoryData[0]?.name || 'N/A';
+  const txnCount = stats.transactions.length;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -52,19 +71,37 @@ const Reports: React.FC = () => {
       <div style={{ background: '#fff', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #E2E8F0', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontSize: '0.8125rem' }}>
         <div style={{ fontWeight: 700, color: '#0F172A', marginBottom: '0.25rem' }}>{label}</div>
         {payload.map((p: any) => (
-          <div key={p.name} style={{ color: p.color }}>
-            {p.name}: {formatCurrency(p.value)}
+          <div key={p.name} style={{ color: p.color, display: 'flex', gap: '8px', justifyContent: 'space-between' }}>
+            <span>{p.name}:</span>
+            <span style={{ fontWeight: 700 }}>{formatCurrency(p.value)}</span>
           </div>
         ))}
       </div>
     );
   };
 
+  const handleExport = (formatType: 'pdf' | 'csv' | 'excel' | 'json') => {
+    const txns = db.getTransactions();
+    if (formatType === 'pdf') exportPDF(txns);
+    else if (formatType === 'csv') exportCSV(txns);
+    else if (formatType === 'excel') exportExcel(txns);
+    else if (formatType === 'json') exportJSON(txns);
+    setShowExportOptions(false);
+  };
+
   return (
     <div className="page-enter">
+      {/* Header */}
       <div style={{ padding: '1rem 1.25rem', background: '#fff', borderBottom: '1px solid #F1F5F9' }}>
-        <h2 style={{ margin: '0 0 0.875rem', fontSize: '1.125rem', fontWeight: 700, color: '#0F172A' }}>Reports</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#0F172A' }}>Reports</h2>
+          <button id="report-export-btn" className="btn-ghost" onClick={() => setShowExportOptions(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.875rem', fontSize: '0.8125rem', borderRadius: '10px' }}>
+            <Download size={14} /> Export Report
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
           {TABS.map(t => (
             <button key={t} onClick={() => setTab(t)} className={`chip ${tab === t ? 'chip-active' : 'chip-inactive'}`}>{t}</button>
           ))}
@@ -78,16 +115,31 @@ const Reports: React.FC = () => {
             {/* Stats grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {[
-                { label: 'Income',     value: stats.income,  color: '#22C55E', bg: 'rgba(34,197,94,0.08)' },
-                { label: 'Expenses',   value: stats.expense, color: '#EF4444', bg: 'rgba(239,68,68,0.08)' },
-                { label: 'Net Savings',value: stats.savings, color: '#2563EB', bg: 'rgba(37,99,235,0.08)' },
-                { label: 'Avg/Day',    value: avgDaily,      color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
+                { label: 'Income',     value: stats.income,  color: '#22C55E', bg: 'rgba(34,197,94,0.08)', icon: <ArrowUpRight size={14} /> },
+                { label: 'Expenses',   value: stats.expense, color: '#EF4444', bg: 'rgba(239,68,68,0.08)', icon: <ArrowDownLeft size={14} /> },
+                { label: 'Net Savings',value: stats.savings, color: '#2563EB', bg: 'rgba(37,99,235,0.08)', icon: <TrendingUp size={14} /> },
+                { label: 'Avg/Day',    value: avgDaily,      color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', icon: <Calendar size={14} /> },
               ].map(s => (
-                <div key={s.label} style={{ background: s.bg, borderRadius: '16px', padding: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: '0.375rem' }}>{s.label}</div>
+                <div key={s.label} style={{ background: s.bg, borderRadius: '16px', padding: '1rem', border: '1px solid rgba(226,232,240,0.4)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>{s.label}</div>
+                    <div style={{ color: s.color }}>{s.icon}</div>
+                  </div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Extra Stats Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ background: '#fff', borderRadius: '16px', padding: '1rem', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: '0.375rem' }}>Highest Category</div>
+                <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0F172A' }}>{highestCategory}</div>
+              </div>
+              <div style={{ background: '#fff', borderRadius: '16px', padding: '1rem', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600, marginBottom: '0.375rem' }}>Transactions Count</div>
+                <div style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#0F172A' }}>{txnCount} logs</div>
+              </div>
             </div>
 
             {/* Monthly bar chart */}
@@ -187,6 +239,33 @@ const Reports: React.FC = () => {
           </div>
         )}
 
+        {tab === 'Yearly' && (
+          <div className="card" style={{ padding: '1.125rem' }}>
+            <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: '#0F172A' }}>12-Month Area Trend</h4>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={yearlyData}>
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#EF4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: '0.8125rem' }} />
+                <Area type="monotone" dataKey="income" name="Income" stroke="#22C55E" strokeWidth={2} fillOpacity={1} fill="url(#colorIncome)" />
+                <Area type="monotone" dataKey="expense" name="Expense" stroke="#EF4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
         {tab === 'Calendar' && (
           <div className="card" style={{ padding: '1.125rem' }}>
             <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9375rem', fontWeight: 700, color: '#0F172A' }}>
@@ -197,6 +276,39 @@ const Reports: React.FC = () => {
         )}
 
       </div>
+
+      {/* Export Options Sheet */}
+      {showExportOptions && (
+        <div className="modal-overlay" onClick={() => setShowExportOptions(false)}>
+          <div className="bottom-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 700, color: '#0F172A' }}>Export Reports</h3>
+              <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: '#F1F5F9', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem' }} onClick={() => handleExport('pdf')}>
+                <FileText size={24} color="#EF4444" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>PDF Document</span>
+              </button>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem' }} onClick={() => handleExport('excel')}>
+                <BarChart3 size={24} color="#22C55E" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Excel Spreadsheet</span>
+              </button>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem' }} onClick={() => handleExport('csv')}>
+                <FileText size={24} color="#3B82F6" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>CSV Format</span>
+              </button>
+              <button className="btn-ghost" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem', gap: '0.5rem' }} onClick={() => handleExport('json')}>
+                <FileText size={24} color="#7C3AED" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>JSON Format</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
