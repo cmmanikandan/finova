@@ -199,7 +199,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
       {/* App Bar */}
       <div className="app-bar">
         <button onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -214,7 +214,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
       </div>
 
       {/* Form Fields container */}
-      <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
         <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Budget Name</label>
@@ -280,8 +280,8 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
         </div>
       </div>
 
-      {/* Sticky footer action buttons */}
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+      {/* Footer action buttons */}
+      <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
         <button onClick={onClose} className="btn-ghost" style={{ flex: 1 }}>Cancel</button>
         <button id="save-budget-btn" onClick={handleSave} className="btn-primary" style={{ flex: 2, background: `linear-gradient(135deg, ${color}, ${color}cc)`, boxShadow: `0 4px 16px ${color}35` }}>
           <Check size={18} /> {budget ? 'Save Changes' : 'Create Budget'}

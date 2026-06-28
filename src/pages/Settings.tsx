@@ -297,7 +297,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
   // If in Form View, render dedicated edit page overlay
   if (formMode === 'add' || formMode === 'edit') {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => setFormMode('list')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -312,7 +312,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
         </div>
 
         {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Category Name</label>
@@ -366,8 +366,8 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
           </div>
         </div>
 
-        {/* Sticky footer save button */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        {/* Footer save button */}
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setFormMode('list')}>Cancel</button>
           <button className="btn-primary" style={{ flex: 2 }} onClick={handleSave}>Save Category</button>
         </div>
@@ -610,7 +610,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
   // If in Form View, render dedicated edit page overlay
   if (formMode === 'add' || formMode === 'edit') {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => setFormMode('list')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -625,7 +625,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
         </div>
 
         {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           {/* Quick Presets Selection */}
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Quick Preset</label>
@@ -712,8 +712,8 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
           </div>
         </div>
 
-        {/* Sticky footer save button */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        {/* Footer save button */}
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setFormMode('list')}>Cancel</button>
           <button className="btn-primary" style={{ flex: 2 }} onClick={handleSave}>Save Account</button>
         </div>

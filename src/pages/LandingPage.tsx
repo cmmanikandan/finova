@@ -75,7 +75,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      height: '100%',
+      minHeight: '100%',
       background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 40%, #0F172A 100%)',
       display: 'flex',
       flexDirection: 'column',

@@ -15,7 +15,7 @@ const TransactionDetails: React.FC = () => {
 
   if (!txn) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         <div style={{ display: 'flex', alignItems: 'center', height: '56px', padding: '0 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
           <button onClick={() => navigate(-1)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
             <ArrowLeft size={22} />
@@ -41,7 +41,7 @@ const TransactionDetails: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
       {/* App Bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

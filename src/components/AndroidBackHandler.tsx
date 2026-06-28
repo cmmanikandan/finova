@@ -21,7 +21,7 @@ export const AndroidBackHandler: React.FC = () => {
         // Exit PWA / browser
         window.close();
         document.body.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:#0F172A;color:#fff;font-family:sans-serif;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#0F172A;color:#fff;font-family:sans-serif;">
             <h2 style="font-weight:800;">Goodbye!</h2>
             <p style="color:#64748B;font-weight:600;">You can close this tab now.</p>
           </div>

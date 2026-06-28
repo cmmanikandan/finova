@@ -147,7 +147,7 @@ const Goals: React.FC = () => {
   // ─── 1. Subpage: Create Goal ───
   if (viewMode === 'create') {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -160,7 +160,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           {/* Scrolling Templates */}
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Savings Templates</label>
@@ -239,7 +239,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Footer save */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate('/goals')}>Cancel</button>
           <button className="btn-primary" style={{ flex: 2 }} onClick={handleCreate}>Save Goal</button>
         </div>
@@ -254,7 +254,7 @@ const Goals: React.FC = () => {
     const isCompleted = selectedGoal.status === 'completed';
 
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -272,7 +272,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Scrollable details */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           {/* Progress Ring Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center', gap: '16px' }}>
             {isCompleted && (
@@ -311,8 +311,8 @@ const Goals: React.FC = () => {
           </div>
         </div>
 
-        {/* Sticky footer quick money actions */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        {/* Footer quick money actions */}
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1, display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }} onClick={() => navigate(`/goals/${selectedGoal.id}/withdraw`)}>
             <ArrowDownLeft size={16} /> Withdraw
           </button>
@@ -327,7 +327,7 @@ const Goals: React.FC = () => {
   // ─── 3. Subpage: Add Money ───
   if (viewMode === 'deposit' && selectedGoal) {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => navigate(`/goals/${selectedGoal.id}`)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -338,7 +338,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           <div className="card" style={{ padding: '16px', gap: '16px' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
@@ -355,8 +355,8 @@ const Goals: React.FC = () => {
           </div>
         </div>
 
-        {/* Sticky footer actions */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        {/* Footer actions */}
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
           <button className="btn-primary" style={{ flex: 2, background: `linear-gradient(135deg, ${selectedGoal.color}, ${selectedGoal.color}cc)` }} onClick={handleDeposit}>
             Deposit Amount
@@ -369,7 +369,7 @@ const Goals: React.FC = () => {
   // ─── 4. Subpage: Withdraw Money ───
   if (viewMode === 'withdraw' && selectedGoal) {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar">
           <button onClick={() => navigate(`/goals/${selectedGoal.id}`)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -380,7 +380,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           <div className="card" style={{ padding: '16px', gap: '16px' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
@@ -397,8 +397,8 @@ const Goals: React.FC = () => {
           </div>
         </div>
 
-        {/* Sticky footer actions */}
-        <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '480px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
+        {/* Footer actions */}
+        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
           <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
           <button className="btn-primary" style={{ flex: 2, background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={handleWithdraw}>
             Withdraw Amount

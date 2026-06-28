@@ -120,7 +120,7 @@ const AddTransaction: React.FC = () => {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      height: '100dvh', background: 'var(--color-bg)',
+      height: '100%', background: 'var(--color-bg)',
       fontFamily: 'Inter, system-ui, sans-serif',
       overflowX: 'hidden',
     }}>
@@ -171,7 +171,7 @@ const AddTransaction: React.FC = () => {
       {/* ── Scrollable Body ── */}
       <div style={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden',
-        paddingBottom: 'calc(88px + env(safe-area-inset-bottom))',
+        paddingBottom: '24px',
         WebkitOverflowScrolling: 'touch',
       }}>
 
@@ -480,19 +480,13 @@ const AddTransaction: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Fixed Bottom Action Bar ── */}
+      {/* ── Bottom Action Bar ── */}
       <div style={{
-        position: 'fixed',
-        bottom: 0, left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%', maxWidth: '480px',
         background: 'var(--color-card)',
         borderTop: '1px solid var(--color-border)',
         padding: `16px 16px calc(16px + env(safe-area-inset-bottom))`,
         display: 'flex', gap: '12px',
-        zIndex: 400,
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        zIndex: 10,
       }}>
         <button
           id="add-txn-cancel"

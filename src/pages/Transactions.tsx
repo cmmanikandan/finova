@@ -278,7 +278,7 @@ const Transactions: React.FC = () => {
   // If Filters sub-view is requested, render it as a full-screen overlay page instead of a bottom sheet
   if (showFiltersPage) {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--color-bg)' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar" style={{ display: 'flex', alignItems: 'center', height: '64px', padding: '0 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
           <button onClick={() => setShowFiltersPage(false)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
