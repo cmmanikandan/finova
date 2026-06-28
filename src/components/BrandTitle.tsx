@@ -17,28 +17,28 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
   // Configs based on size
   const configs = {
     small: {
-      logoWidth: '96px',
+      logoWidth: '86px',
       taglineSize: '0.4375rem', // 7px
-      taglineSpacing: '0.18em',
-      containerWidth: '220px',
+      taglineSpacing: '0.14em',
+      containerWidth: '180px',
     },
     medium: {
-      logoWidth: '136px',
+      logoWidth: '124px',
       taglineSize: '0.5rem', // 8px
-      taglineSpacing: '0.22em',
-      containerWidth: '310px',
+      taglineSpacing: '0.16em',
+      containerWidth: '240px',
     },
     large: {
-      logoWidth: '200px',
+      logoWidth: '180px',
       taglineSize: '0.625rem', // 10px
-      taglineSpacing: '0.25em',
-      containerWidth: '400px',
+      taglineSpacing: '0.18em',
+      containerWidth: '320px',
     },
     huge: {
-      logoWidth: '240px',
+      logoWidth: '220px',
       taglineSize: '0.75rem', // 12px
-      taglineSpacing: '0.25em',
-      containerWidth: '450px',
+      taglineSpacing: '0.18em',
+      containerWidth: '380px',
     },
   };
 
@@ -46,14 +46,14 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', ...style }}>
-      {/* Redesigned Premium Bold Geometric FinTech Wordmark Vector Logo */}
+      {/* Redesigned Premium Bold Geometric FinTech Wordmark Vector Logo (Tight Spacing) */}
       <svg
         width={config.logoWidth}
-        viewBox="0 0 398 100"
+        viewBox="0 0 338 100"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ display: 'block', overflow: 'visible' }}
+        style={{ display: 'block', overflow: 'visible', color: 'currentColor' }}
       >
         <defs>
           <linearGradient id="finova-premium-bold-o" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -64,22 +64,22 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
         </defs>
         
         {/* Letter F */}
-        <path d="M 22,20 V 80 M 22,20 H 48 M 22,46.5 H 41" stroke="#081A45" strokeWidth="12" />
+        <path d="M 22,20 V 80 M 22,20 H 48 M 22,46.5 H 41" stroke="currentColor" strokeWidth="12" />
         
         {/* Letter I */}
-        <path d="M 80,20 V 80" stroke="#081A45" strokeWidth="12" />
+        <path d="M 68,20 V 80" stroke="currentColor" strokeWidth="12" />
         
         {/* Letter N */}
-        <path d="M 112,80 V 20 L 148,80 V 20" stroke="#081A45" strokeWidth="12" />
+        <path d="M 88,80 V 20 L 124,80 V 20" stroke="currentColor" strokeWidth="12" />
         
-        {/* Signature 'O' (Visually balanced bold weight, diameter = 72, stroke = 12) */}
-        <circle cx="210" cy="50" r="30" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
+        {/* Signature 'O' (Visually balanced bold weight, tight kerning) */}
+        <circle cx="174" cy="50" r="30" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
         
         {/* Letter V */}
-        <path d="M 272,20 L 290,80 L 308,20" stroke="#081A45" strokeWidth="12" />
+        <path d="M 224,20 L 242,80 L 260,20" stroke="currentColor" strokeWidth="12" />
         
         {/* Letter A */}
-        <path d="M 340,80 L 358,20 L 376,80 M 348,56 H 368" stroke="#081A45" strokeWidth="12" />
+        <path d="M 280,80 L 298,20 L 316,80 M 288,56 H 308" stroke="currentColor" strokeWidth="12" />
       </svg>
 
       {showTagline && (
@@ -90,7 +90,7 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
           gap: '8px',
           width: '100%',
           maxWidth: config.containerWidth,
-          marginTop: '10px'
+          marginTop: '8px'
         }}>
           {/* Left thin blue accent gradient line */}
           <div style={{
