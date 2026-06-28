@@ -121,6 +121,18 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Native Android slide from right */
+@keyframes slideInRight {
+  from { transform: translate(-50%, 0) translateX(100%); opacity: 0.85; }
+  to   { transform: translate(-50%, 0) translateX(0);    opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translate(-50%, 0) translateX(0);    opacity: 1; }
+  to   { transform: translate(-50%, 0) translateX(100%); opacity: 0.85; }
+}
+
+
 /* Card */
 .card {
   background: var(--color-card);

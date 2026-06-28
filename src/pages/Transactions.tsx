@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Trash2, X, Filter, ChevronDown } from 'lucide-react';
+import { Search, Plus, Trash2, X, Filter, Pencil, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useNavigation } from '../context/NavigationContext';
 import * as db from '../services/db';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
-import TransactionForm from '../components/TransactionForm';
+import AddTransaction from './AddTransaction';
 import type { TransactionType } from '../types';
 
 const DATE_FILTERS = ['All', 'Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'];
@@ -36,10 +37,10 @@ function matchDate(txnDate: string, filter: string, startDate?: string, endDate?
 
 const Transactions: React.FC = () => {
   const { categories, accounts, refresh } = useApp();
+  const { push } = useNavigation();
   const [search, setSearch]             = useState('');
-  const [typeFilter, setTypeFilter]       = useState<'all' | TransactionType>('all');
-  const [dateFilter, setDateFilter]       = useState('All');
-  const [showForm, setShowForm]         = useState(false);
+  const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType>('all');
+  const [dateFilter, setDateFilter]     = useState('All');
   const [deleteId, setDeleteId]         = useState<string | null>(null);
 
   // Advanced Filters State
@@ -163,7 +164,8 @@ const Transactions: React.FC = () => {
           <div className="empty-state">
             <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '64px', opacity: 0.35 }} />
             <p style={{ margin: 0, fontWeight: 600, color: '#94A3B8' }}>No transactions found</p>
-            <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }} onClick={() => setShowForm(true)}>
+            <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}
+              onClick={() => push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: 'expense' } })}>
               <Plus size={16} /> Add Transaction
             </button>
           </div>
@@ -201,16 +203,25 @@ const Transactions: React.FC = () => {
                         <div style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>{formatTime(t.date)}</div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
+                      <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                         <div style={{
                           fontSize: '0.9375rem', fontWeight: 700,
                           color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
                         }}>
                           {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
                         </div>
-                        <button onClick={() => setDeleteId(t.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '0', marginTop: '2px' }}>
-                          <Trash2 size={14} />
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            onClick={e => { e.stopPropagation(); push({ id: `edit-${t.id}`, component: AddTransaction, props: { editId: t.id } }); }}
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '2px' }}>
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setDeleteId(t.id); }}
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#CBD5E1', padding: '2px' }}>
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -222,11 +233,11 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* FAB */}
-      <button id="txn-fab-add" className="fab" onClick={() => setShowForm(true)} aria-label="Add transaction">
+      <button id="txn-fab-add" className="fab"
+        onClick={() => push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: 'expense' } })}
+        aria-label="Add transaction">
         <Plus size={26} strokeWidth={2.5} />
       </button>
-
-      {showForm && <TransactionForm onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
 
       {/* Delete confirm */}
       {deleteId && (

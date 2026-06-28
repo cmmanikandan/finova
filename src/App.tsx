@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { NavigationProvider } from './context/NavigationContext';
 import SplashScreen from './pages/SplashScreen';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
@@ -15,26 +16,24 @@ import './index.css';
 
 const AppContent: React.FC = () => {
   const { user, loading, settings } = useApp();
-  const [splashDone, setSplashDone]   = useState(false);
-  const [unlocked, setUnlocked]       = useState(false);
-  const [activeTab, setActiveTab]     = useState<NavTab>('home');
+  const [splashDone, setSplashDone] = useState(false);
+  const [unlocked, setUnlocked]     = useState(false);
+  const [activeTab, setActiveTab]   = useState<NavTab>('home');
 
   useEffect(() => {
-    if (!settings.pinEnabled) {
-      setUnlocked(true);
-    } else {
-      setUnlocked(false);
-    }
+    setUnlocked(!settings.pinEnabled);
   }, [settings.pinEnabled]);
 
   if (!splashDone) return <SplashScreen onDone={() => setSplashDone(true)} />;
-  if (loading)     return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#F8FAFC' }}>
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--color-bg, #F8FAFC)' }}>
       <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); }}`}</style>
     </div>
   );
-  if (!user)       return <LandingPage onLogin={() => setActiveTab('home')} />;
+
+  if (!user) return <LandingPage onLogin={() => setActiveTab('home')} />;
   if (settings.pinEnabled && !unlocked) return <PinLock onUnlock={() => setUnlocked(true)} />;
 
   const renderPage = () => {
@@ -50,12 +49,15 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="app-shell">
-      <div className="page-content">
-        {renderPage()}
+    // NavigationProvider must be inside AppProvider so pushed screens can call useApp()
+    <NavigationProvider>
+      <div className="app-shell">
+        <div className="page-content">
+          {renderPage()}
+        </div>
+        <BottomNav active={activeTab} onChange={setActiveTab} />
       </div>
-      <BottomNav active={activeTab} onChange={setActiveTab} />
-    </div>
+    </NavigationProvider>
   );
 };
 

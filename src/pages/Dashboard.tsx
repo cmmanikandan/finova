@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useNavigation } from '../context/NavigationContext';
 import * as db from '../services/db';
 import { formatCurrency, formatDate, formatTime, percentage } from '../utils/format';
 import Header from '../components/Header';
-import TransactionForm from '../components/TransactionForm';
+import AddTransaction from './AddTransaction';
 import type { TransactionType } from '../types';
 
 const QuickAction: React.FC<{ icon: React.ReactNode; label: string; color: string; bg: string; onClick: () => void }> = ({ icon, label, color, bg, onClick }) => (
@@ -26,9 +27,8 @@ const QuickAction: React.FC<{ icon: React.ReactNode; label: string; color: strin
 );
 
 const Dashboard: React.FC = () => {
-  const { categories, refresh } = useApp();
-  const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState<TransactionType>('expense');
+  const { categories } = useApp();
+  const { push } = useNavigation();
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
@@ -57,7 +57,9 @@ const Dashboard: React.FC = () => {
     return null;
   }, [stats.transactions, categories]);
 
-  const openForm = (type: TransactionType) => { setFormType(type); setShowForm(true); };
+  const openForm = (type: TransactionType) => {
+    push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: type } });
+  };
 
   return (
     <div className="page-enter">
@@ -187,7 +189,7 @@ const Dashboard: React.FC = () => {
               <span style={{ fontSize: '2.5rem' }}>📭</span>
               <p style={{ margin: 0, fontSize: '0.875rem', color: '#94A3B8' }}>No transactions yet</p>
               <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }} onClick={() => openForm('expense')}>
-                Add First Transaction
+                + Add First Transaction
               </button>
             </div>
           ) : (
@@ -260,8 +262,6 @@ const Dashboard: React.FC = () => {
       <button id="fab-add" className="fab" onClick={() => openForm('expense')} aria-label="Add transaction">
         <Plus size={26} strokeWidth={2.5} />
       </button>
-
-      {showForm && <TransactionForm onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} defaultType={formType} />}
     </div>
   );
 };
