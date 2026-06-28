@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
   ChevronRight, TrendingUp, TrendingDown, Sliders, Eye, EyeOff
@@ -59,9 +59,25 @@ const QuickAction: React.FC<{
 );
 
 const Dashboard: React.FC = () => {
-  const { categories } = useApp();
+  const { user, categories } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(false);
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getGreeting = () => {
+    const hr = time.getHours();
+    if (hr < 12) return 'Good Morning ☀️';
+    if (hr < 17) return 'Good Afternoon 🌤️';
+    return 'Good Evening 🌙';
+  };
+
+  const currentTimeString = time.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const currentDateString = time.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
@@ -103,6 +119,37 @@ const Dashboard: React.FC = () => {
       />
 
       <div style={{ paddingBottom: '120px' }}>
+
+        {/* 1.5. Greeting Card under header */}
+        <div style={{ padding: '16px 16px 0' }}>
+          <div className="card-elevated" style={{
+            borderRadius: '20px',
+            padding: '16px 20px',
+            background: 'var(--color-card)',
+            border: '1px solid var(--color-border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: 'var(--shadow-subtle)',
+          }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {getGreeting()}
+              </p>
+              <h3 style={{ margin: '4px 0 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                Hey, {user?.name?.split(' ')[0] || 'there'}!
+              </h3>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', fontFamily: 'monospace' }}>
+                {currentTimeString}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {currentDateString}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* 2. Full-Width Balance Card — padded inside the page */}
         <div style={{ padding: '16px 16px 0' }}>

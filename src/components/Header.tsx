@@ -1,7 +1,6 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatDate } from '../utils/format';
 import logoUrl from '../assets/logo.jpeg';
 
 interface HeaderProps {
@@ -11,25 +10,16 @@ interface HeaderProps {
   title?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ onNotification, onProfile, showLogo, title }) => {
+const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
   const { user } = useApp();
-  const today = new Date().toISOString();
 
   return (
     <header className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-      {/* Left: Logo or greeting */}
-      {showLogo ? (
-        <img src={logoUrl} alt="FINOVA" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'contain' }} />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <p style={{ margin: 0, fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {formatDate(today)}
-          </p>
-          <h2 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>
-            {title || `Hey, ${user?.name?.split(' ')[0] || 'there'}!`}
-          </h2>
-        </div>
-      )}
+      {/* Left: Logo and FINOVA */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <img src={logoUrl} alt="FINOVA" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain' }} />
+        <span style={{ fontSize: '1.125rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '0.5px' }}>FINOVA</span>
+      </div>
 
       {/* Right: Notification + Avatar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
