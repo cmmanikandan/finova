@@ -25,21 +25,28 @@ const Budgets: React.FC = () => {
   const getCat = (id: string) => categories.find(c => c.id === id);
 
   return (
-    <div className="page-enter">
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       {/* Header */}
-      <div style={{ padding: '1rem 1.25rem', background: '#fff', borderBottom: '1px solid #F1F5F9' }}>
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'var(--color-card)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: '1rem 1.25rem 0.75rem',
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#0F172A' }}>Budgets</h2>
-          <button id="add-budget-btn" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={() => { setEditBudget(null); setShowForm(true); }}>
+          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Budgets</h2>
+          <button id="add-budget-btn" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }} onClick={() => { setEditBudget(null); setShowForm(true); }}>
             <Plus size={16} /> New Budget
           </button>
         </div>
 
         {/* Summary bar */}
         {budgets.length > 0 && (
-          <div style={{ marginTop: '1rem', background: '#F8FAFC', borderRadius: '14px', padding: '0.875rem 1rem' }}>
+          <div style={{ marginTop: '1rem', background: 'var(--color-bg)', borderRadius: '14px', padding: '0.875rem 1rem', border: '1px solid var(--color-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.8125rem', color: '#64748B', fontWeight: 500 }}>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                 Total: {formatCurrency(totalSpent)} of {formatCurrency(totalBudgeted)}
               </span>
               <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: totalSpent > totalBudgeted ? '#EF4444' : '#22C55E' }}>
@@ -57,13 +64,13 @@ const Budgets: React.FC = () => {
       </div>
 
       {/* Budget list */}
-      <div style={{ padding: '1.25rem', paddingBottom: '6rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+      <div style={{ padding: '1.25rem', paddingBottom: '120px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {budgets.length === 0 ? (
-          <div className="empty-state">
-            <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '72px', opacity: 0.3 }} />
-            <p style={{ margin: 0, fontWeight: 700, color: '#94A3B8', fontSize: '1rem' }}>No budgets yet</p>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#CBD5E1' }}>Set limits for your spending categories</p>
-            <button className="btn-primary" style={{ padding: '0.625rem 1.5rem' }} onClick={() => { setEditBudget(null); setShowForm(true); }}>
+          <div className="empty-state" style={{ padding: '40px 16px' }}>
+            <span style={{ fontSize: '3rem' }}>⚖️</span>
+            <p style={{ margin: '8px 0 2px', fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No budgets yet</p>
+            <p style={{ margin: '0 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>Set limits for your spending categories</p>
+            <button className="btn-primary" style={{ padding: '10px 20px', fontSize: '0.875rem' }} onClick={() => { setEditBudget(null); setShowForm(true); }}>
               <Plus size={16} /> Create First Budget
             </button>
           </div>
@@ -77,41 +84,41 @@ const Budgets: React.FC = () => {
             const barColor  = over ? '#EF4444' : warn ? '#F59E0B' : b.color;
 
             return (
-              <div key={b.id} className="card" style={{ padding: '1.125rem', borderLeft: `4px solid ${barColor}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.875rem' }}>
+              <div key={b.id} className="card" style={{ padding: '1.125rem', borderLeft: `4px solid ${barColor}`, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${barColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
                       {cat?.icon || '📦'}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.9375rem' }}>{b.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'capitalize' }}>{b.period} · {cat?.name || b.category}</div>
+                      <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{b.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 600 }}>{b.period} · {cat?.name || b.category}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.375rem' }}>
                     <button onClick={() => { setEditBudget(b); setShowForm(true); }}
-                      style={{ border: 'none', background: '#F8FAFC', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+                      style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                       <Edit2 size={14} />
                     </button>
                     <button onClick={() => setDeleteId(b.id)}
-                      style={{ border: 'none', background: '#FEF2F2', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+                      style={{ border: 'none', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
 
-                <div className="progress-bar" style={{ marginBottom: '0.5rem', height: '8px' }}>
+                <div className="progress-bar" style={{ height: '8px' }}>
                   <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '0.8125rem' }}>
-                    <span style={{ fontWeight: 700, color: barColor }}>{formatCurrency(b.spent)}</span>
-                    <span style={{ color: '#94A3B8' }}> / {formatCurrency(b.limit)}</span>
+                    <span style={{ fontWeight: 800, color: barColor }}>{formatCurrency(b.spent)}</span>
+                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}> / {formatCurrency(b.limit)}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     {over && <AlertTriangle size={14} color="#EF4444" />}
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: over ? '#EF4444' : warn ? '#F59E0B' : '#22C55E' }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: over ? '#EF4444' : warn ? '#F59E0B' : '#22C55E' }}>
                       {over ? `Over by ${formatCurrency(b.spent - b.limit)}` : `${formatCurrency(remaining)} left`}
                     </span>
                   </div>
@@ -119,9 +126,9 @@ const Budgets: React.FC = () => {
 
                 {(over || warn) && (
                   <div style={{
-                    marginTop: '0.75rem', padding: '0.5rem 0.75rem', borderRadius: '10px',
+                    padding: '8px 12px', borderRadius: '12px',
                     background: over ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
-                    color: over ? '#DC2626' : '#D97706', fontSize: '0.8125rem', fontWeight: 600,
+                    color: over ? '#DC2626' : '#D97706', fontSize: '0.8125rem', fontWeight: 700,
                     display: 'flex', alignItems: 'center', gap: '0.375rem',
                   }}>
                     <AlertTriangle size={14} />
@@ -148,8 +155,8 @@ const Budgets: React.FC = () => {
         <div className="modal-overlay" onClick={() => setDeleteId(null)}>
           <div className="bottom-sheet">
             <div className="sheet-handle" />
-            <h3 style={{ margin: '0 0 0.5rem', color: '#0F172A' }}>Delete Budget?</h3>
-            <p style={{ margin: '0 0 1.25rem', color: '#64748B' }}>This will remove the budget and all its tracking data.</p>
+            <h3 style={{ margin: '0 0 0.5rem', color: 'var(--color-text)' }}>Delete Budget?</h3>
+            <p style={{ margin: '0 0 1.25rem', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>This will remove the budget and all its tracking data.</p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setDeleteId(null)}>Cancel</button>
               <button className="btn-primary" style={{ flex: 1, background: 'linear-gradient(135deg,#EF4444,#DC2626)' }} onClick={() => handleDelete(deleteId)}>Delete</button>
@@ -195,20 +202,20 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
       <div className="bottom-sheet">
         <div className="sheet-handle" />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, color: '#0F172A' }}>{budget ? 'Edit Budget' : 'Create Budget'}</h3>
-          <button onClick={onClose} style={{ border: 'none', background: '#F1F5F9', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+          <h3 style={{ margin: 0, color: 'var(--color-text)' }}>{budget ? 'Edit Budget' : 'Create Budget'}</h3>
+          <button onClick={onClose} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
             <X size={18} />
           </button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Budget Name</label>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.375rem' }}>Budget Name</label>
             <input id="budget-name" type="text" className="input-field" placeholder="e.g. Monthly Food Budget" value={name} onChange={e => setName(e.target.value)} />
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Category</label>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.375rem' }}>Category</label>
             <div style={{ position: 'relative' }}>
               <select id="budget-cat" className="input-field" value={category} onChange={e => setCategory(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
                 <option value="">All Categories</option>
@@ -221,12 +228,12 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Budget Limit</label>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.375rem' }}>Budget Limit</label>
             <input id="budget-limit" type="number" className="input-field" placeholder="₹ 0" value={limit} onChange={e => setLimit(e.target.value)} />
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.375rem' }}>Period</label>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.375rem' }}>Period</label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(['monthly','weekly','custom'] as const).map(p => (
                 <button key={p} onClick={() => setPeriod(p)} className={`chip ${period === p ? 'chip-active' : 'chip-inactive'}`} style={{ flex: 1, justifyContent: 'center' }}>
@@ -237,12 +244,12 @@ const BudgetForm: React.FC<BudgetFormProps> = ({ budget, onClose, onSaved }) => 
           </div>
 
           <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Color</label>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>Color</label>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {COLORS.map(c => (
                 <button key={c} onClick={() => setColor(c)} style={{
                   width: '32px', height: '32px', borderRadius: '50%', background: c,
-                  border: color === c ? '3px solid #0F172A' : '3px solid transparent',
+                  border: color === c ? '3px solid var(--color-text)' : '3px solid transparent',
                   cursor: 'pointer', transition: 'transform 0.15s', transform: color === c ? 'scale(1.2)' : 'scale(1)',
                 }} />
               ))}

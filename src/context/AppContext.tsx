@@ -9,6 +9,8 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 }
 
+export type NavTab = 'home' | 'transactions' | 'budgets' | 'reports' | 'goals' | 'settings';
+
 interface AppContextType {
   user: User | null;
   loading: boolean;
@@ -20,6 +22,8 @@ interface AppContextType {
   settings: AppSettings;
   refresh: () => void;
   saveSettings: (s: AppSettings) => void;
+  activeTab: NavTab;
+  setActiveTab: (tab: NavTab) => void;
 }
 
 const AppContext = createContext<AppContextType>({
@@ -28,6 +32,8 @@ const AppContext = createContext<AppContextType>({
   settings: db.getSettings(),
   refresh: () => {},
   saveSettings: () => {},
+  activeTab: 'home',
+  setActiveTab: () => {},
 });
 
 export const useApp = () => useContext(AppContext);
@@ -41,6 +47,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<AppSettings>(db.getSettings());
+
+  const [activeTab, setActiveTab] = useState<NavTab>('home');
 
   const refresh = useCallback(() => {
     setTransactions(db.getTransactions());
@@ -73,8 +81,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       user, loading,
       transactions, budgets, goals, accounts, categories,
       settings, refresh, saveSettings,
+      activeTab, setActiveTab,
     }}>
       {children}
     </AppContext.Provider>
   );
 };
+

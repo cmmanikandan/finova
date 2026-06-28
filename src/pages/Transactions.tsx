@@ -107,15 +107,22 @@ const Transactions: React.FC = () => {
   const getCat = (id: string) => categories.find(c => c.id === id);
 
   return (
-    <div className="page-enter">
-      {/* Top bar */}
-      <div style={{ padding: '1rem 1.25rem', background: '#fff', borderBottom: '1px solid #F1F5F9' }}>
-        <h2 style={{ margin: '0 0 0.875rem', fontSize: '1.125rem', fontWeight: 700, color: '#0F172A' }}>Transactions</h2>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* Top bar (Sticky) */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'var(--color-card)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: '1rem 1.25rem 0.75rem',
+      }}>
+        <h2 style={{ margin: '0 0 0.875rem', fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Transactions</h2>
 
         {/* Search & Advanced Filters Trigger */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+            <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
             <input
               id="txn-search"
               type="text"
@@ -123,26 +130,34 @@ const Transactions: React.FC = () => {
               className="input-field"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.5rem', paddingRight: search ? '2.5rem' : '1rem' }}
+              style={{ paddingLeft: '2.5rem', paddingRight: search ? '2.5rem' : '1rem', minHeight: '44px' }}
             />
             {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: '#94A3B8' }}>
+              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <X size={16} />
               </button>
             )}
           </div>
           <button id="filter-options-btn" onClick={() => setShowFiltersSheet(true)} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '46px',
-            background: isFilterActive ? 'rgba(37,99,235,0.1)' : '#F8FAFC',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px',
+            background: isFilterActive ? 'rgba(37,99,235,0.1)' : 'var(--color-bg)',
             border: '1.5px solid var(--color-border)', borderRadius: '14px', cursor: 'pointer',
-            color: isFilterActive ? '#2563EB' : '#64748B', transition: 'all 0.2s'
+            color: isFilterActive ? 'var(--color-primary)' : 'var(--color-text-muted)', transition: 'all 0.2s'
           }}>
-            <Filter size={20} />
+            <Filter size={18} />
           </button>
         </div>
 
         {/* Type filter */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', overflowX: 'auto', paddingBottom: '2px' }}>
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginBottom: '0.75rem',
+          overflowX: 'auto',
+          paddingBottom: '2px',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
           {(['all', 'expense', 'income', 'transfer'] as const).map(t => (
             <button key={t} onClick={() => setTypeFilter(t)} className={`chip ${typeFilter === t ? 'chip-active' : 'chip-inactive'}`}>
               {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
@@ -151,7 +166,14 @@ const Transactions: React.FC = () => {
         </div>
 
         {/* Date filter */}
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '2px' }}>
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          overflowX: 'auto',
+          paddingBottom: '2px',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
           {DATE_FILTERS.map(f => (
             <button key={f} onClick={() => setDateFilter(f)} className={`chip ${dateFilter === f ? 'chip-active' : 'chip-inactive'}`}>{f}</button>
           ))}
@@ -159,11 +181,11 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* List */}
-      <div style={{ padding: '0.75rem 1.25rem 6rem' }}>
+      <div style={{ padding: '16px 16px 120px' }}>
         {filtered.length === 0 ? (
           <div className="empty-state">
             <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '64px', opacity: 0.35 }} />
-            <p style={{ margin: 0, fontWeight: 600, color: '#94A3B8' }}>No transactions found</p>
+            <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-muted)' }}>No transactions found</p>
             <button className="btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}
               onClick={() => push({ id: 'add-transaction', component: AddTransaction, props: { defaultType: 'expense' } })}>
               <Plus size={16} /> Add Transaction
@@ -173,8 +195,8 @@ const Transactions: React.FC = () => {
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
             <div key={dateLabel} style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{dateLabel}</span>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{dateLabel}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                   {txns.length} txn{txns.length > 1 ? 's' : ''}
                 </span>
               </div>
@@ -186,7 +208,7 @@ const Transactions: React.FC = () => {
                     <div key={t.id} style={{
                       display: 'flex', alignItems: 'center', gap: '0.875rem',
                       padding: '0.875rem 1rem',
-                      borderBottom: i < txns.length - 1 ? '1px solid #F8FAFC' : 'none',
+                      borderBottom: i < txns.length - 1 ? '1px solid var(--color-border)' : 'none',
                     }}>
                       <div style={{
                         width: '42px', height: '42px', borderRadius: '14px', flexShrink: 0,
@@ -196,11 +218,11 @@ const Transactions: React.FC = () => {
 
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>{cat?.name || t.category}</span>
-                          {t.subcategory && <span style={{ fontSize: '0.6875rem', background: '#F1F5F9', padding: '1px 6px', borderRadius: '4px', color: '#64748B' }}>{t.subcategory}</span>}
+                          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
+                          {t.subcategory && <span style={{ fontSize: '0.6875rem', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', color: 'var(--color-text-muted)' }}>{t.subcategory}</span>}
                         </div>
-                        {t.note && <div style={{ fontSize: '0.75rem', color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
-                        <div style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>{formatTime(t.date)}</div>
+                        {t.note && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{formatTime(t.date)}</div>
                       </div>
 
                       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>

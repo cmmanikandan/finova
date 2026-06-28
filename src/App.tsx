@@ -11,14 +11,12 @@ import Goals from './pages/Goals';
 import Settings from './pages/Settings';
 import PinLock from './pages/PinLock';
 import BottomNav from './components/BottomNav';
-import type { NavTab } from './components/BottomNav';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings } = useApp();
+  const { user, loading, settings, activeTab, setActiveTab } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
-  const [activeTab, setActiveTab]   = useState<NavTab>('home');
 
   useEffect(() => {
     setUnlocked(!settings.pinEnabled);
