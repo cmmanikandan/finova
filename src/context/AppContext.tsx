@@ -67,7 +67,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUser(u);
       setLoading(false);
       setSupabaseUserId(u ? u.uid : null);
-      if (u) refresh();
+      if (u) {
+        refresh();
+      } else {
+        setTransactions([]);
+        setBudgets([]);
+        setGoals([]);
+        setAccounts([]);
+        setCategories([]);
+        setSettings(db.getSettings());
+      }
     });
     return unsub;
   }, [refresh]);
