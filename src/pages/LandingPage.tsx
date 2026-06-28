@@ -134,6 +134,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             <p style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500, margin: '6px 24px 0', lineHeight: 1.5 }}>
               Smart Personal Finance Manager. Track expenses, manage budgets, build savings goals, and understand your money with beautiful insights.
             </p>
+            <button
+              onClick={() => setPanel('login')}
+              className="btn-tap-effect"
+              style={{
+                width: '100%',
+                maxWidth: '280px',
+                padding: '14px 20px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.9375rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 8px 20px rgba(37,99,235,0.2)',
+                marginTop: '16px',
+                transition: 'all 0.2s',
+              }}
+            >
+              Get Started <ArrowRight size={16} strokeWidth={2.5} />
+            </button>
           </div>
 
           {/* Interactive CSS Dashboard Preview Mockup */}
@@ -294,39 +319,55 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Action Call */}
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
-            <button
-              onClick={() => setPanel('login')}
-              className="btn-tap-effect"
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: '24px',
-                background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
-                color: '#FFFFFF',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 10px 24px rgba(37,99,235,0.25)',
-                transition: 'all 0.2s',
-              }}
-            >
-              Get Started <ArrowRight size={18} strokeWidth={2.5} />
-            </button>
+          {/* PWA Install Promo Card */}
+          <div style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, rgba(8, 26, 69, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%)',
+            color: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '22px 20px',
+            boxShadow: '0 12px 30px rgba(37,99,235,0.12)',
+            marginBottom: '32px',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-20%',
+              right: '-10%',
+              width: '120px',
+              height: '120px',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)',
+              pointerEvents: 'none'
+            }} />
             
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '4px' }}>
-              {['Free Forever', 'No Credit Card', 'Secure Sign In'].map((lbl, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', color: '#64748B', fontWeight: 600 }}>
-                  <Check size={10} color="#22C55E" strokeWidth={3} />
-                  <span>{lbl}</span>
-                </div>
-              ))}
+            <div>
+              <span style={{
+                fontSize: '0.625rem',
+                fontWeight: 800,
+                background: '#22C55E',
+                color: '#FFFFFF',
+                padding: '3px 8px',
+                borderRadius: '99px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>PWA Enabled</span>
+              <h4 style={{ margin: '8px 0 4px 0', fontSize: '1rem', fontWeight: 800 }}>Install FINOVA on your device</h4>
+              <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9, lineHeight: 1.4, fontWeight: 500 }}>
+                Access your offline finance tracker instantly from your home screen. Works exactly like a native app!
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.6875rem', opacity: 0.8, fontWeight: 600 }}>
+                👉 Safari: Tap <strong style={{ color: '#38BDF8' }}>Share</strong> and select <strong style={{ color: '#38BDF8' }}>Add to Home Screen</strong>
+              </div>
+              <div style={{ fontSize: '0.6875rem', opacity: 0.8, fontWeight: 600 }}>
+                👉 Chrome/Edge: Click the <strong style={{ color: '#38BDF8' }}>Install</strong> icon in the address bar
+              </div>
             </div>
           </div>
 

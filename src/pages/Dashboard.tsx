@@ -64,6 +64,26 @@ const Dashboard: React.FC = () => {
   const [hideBalance, setHideBalance] = useState(false);
   const [time, setTime] = useState(new Date());
 
+  // Onboarding welcome card state
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const dismissed = localStorage.getItem('finova_onboarding_dismissed') === 'true';
+    if (dismissed) return false;
+    return db.getTransactions().length === 0;
+  });
+
+  const onboardingSteps = useMemo(() => {
+    const hasTxns = db.getTransactions().length > 0;
+    const hasDailyLimit = db.getBudgets().length > 0;
+    const hasGoals = db.getGoals().length > 0;
+    
+    return {
+      txns: hasTxns,
+      dailyLimit: hasDailyLimit,
+      goals: hasGoals,
+      allDone: hasTxns && hasDailyLimit && hasGoals
+    };
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 10000);
     return () => clearInterval(timer);
@@ -159,6 +179,136 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Onboarding Welcome Card */}
+        {showOnboarding && (
+          <div style={{ padding: '16px 16px 0' }}>
+            <div className="card-elevated" style={{
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)',
+              border: '1.5px dashed var(--color-primary)',
+              borderRadius: '24px',
+              padding: '20px',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>Welcome to FINOVA! 🚀</h4>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.4 }}>
+                    Let's get you set up to manage your finance hub in 3 quick steps:
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('finova_onboarding_dismissed', 'true');
+                    setShowOnboarding(false);
+                  }}
+                  style={{
+                    background: 'var(--color-border)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    width: '24px',
+                    height: '24px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    color: 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Steps List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                {[
+                  {
+                    key: 'txns',
+                    label: 'Add your first transaction',
+                    done: onboardingSteps.txns,
+                    action: () => navigate('/transactions/new')
+                  },
+                  {
+                    key: 'dailyLimit',
+                    label: 'Set up your daily spending limit',
+                    done: onboardingSteps.dailyLimit,
+                    action: () => navigate('/budgets')
+                  },
+                  {
+                    key: 'goals',
+                    label: 'Create a savings goal milestone',
+                    done: onboardingSteps.goals,
+                    action: () => navigate('/goals')
+                  }
+                ].map((step, idx) => (
+                  <div
+                    key={step.key}
+                    onClick={step.action}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '16px',
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: '2px solid',
+                        borderColor: step.done ? '#22C55E' : 'var(--color-text-muted)',
+                        background: step.done ? '#22C55E' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: '0.625rem',
+                        fontWeight: 900
+                      }}>
+                        {step.done ? '✓' : idx + 1}
+                      </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: step.done ? 'var(--color-text-muted)' : 'var(--color-text)',
+                        textDecoration: step.done ? 'line-through' : 'none'
+                      }}>
+                        {step.label}
+                      </span>
+                    </div>
+                    <ChevronRight size={14} style={{ color: 'var(--color-text-muted)' }} />
+                  </div>
+                ))}
+              </div>
+
+              {onboardingSteps.allDone && (
+                <div style={{
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  borderRadius: '12px',
+                  padding: '8px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: '#22C55E',
+                  textAlign: 'center',
+                  marginTop: '4px'
+                }}>
+                  🎉 All steps completed! You're ready to master your money.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 1.6. Daily Limit Widget */}
         {settings.dailyLimitEnabled && settings.dailyLimit > 0 && (

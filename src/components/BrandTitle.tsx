@@ -42,7 +42,7 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', ...style }}>
-      {/* Custom Geometric Wordmark Vector Logo */}
+      {/* Redesigned Custom Geometric FinTech Wordmark Vector Logo */}
       <svg
         width={config.logoWidth}
         viewBox="0 0 386 100"
@@ -52,31 +52,30 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
         style={{ display: 'block', overflow: 'visible' }}
       >
         <defs>
-          <linearGradient id="finova-gradient-o" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2D7DFF" />
-            <stop offset="35%" stopColor="#27C5FF" />
-            <stop offset="70%" stopColor="#20D4AA" />
-            <stop offset="100%" stopColor="#5CE35A" />
+          <linearGradient id="finova-premium-gradient-o" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2563EB" />
+            <stop offset="50%" stopColor="#22D3EE" />
+            <stop offset="100%" stopColor="#22C55E" />
           </linearGradient>
         </defs>
         
         {/* Letter F */}
-        <path d="M 21.5,19.5 V 80.5 M 21.5,19.5 H 48.5 M 21.5,47.5 H 41.5" stroke="#081A45" strokeWidth="11" />
+        <path d="M 22.25,18 V 82 M 22.25,18 H 47.75 M 22.25,47 H 41" stroke="#081A45" strokeWidth="8.5" />
         
         {/* Letter I */}
-        <path d="M 78.5,19.5 V 80.5" stroke="#081A45" strokeWidth="11" />
+        <path d="M 77.25,18 V 82" stroke="#081A45" strokeWidth="8.5" />
         
         {/* Letter N */}
-        <path d="M 108.5,80.5 V 19.5 L 143.5,80.5 V 19.5" stroke="#081A45" strokeWidth="11" />
+        <path d="M 106.75,82 V 18 L 142.25,82 V 18" stroke="#081A45" strokeWidth="8.5" />
         
-        {/* Special Gradient 'O' Ring */}
-        <circle cx="204" cy="50" r="30.5" stroke="url(#finova-gradient-o)" strokeWidth="11" />
+        {/* Signature 'O' (Circle Diameter = 73, Thickness = 8.5 (11.6%), Inner Opening = 56 (76.7%)) */}
+        <circle cx="204" cy="50" r="32.25" stroke="url(#finova-premium-gradient-o)" strokeWidth="8.5" />
         
         {/* Letter V */}
-        <path d="M 264.5,19.5 L 282,80.5 L 299.5,19.5" stroke="#081A45" strokeWidth="11" />
+        <path d="M 265.75,18 L 283.25,82 L 300.75,18" stroke="#081A45" strokeWidth="8.5" />
         
         {/* Letter A */}
-        <path d="M 329.5,80.5 L 347,19.5 L 364.5,80.5 M 336.5,57.5 H 357.5" stroke="#081A45" strokeWidth="11" />
+        <path d="M 330.25,82 L 347.75,18 L 365.25,82 M 337.5,56 H 358" stroke="#081A45" strokeWidth="8.5" />
       </svg>
 
       {showTagline && (
