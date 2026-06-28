@@ -113,24 +113,61 @@ body {
 
 /* Page transitions */
 .page-enter {
-  animation: pageSlideIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: slideLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-@keyframes pageSlideIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+.slide-left {
+  animation: slideLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* Native Android slide from right */
-@keyframes slideInRight {
-  from { transform: translate(-50%, 0) translateX(100%); opacity: 0.85; }
-  to   { transform: translate(-50%, 0) translateX(0);    opacity: 1; }
+.slide-right {
+  animation: slideRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-@keyframes slideOutRight {
-  from { transform: translate(-50%, 0) translateX(0);    opacity: 1; }
-  to   { transform: translate(-50%, 0) translateX(100%); opacity: 0.85; }
+.fade-in {
+  animation: fadeIn 0.2s ease both;
 }
+
+@keyframes slideLeft {
+  from { transform: translateX(100%); opacity: 0.95; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideRight {
+  from { transform: translateX(-100%); opacity: 0.95; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Android Toast */
+.android-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 41, 59, 0.95);
+  color: #f8fafc;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  pointer-events: none;
+  animation: toastFadeInOut 2s ease forwards;
+}
+
+@keyframes toastFadeInOut {
+  0% { opacity: 0; transform: translate(-50%, 10px); }
+  10% { opacity: 1; transform: translate(-50%, 0); }
+  90% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -10px); }
+}
+
 
 
 /* Card */

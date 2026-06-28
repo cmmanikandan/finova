@@ -104,3 +104,16 @@ export function getCurrentUser(): User | null {
   const stored = localStorage.getItem('finova_user');
   try { return stored ? (JSON.parse(stored) as User) : null; } catch { return null; }
 }
+
+export async function signInWithEmail(email: string): Promise<User | null> {
+  const name = email.split('@')[0];
+  const user: User = {
+    uid: 'email-user-' + Math.random().toString(36).substring(2, 9),
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    email: email,
+    photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563EB&color=fff&size=128`,
+  };
+  notifyListeners(user);
+  return user;
+}
+

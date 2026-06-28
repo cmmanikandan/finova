@@ -69,7 +69,7 @@ const ScreenSlide: React.FC<{ screen: NavScreen }> = ({ screen }) => {
         background: 'var(--color-bg, #F8FAFC)',
         display: 'flex',
         flexDirection: 'column',
-        animation: 'slideInRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
+        animation: 'slideLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both',
         maxWidth: '480px',
         left: '50%',
         transform: 'translateX(-50%)',

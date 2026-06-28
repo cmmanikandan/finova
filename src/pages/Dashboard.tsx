@@ -9,6 +9,7 @@ import * as db from '../services/db';
 import { formatCurrency, formatDate, formatTime, percentage } from '../utils/format';
 import Header from '../components/Header';
 import AddTransaction from './AddTransaction';
+import TransactionDetails from './TransactionDetails';
 import type { TransactionType } from '../types';
 
 const QuickAction: React.FC<{
@@ -216,7 +217,9 @@ const Dashboard: React.FC = () => {
                 const cat = getCatInfo(t.category);
                 const isIncome = t.type === 'income';
                 return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div key={t.id}
+                    onClick={() => push({ id: `txn-details-${t.id}`, component: TransactionDetails, props: { transactionId: t.id } })}
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                     <div style={{
                       width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
                       background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',

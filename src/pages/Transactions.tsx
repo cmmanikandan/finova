@@ -5,6 +5,7 @@ import { useNavigation } from '../context/NavigationContext';
 import * as db from '../services/db';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
 import AddTransaction from './AddTransaction';
+import TransactionDetails from './TransactionDetails';
 import type { TransactionType } from '../types';
 
 const DATE_FILTERS = ['All', 'Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'];
@@ -205,11 +206,14 @@ const Transactions: React.FC = () => {
                   const cat = getCat(t.category);
                   const isIncome = t.type === 'income';
                   return (
-                    <div key={t.id} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.875rem',
-                      padding: '0.875rem 1rem',
-                      borderBottom: i < txns.length - 1 ? '1px solid var(--color-border)' : 'none',
-                    }}>
+                    <div key={t.id}
+                      onClick={() => push({ id: `txn-details-${t.id}`, component: TransactionDetails, props: { transactionId: t.id } })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.875rem',
+                        padding: '0.875rem 1rem',
+                        borderBottom: i < txns.length - 1 ? '1px solid var(--color-border)' : 'none',
+                        cursor: 'pointer',
+                      }}>
                       <div style={{
                         width: '42px', height: '42px', borderRadius: '14px', flexShrink: 0,
                         background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
