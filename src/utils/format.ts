@@ -4,7 +4,8 @@ import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 export function formatCurrency(amount: number, symbolOverride?: string): string {
   const { currencySymbol } = getSettings();
   const sym = symbolOverride ?? currencySymbol;
-  return `${sym}${Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const isNegative = amount < 0;
+  return `${isNegative ? '-' : ''}${sym}${Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(dateStr: string): string {
