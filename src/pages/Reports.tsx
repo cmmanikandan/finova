@@ -10,11 +10,11 @@ import { formatCurrency, percentage } from '../utils/format';
 import { format, subMonths } from 'date-fns';
 import { exportPDF, exportCSV, exportExcel, exportJSON } from '../services/export';
 
-const TABS = ['Overview', 'Category', 'Monthly', 'Yearly', 'Calendar'];
+const TABS = ['Overview', 'Category', 'Account', 'Monthly', 'Yearly', 'Calendar'];
 const PIE_COLORS = ['#EF4444','#F59E0B','#22C55E','#2563EB','#7C3AED','#0891B2','#EA580C','#DB2777','#059669'];
 
 const Reports: React.FC = () => {
-  const { categories } = useApp();
+  const { categories, accounts } = useApp();
   const [tab, setTab] = useState('Overview');
   const [showExportOptions, setShowExportOptions] = useState(false);
 
@@ -32,6 +32,20 @@ const Reports: React.FC = () => {
       return { name: cat?.name || catId, value: val, icon: cat?.icon || '📦' };
     }).sort((a, b) => b.value - a.value);
   }, [stats.transactions, categories]);
+
+  // Account asset share breakdown
+  const accountData = useMemo(() => {
+    return accounts.map(a => ({
+      name: a.name,
+      value: a.balance,
+      icon: a.icon,
+      color: a.color
+    })).filter(a => a.value > 0);
+  }, [accounts]);
+
+  const totalWealth = useMemo(() => {
+    return accounts.reduce((sum, a) => sum + a.balance, 0);
+  }, [accounts]);
 
   // Monthly comparison (last 6 months)
   const monthlyData = useMemo(() => {
@@ -216,8 +230,9 @@ const Reports: React.FC = () => {
           <>
             {categoryData.length === 0 ? (
               <div className="empty-state" style={{ padding: '60px 16px' }}>
-                <img src="/icon-96x96.png" alt="FINOVA" style={{ width: '64px', opacity: 0.3 }} />
-                <p style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>No expenses this month</p>
+                <span style={{ fontSize: '3rem' }}>📊</span>
+                <p style={{ margin: '8px 0', color: 'var(--color-text)', fontWeight: 800 }}>No expenses this month</p>
+                <p style={{ margin: '0 0 16px', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Your transactions category breakdown will appear here</p>
               </div>
             ) : (
               <>
@@ -252,6 +267,57 @@ const Reports: React.FC = () => {
                         </div>
                         <div className="progress-bar" style={{ margin: 0, height: '6px' }}>
                           <div className="progress-fill" style={{ width: `${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {tab === 'Account' && (
+          <>
+            {accountData.length === 0 ? (
+              <div className="empty-state" style={{ padding: '60px 16px' }}>
+                <span style={{ fontSize: '3rem' }}>🏦</span>
+                <p style={{ margin: '8px 0', color: 'var(--color-text)', fontWeight: 800 }}>No accounts with positive balance</p>
+                <p style={{ margin: '0 0 16px', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Asset distribution charts will show up once balances are logged</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden' }}>
+                  <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Asset Share</h4>
+                  <div style={{ width: '100%', height: 240 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={accountData} cx="50%" cy="50%" innerRadius={60} outerRadius={95} paddingAngle={3} dataKey="value">
+                          {accountData.map((item, i) => <Cell key={i} fill={item.color || PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v) => v != null ? formatCurrency(Number(v)) : ''} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="list-group" style={{ marginTop: '20px' }}>
+                  {accountData.map((item, i) => {
+                    const pct = totalWealth > 0 ? (item.value / totalWealth) * 100 : 0;
+                    return (
+                      <div key={i} className="list-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', cursor: 'default' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '1rem' }}>{item.icon}</span>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{item.name}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(item.value)}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginLeft: '0.375rem', fontWeight: 600 }}>{Math.round(pct)}%</span>
+                          </div>
+                        </div>
+                        <div className="progress-bar" style={{ margin: 0, height: '6px' }}>
+                          <div className="progress-fill" style={{ width: `${pct}%`, background: item.color || PIE_COLORS[i % PIE_COLORS.length] }} />
                         </div>
                       </div>
                     );
