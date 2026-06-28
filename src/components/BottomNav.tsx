@@ -16,14 +16,14 @@ const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const isPrimaryTab = TABS.some(t => pathname.startsWith(t.path)) || pathname === '/';
+  const isPrimaryTab = TABS.some(t => pathname === t.path) || pathname === '/';
   if (!isPrimaryTab) return null;
 
   return (
     <nav className="bottom-nav">
       {TABS.map(tab => {
         const Icon = tab.icon;
-        const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/') || (pathname === '/' && tab.id === 'home');
+        const isActive = pathname === tab.path || (pathname === '/' && tab.id === 'home');
         return (
           <button
             key={tab.id}
