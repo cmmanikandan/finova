@@ -19,7 +19,11 @@ if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
   // Analytics only works in browser (not SSR / service workers)
   if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
+    try {
+      analytics = getAnalytics(app);
+    } catch (e) {
+      console.warn('Firebase Analytics failed to initialize:', e);
+    }
   }
 } else {
   app = getApps()[0];

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- ─── 2. ACCOUNTS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.accounts (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
     type       TEXT NOT NULL CHECK (type IN ('cash','bank','credit_card','debit_card','upi','wallet','custom')),
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.accounts (
 
 -- ─── 3. CATEGORIES ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.categories (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- NULL = global default
     name       TEXT NOT NULL,
     icon       TEXT NOT NULL,
@@ -47,11 +47,11 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     type           TEXT NOT NULL CHECK (type IN ('expense','income','transfer')),
     amount         NUMERIC(15,2) NOT NULL CHECK (amount > 0),
-    category_id    UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    category_id    TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
     category_name  TEXT NOT NULL,
     subcategory    TEXT,
-    account_id     UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
-    to_account_id  UUID REFERENCES public.accounts(id) ON DELETE CASCADE,
+    account_id     TEXT NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+    to_account_id  TEXT REFERENCES public.accounts(id) ON DELETE CASCADE,
     date           TIMESTAMPTZ NOT NULL,
     note           TEXT,
     receipt_url    TEXT,
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS public.budgets (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name          TEXT NOT NULL,
-    category_id   UUID REFERENCES public.categories(id) ON DELETE CASCADE,
+    category_id   TEXT REFERENCES public.categories(id) ON DELETE CASCADE,
     limit_amount  NUMERIC(15,2) NOT NULL CHECK (limit_amount > 0),
     spent_amount  NUMERIC(15,2) NOT NULL DEFAULT 0,
     period        TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly','weekly','custom')),
@@ -134,8 +134,8 @@ CREATE TABLE IF NOT EXISTS public.recurring_transactions (
     user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     type                 TEXT NOT NULL CHECK (type IN ('expense','income')),
     amount               NUMERIC(15,2) NOT NULL CHECK (amount > 0),
-    category_id          UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-    account_id           UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+    category_id          TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
+    account_id           TEXT NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
     frequency            TEXT NOT NULL CHECK (frequency IN ('daily','weekly','monthly','yearly')),
     start_date           DATE NOT NULL,
     next_due_date        DATE NOT NULL,

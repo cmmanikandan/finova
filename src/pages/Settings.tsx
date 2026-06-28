@@ -1542,11 +1542,11 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '12px', fontWeight: 600, lineHeight: 1.4 }}>
                   This will permanently delete all transactions, budgets, and goals. Export a backup first!
                 </div>
-                <button id="clear-data-btn" onClick={() => {
+                <button id="clear-data-btn" onClick={async () => {
                   if (window.confirm('Are you absolutely sure? This cannot be undone.')) {
-                    ['finova_transactions','finova_budgets','finova_goals','finova_accounts','finova_categories','finova_streak_data','finova_recurring'].forEach(k => localStorage.removeItem(k));
+                    await db.clearAllData();
                     refresh();
-                    alert('All data cleared.');
+                    alert('All data cleared successfully.');
                   }
                 }} style={{
                   padding: '8px 16px', borderRadius: '12px', border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent', color: '#EF4444', fontWeight: 700, cursor: 'pointer', fontSize: '0.8125rem',

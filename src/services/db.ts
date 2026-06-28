@@ -352,16 +352,12 @@ async function autoProvisionCategories(uid: string) {
 }
 
 async function autoProvisionSettings(uid: string) {
-  _settings = DEFAULT_SETTINGS;
-  saveBackup(KEYS.settings, _settings);
   if (isSupabaseConfigured && supabase) {
     await supabase.from('settings').insert({ ...mapSettingsToDb(_settings), user_id: uid });
   }
 }
 
 async function autoProvisionStreak(uid: string) {
-  _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
-  saveBackup(KEYS.streakData, _streakData);
   if (isSupabaseConfigured && supabase) {
     await supabase.from('streaks').insert({ ...mapStreakToDb(_streakData), user_id: uid });
   }
@@ -375,6 +371,19 @@ export async function pullAllFromSupabase(): Promise<void> {
   const sessionUser = sessionData?.session?.user;
   if (!sessionUser) return;
   const uid = sessionUser.id;
+
+  // Ensure user profile exists to satisfy foreign key constraints
+  try {
+    const { data: profile } = await supabase.from('profiles').select('id').eq('id', uid).maybeSingle();
+    if (!profile) {
+      const name = sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'User';
+      const email = sessionUser.email || '';
+      const photo_url = sessionUser.user_metadata?.avatar_url || null;
+      await supabase.from('profiles').insert({ id: uid, name, email, photo_url });
+    }
+  } catch (e) {
+    console.error('Failed to ensure profiles record:', e);
+  }
 
   const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes] = await Promise.all([
     supabase.from('transactions').select('*').eq('user_id', uid),
@@ -1333,5 +1342,57 @@ export function importAllData(data: any): void {
   if (data.streakData)   { _streakData = data.streakData; saveBackup(KEYS.streakData, _streakData); }
   if (data.recurring)    { _recurring = data.recurring; saveBackup(KEYS.recurring, _recurring); }
   if (data.debts)        { _debts = data.debts; saveBackup(KEYS.debts, _debts); }
+  notifyWrite();
+}
+
+export async function clearAllData(): Promise<void> {
+  // 1. Clear local memory cache variables
+  _transactions = [];
+  _budgets = [];
+  _goals = [];
+  _recurring = [];
+  _debts = [];
+  
+  // Re-initialize accounts and categories to default templates (non-custom)
+  _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
+  _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
+  _settings = DEFAULT_SETTINGS;
+  _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+
+  // 2. Clear localStorage
+  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('finova_pin_hash');
+  localStorage.removeItem('finova_hidden_accounts');
+
+  // 3. Clear from Supabase if logged in
+  if (isSupabaseConfigured && supabase) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData?.session?.user?.id;
+    if (uid) {
+      try {
+        await Promise.all([
+          supabase.from('transactions').delete().eq('user_id', uid),
+          supabase.from('budgets').delete().eq('user_id', uid),
+          supabase.from('goals').delete().eq('user_id', uid),
+          supabase.from('recurring_transactions').delete().eq('user_id', uid),
+          supabase.from('debts').delete().eq('user_id', uid),
+          supabase.from('accounts').delete().eq('user_id', uid),
+          supabase.from('categories').delete().eq('user_id', uid),
+          supabase.from('settings').delete().eq('user_id', uid),
+          supabase.from('streaks').delete().eq('user_id', uid),
+        ]);
+        // Re-provision settings, streaks, and default accounts/categories in database
+        await Promise.all([
+          supabase.from('settings').insert({ ...mapSettingsToDb(DEFAULT_SETTINGS), user_id: uid }),
+          supabase.from('streaks').insert({ ...mapStreakToDb({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' }), user_id: uid }),
+          autoProvisionAccounts(uid),
+          autoProvisionCategories(uid)
+        ]);
+      } catch (err) {
+        console.error('Failed to clear Supabase user data:', err);
+      }
+    }
+  }
+
   notifyWrite();
 }
