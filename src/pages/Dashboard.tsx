@@ -147,7 +147,7 @@ const Dashboard: React.FC = () => {
 
         {/* 3. Quick Actions */}
         <p className="section-header">Quick Actions</p>
-        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <QuickAction icon={<ArrowDownLeft size={20} />} label="Add Expense" color="#EF4444" bg="rgba(239,68,68,0.1)" onClick={() => openForm('expense')} />
           <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.1)"  onClick={() => openForm('income')} />
           <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.1)"  onClick={() => openForm('transfer')} />
@@ -158,7 +158,7 @@ const Dashboard: React.FC = () => {
 
         {/* 4. Monthly Summary */}
         <p className="section-header">Monthly Summary</p>
-        <div className="list-group">
+        <div style={{ padding: '0 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {[
             { label: 'Income',   value: stats.income,   color: '#16A34A' },
             { label: 'Expenses', value: stats.expense,  color: '#DC2626' },
@@ -167,19 +167,19 @@ const Dashboard: React.FC = () => {
                 ? `${highestSpendCategory.icon} ${highestSpendCategory.name}`
                 : 'None', color: 'var(--color-text)' },
           ].map(item => (
-            <div key={item.label} className="list-row" style={{ cursor: 'default' }}>
-              <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{item.label}</span>
+            <div key={item.label} className="card-elevated" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span className="text-caption" style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>{item.label}</span>
               {item.value !== null
-                ? <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: item.color }}>{formatCurrency(item.value)}</span>
-                : <span style={{ fontSize: '0.875rem', fontWeight: 700, color: item.color }}>{item.extra}</span>
+                ? <span className="text-body" style={{ fontWeight: 800, color: item.color }}>{formatCurrency(item.value)}</span>
+                : <span className="text-caption" style={{ fontWeight: 700, color: item.color, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.extra}</span>
               }
             </div>
           ))}
         </div>
 
         {/* 5. Recent Transactions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 16px 6px' }}>
-          <span className="section-header" style={{ padding: 0 }}>Recent Transactions</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 16px 8px' }}>
+          <span className="text-card-title" style={{ color: 'var(--color-text)', fontWeight: 700 }}>Recent Transactions</span>
           <button
             onClick={() => navigate('/transactions')}
             style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}
@@ -188,69 +188,72 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        {recentTxns.length === 0 ? (
-          <div style={{ margin: '0 16px', background: 'var(--color-card)', borderRadius: '16px', padding: '32px 24px', textAlign: 'center', border: '1px solid var(--color-border)' }}>
-            <span style={{ fontSize: '2.5rem' }}>📭</span>
-            <p style={{ margin: '8px 0 16px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>No transactions yet</p>
-            <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.8125rem', height: '40px' }} onClick={() => openForm('expense')}>
-              + Add Transaction
-            </button>
-          </div>
-        ) : (
-          <div className="list-group">
-            {recentTxns.map(t => {
-              const cat = getCatInfo(t.category);
-              const isIncome = t.type === 'income';
-              return (
-                <div key={t.id}
-                  className="list-row"
-                  onClick={() => navigate(`/transactions/${t.id}`)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <div style={{ padding: '0 16px' }}>
+          {recentTxns.length === 0 ? (
+            <div className="card-elevated" style={{ padding: '32px 24px', textAlign: 'center' }}>
+              <span style={{ fontSize: '2.5rem' }}>📭</span>
+              <p style={{ margin: '8px 0 16px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>No transactions yet</p>
+              <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.8125rem', height: '40px' }} onClick={() => openForm('expense')}>
+                + Add Transaction
+              </button>
+            </div>
+          ) : (
+            <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
+              {recentTxns.map((t, idx) => {
+                const cat = getCatInfo(t.category);
+                const isIncome = t.type === 'income';
+                return (
+                  <div key={t.id}
+                    className="list-row"
+                    onClick={() => navigate(`/transactions/${t.id}`)}
+                    style={{ borderBottom: idx === recentTxns.length - 1 ? 'none' : '1px solid var(--color-border)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                      <div style={{
+                        width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
+                        background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
+                      }}>
+                        {cat?.icon || (isIncome ? '💰' : '💸')}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{cat?.name || t.category}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>{formatDate(t.date)} · {formatTime(t.date)}</div>
+                      </div>
+                    </div>
                     <div style={{
-                      width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                      background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
+                      fontSize: '0.875rem', fontWeight: 800, flexShrink: 0, marginLeft: '8px',
+                      color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
                     }}>
-                      {cat?.icon || (isIncome ? '💰' : '💸')}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{cat?.name || t.category}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>{formatDate(t.date)} · {formatTime(t.date)}</div>
+                      {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
                     </div>
                   </div>
-                  <div style={{
-                    fontSize: '0.875rem', fontWeight: 800, flexShrink: 0, marginLeft: '8px',
-                    color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
-                  }}>
-                    {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* 6. Goals Preview */}
         {goals.length > 0 && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 16px 6px' }}>
-              <span className="section-header" style={{ padding: 0 }}>Active Goals</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 16px 8px' }}>
+              <span className="text-card-title" style={{ color: 'var(--color-text)', fontWeight: 700 }}>Active Goals</span>
               <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
                 See All <ChevronRight size={14} />
               </button>
             </div>
-            <div className="list-group">
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {goals.slice(0, 2).map(g => {
                 const pct = percentage(g.currentAmount, g.targetAmount);
                 return (
-                  <div key={g.id} className="list-row" onClick={() => navigate(`/goals/${g.id}`)} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                  <div key={g.id} className="card-elevated" onClick={() => navigate(`/goals/${g.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '1.25rem' }}>{g.icon}</span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{g.name}</span>
+                        <span className="text-body" style={{ fontWeight: 700, color: 'var(--color-text)' }}>{g.name}</span>
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>{Math.round(pct)}%</span>
+                      <span className="text-caption" style={{ fontWeight: 700, color: 'var(--color-text-muted)' }}>{Math.round(pct)}%</span>
                     </div>
                     <div className="progress-bar" style={{ margin: 0 }}>
                       <div className="progress-fill" style={{ width: `${pct}%`, background: g.color }} />
@@ -265,25 +268,25 @@ const Dashboard: React.FC = () => {
         {/* 7. Budget Preview */}
         {budgets.length > 0 && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 16px 6px' }}>
-              <span className="section-header" style={{ padding: 0 }}>Budgets</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 16px 8px' }}>
+              <span className="text-card-title" style={{ color: 'var(--color-text)', fontWeight: 700 }}>Budgets</span>
               <button onClick={() => navigate('/budgets')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-primary)', fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
                 See All <ChevronRight size={14} />
               </button>
             </div>
-            <div className="list-group">
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {budgets.slice(0, 2).map(b => {
                 const pct = percentage(b.spent, b.limit);
                 const cat = getCatInfo(b.category);
                 const overBudget = pct >= 100;
                 return (
-                  <div key={b.id} className="list-row" onClick={() => navigate('/budgets')} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                  <div key={b.id} className="card-elevated" onClick={() => navigate('/budgets')} style={{ display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '1.25rem' }}>{cat?.icon || '📦'}</span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{b.name}</span>
+                        <span className="text-body" style={{ fontWeight: 700, color: 'var(--color-text)' }}>{b.name}</span>
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: overBudget ? '#EF4444' : 'var(--color-text-muted)' }}>
+                      <span className="text-caption" style={{ fontWeight: 700, color: overBudget ? '#EF4444' : 'var(--color-text-muted)' }}>
                         {formatCurrency(b.spent)} / {formatCurrency(b.limit)}
                       </span>
                     </div>

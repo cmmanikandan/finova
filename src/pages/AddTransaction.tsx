@@ -126,42 +126,43 @@ const AddTransaction: React.FC = () => {
     }}>
 
       {/* ── App Bar ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: '56px', padding: '0 8px 0 4px',
-        background: 'var(--color-card)',
-        borderBottom: '1px solid var(--color-border)',
-        flexShrink: 0,
-        paddingTop: 'env(safe-area-inset-top)',
-      }}>
+      <div className="app-bar">
         <button
           id="add-txn-back"
           onClick={() => navigate(-1)}
           style={{
-            width: '44px', height: '44px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', border: 'none', background: 'transparent',
-            borderRadius: '12px', cursor: 'pointer', color: 'var(--color-text)',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: 'var(--color-text)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '12px'
           }}
         >
           <ArrowLeft size={22} />
         </button>
 
-        <h1 style={{
-          margin: 0, fontSize: '1.0625rem', fontWeight: 700,
-          color: 'var(--color-text)', letterSpacing: '-0.2px',
-        }}>
+        <h2>
           {editId ? 'Edit Transaction' : 'Add Transaction'}
-        </h1>
+        </h2>
 
         <button
           id="add-txn-save-top"
           onClick={handleSave}
           disabled={saving}
           style={{
-            padding: '8px 16px', border: 'none', borderRadius: '12px',
-            background: activeType.color, color: '#fff',
-            fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
-            opacity: saving ? 0.7 : 1, transition: 'opacity 0.15s',
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: '12px',
+            background: activeType.color,
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            opacity: saving ? 0.7 : 1,
+            transition: 'opacity 0.15s',
           }}
         >
           {saving ? '…' : 'Save'}

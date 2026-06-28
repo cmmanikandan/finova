@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getGreeting, formatDate } from '../utils/format';
+import { formatDate } from '../utils/format';
 import logoUrl from '../assets/logo.jpeg';
 
 interface HeaderProps {
@@ -16,24 +16,17 @@ const Header: React.FC<HeaderProps> = ({ onNotification, onProfile, showLogo, ti
   const today = new Date().toISOString();
 
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '1rem 1.25rem 0.75rem',
-      background: 'var(--color-card)',
-      borderBottom: '1px solid var(--color-border)',
-    }}>
+    <header className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
       {/* Left: Logo or greeting */}
       {showLogo ? (
         <img src={logoUrl} alt="FINOVA" style={{ width: '36px', height: '36px', borderRadius: '10px', objectFit: 'contain' }} />
       ) : (
-        <div>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-            {formatDate(today)} · {getGreeting()}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <p style={{ margin: 0, fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+            {formatDate(today)}
           </p>
-          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text)' }}>
-            {title || `Hey, ${user?.name?.split(' ')[0] || 'there'}! 👋`}
+          <h2 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>
+            {title || `Hey, ${user?.name?.split(' ')[0] || 'there'}!`}
           </h2>
         </div>
       )}

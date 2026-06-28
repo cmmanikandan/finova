@@ -438,17 +438,7 @@ const Transactions: React.FC = () => {
             <button
               key={t}
               onClick={() => setTypeFilter(t)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '99px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid var(--color-border)',
-                background: typeFilter === t ? 'var(--color-primary)' : 'var(--color-card)',
-                color: typeFilter === t ? '#fff' : 'var(--color-text-muted)',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer'
-              }}
+              className={`chip ${typeFilter === t ? 'chip-active' : 'chip-inactive'}`}
             >
               {t === 'all' ? 'All Transactions' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
