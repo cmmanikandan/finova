@@ -18,81 +18,110 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
   const configs = {
     small: {
       logoWidth: '96px',
-      taglineSize: '0.5rem', // 8px
-      taglineSpacing: '0.22em',
+      taglineSize: '0.4375rem', // 7px
+      taglineSpacing: '0.18em',
+      containerWidth: '220px',
     },
     medium: {
       logoWidth: '136px',
-      taglineSize: '0.625rem', // 10px
-      taglineSpacing: '0.25em',
+      taglineSize: '0.5rem', // 8px
+      taglineSpacing: '0.22em',
+      containerWidth: '310px',
     },
     large: {
       logoWidth: '200px',
-      taglineSize: '0.75rem', // 12px
+      taglineSize: '0.625rem', // 10px
       taglineSpacing: '0.25em',
+      containerWidth: '400px',
     },
     huge: {
       logoWidth: '240px',
-      taglineSize: '0.8125rem', // 13px
+      taglineSize: '0.75rem', // 12px
       taglineSpacing: '0.25em',
+      containerWidth: '450px',
     },
   };
 
   const config = configs[size];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', ...style }}>
-      {/* Redesigned Custom Geometric FinTech Wordmark Vector Logo */}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', ...style }}>
+      {/* Redesigned Premium Bold Geometric FinTech Wordmark Vector Logo */}
       <svg
         width={config.logoWidth}
-        viewBox="0 0 386 100"
+        viewBox="0 0 398 100"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ display: 'block', overflow: 'visible' }}
       >
         <defs>
-          <linearGradient id="finova-premium-gradient-o" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2563EB" />
+          <linearGradient id="finova-premium-bold-o" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#2F80FF" />
             <stop offset="50%" stopColor="#22D3EE" />
-            <stop offset="100%" stopColor="#22C55E" />
+            <stop offset="100%" stopColor="#00D084" />
           </linearGradient>
         </defs>
         
         {/* Letter F */}
-        <path d="M 22.25,18 V 82 M 22.25,18 H 47.75 M 22.25,47 H 41" stroke="#081A45" strokeWidth="8.5" />
+        <path d="M 22,20 V 80 M 22,20 H 48 M 22,46.5 H 41" stroke="#081A45" strokeWidth="12" />
         
         {/* Letter I */}
-        <path d="M 77.25,18 V 82" stroke="#081A45" strokeWidth="8.5" />
+        <path d="M 80,20 V 80" stroke="#081A45" strokeWidth="12" />
         
         {/* Letter N */}
-        <path d="M 106.75,82 V 18 L 142.25,82 V 18" stroke="#081A45" strokeWidth="8.5" />
+        <path d="M 112,80 V 20 L 148,80 V 20" stroke="#081A45" strokeWidth="12" />
         
-        {/* Signature 'O' (Circle Diameter = 73, Thickness = 8.5 (11.6%), Inner Opening = 56 (76.7%)) */}
-        <circle cx="204" cy="50" r="32.25" stroke="url(#finova-premium-gradient-o)" strokeWidth="8.5" />
+        {/* Signature 'O' (Visually balanced bold weight, diameter = 72, stroke = 12) */}
+        <circle cx="210" cy="50" r="30" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
         
         {/* Letter V */}
-        <path d="M 265.75,18 L 283.25,82 L 300.75,18" stroke="#081A45" strokeWidth="8.5" />
+        <path d="M 272,20 L 290,80 L 308,20" stroke="#081A45" strokeWidth="12" />
         
         {/* Letter A */}
-        <path d="M 330.25,82 L 347.75,18 L 365.25,82 M 337.5,56 H 358" stroke="#081A45" strokeWidth="8.5" />
+        <path d="M 340,80 L 358,20 L 376,80 M 348,56 H 368" stroke="#081A45" strokeWidth="12" />
       </svg>
 
       {showTagline && (
         <div style={{
-          fontFamily: "'Sora', 'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif",
-          fontWeight: 600,
-          letterSpacing: config.taglineSpacing,
-          color: taglineColor,
-          fontSize: config.taglineSize,
-          marginTop: '8px',
-          textTransform: 'uppercase',
-          textAlign: 'center',
-          lineHeight: 1.3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          width: '100%',
+          maxWidth: config.containerWidth,
+          marginTop: '10px'
         }}>
-          TRACK MONEY.
-          <br />
-          BUILD BETTER HABITS.
+          {/* Left thin blue accent gradient line */}
+          <div style={{
+            flex: 1,
+            height: '1px',
+            background: 'linear-gradient(to right, transparent, #2F80FF)',
+            opacity: 0.5
+          }} />
+          
+          <div style={{
+            fontFamily: "'Sora', 'Plus Jakarta Sans', 'Outfit', 'Inter', sans-serif",
+            fontWeight: 700,
+            letterSpacing: config.taglineSpacing,
+            color: taglineColor,
+            fontSize: config.taglineSize,
+            textTransform: 'uppercase',
+            textAlign: 'center',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}>
+            TRACK MONEY · BUILD BETTER HABITS
+          </div>
+          
+          {/* Right thin green accent gradient line */}
+          <div style={{
+            flex: 1,
+            height: '1px',
+            background: 'linear-gradient(to left, transparent, #00D084)',
+            opacity: 0.5
+          }} />
         </div>
       )}
     </div>

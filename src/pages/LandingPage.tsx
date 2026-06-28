@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { signInWithGoogle } from '../services/auth';
 import logoUrl from '../assets/logo.jpeg';
 import { 
@@ -17,6 +17,44 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | null>(null);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -360,6 +398,50 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 Access your offline finance tracker instantly from your home screen. Works exactly like a native app!
               </p>
             </div>
+
+            {deferredPrompt && (
+              <button
+                onClick={handleInstallPWA}
+                className="btn-tap-effect"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '16px',
+                  background: '#FFFFFF',
+                  color: '#2563EB',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  marginTop: '4px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Install App
+              </button>
+            )}
+
+            {isInstalled && (
+              <div style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '16px',
+                background: 'rgba(34, 197, 94, 0.2)',
+                color: '#22C55E',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                textAlign: 'center',
+                marginTop: '4px',
+                border: '1.5px solid #22C55E'
+              }}>
+                Installed & Running Standalone ✓
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
               <div style={{ fontSize: '0.6875rem', opacity: 0.8, fontWeight: 600 }}>
