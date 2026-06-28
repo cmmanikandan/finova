@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { User, Transaction, Budget, Goal, Account, Category, AppSettings } from '../types';
 import { onAuthStateChanged } from '../services/auth';
 import * as db from '../services/db';
-import { setSupabaseUserId } from '../services/supabaseSync';
 import { getSupabase } from '../services/supabase';
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
@@ -73,7 +72,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLoading(true);
     const unsub = onAuthStateChanged(async (u) => {
       setUser(u);
-      setSupabaseUserId(u ? u.uid : null);
       if (u) {
         try {
           // 1. Pull latest database data from Supabase
