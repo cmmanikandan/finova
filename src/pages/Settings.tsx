@@ -72,18 +72,10 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
       </div>
 
       {/* Main Settings Body */}
-      <div style={{ padding: '16px 0 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {groups.map(g => (
           <div key={g.title}>
-            <h3 style={{
-              margin: '0 0 8px 16px',
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              color: 'var(--color-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>{g.title}</h3>
-            
+            <p className="section-header">{g.title}</p>
             <div className="list-group">
               {g.items.map((item) => (
                 <button
@@ -91,7 +83,6 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
                   id={`settings-${item.id}`}
                   onClick={() => navigate(`/settings/${item.id}`)}
                   className="list-row"
-                  style={{ height: '56px' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                     <div style={{
@@ -107,8 +98,8 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
                     }}>{item.icon}</div>
                     
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)', lineHeight: 1.1 }}>{item.label}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{item.sub}</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--color-text)', lineHeight: 1.2 }}>{item.label}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{item.sub}</div>
                     </div>
                   </div>
                   
@@ -119,41 +110,27 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
           </div>
         ))}
 
-        {/* Sign Out Button */}
-        <button
-          id="logout-btn"
-          onClick={() => setShowLogoutConfirm(true)}
-          style={{
-            width: '100%',
-            height: '56px',
-            borderRadius: '16px',
-            border: '1.5px solid rgba(239,68,68,0.2)',
-            background: 'rgba(239,68,68,0.06)',
-            color: '#EF4444',
-            fontWeight: 700,
-            fontSize: '0.9375rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            fontFamily: 'Inter, sans-serif',
-            boxShadow: '0 4px 12px rgba(239,68,68,0.05)',
-            marginTop: '8px',
-          }}
-        >
-          <LogOut size={18} /> Sign Out
-        </button>
+        {/* Sign Out — danger list row */}
+        <div style={{ marginTop: '8px' }}>
+          <div className="list-group">
+            <button
+              id="logout-btn"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="list-row"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <LogOut size={18} />
+                </div>
+                <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#EF4444' }}>Sign Out</span>
+              </div>
+              <ChevronRight size={16} color="rgba(239,68,68,0.4)" />
+            </button>
+          </div>
+        </div>
 
         {/* Footer info */}
-        <div style={{
-          textAlign: 'center',
-          marginTop: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '4px',
-        }}>
+        <div style={{ textAlign: 'center', padding: '12px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
             <span>Made with</span>
             <Heart size={12} fill="#EF4444" color="#EF4444" style={{ display: 'inline' }} />

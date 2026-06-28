@@ -225,10 +225,9 @@ body {
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   width: 100%;
-  max-width: 480px;
   height: 80px; /* MD3 spec 80dp */
   background: var(--color-card);
   border-top: 1px solid var(--color-border);
@@ -290,7 +289,7 @@ body {
 .fab {
   position: fixed;
   bottom: 96px;
-  right: max(16px, calc(50% - 480px / 2 + 16px));
+  right: 16px;
   width: 56px;
   height: 56px;
   background: var(--color-primary);
@@ -535,6 +534,11 @@ body {
   border-bottom: 1px solid var(--color-border);
 }
 
+[data-theme="dark"] .list-group {
+  background: var(--color-card);
+  border-color: var(--color-border);
+}
+
 .list-row {
   display: flex;
   align-items: center;
@@ -549,6 +553,7 @@ body {
   transition: background-color 0.15s ease;
   outline: none;
   text-decoration: none;
+  font-family: var(--font-sans);
 }
 
 .list-row:last-child {
@@ -556,7 +561,11 @@ body {
 }
 
 .list-row:active {
-  background-color: var(--color-border);
+  background-color: rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] .list-row:active {
+  background-color: rgba(255,255,255,0.06);
 }
 
 .list-row-disabled {
@@ -568,3 +577,26 @@ body {
   background-color: transparent;
 }
 
+/* ── Section label above list-groups ── */
+.section-header {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  padding: 20px 16px 6px;
+}
+
+/* ── Page padding for scrollable content ── */
+.page-body {
+  padding: 16px;
+  padding-bottom: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Section divider between flat groups ── */
+.section-gap {
+  height: 20px;
+}
