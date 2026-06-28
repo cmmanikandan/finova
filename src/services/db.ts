@@ -62,14 +62,76 @@ export function addTransaction(data: Omit<Transaction, 'id' | 'createdAt'>): Tra
 export function updateTransaction(id: string, data: Partial<Transaction>): void {
   const txns = load<Transaction[]>(KEYS.transactions, []);
   const idx = txns.findIndex(t => t.id === id);
-  if (idx !== -1) {
-    txns[idx] = { ...txns[idx], ...data };
-    save(KEYS.transactions, txns);
+  if (idx === -1) return;
+
+  const old = txns[idx];
+
+  // Reverse old transaction's balance impact
+  const accounts = getAccounts();
+  const oldAcc = accounts.find(a => a.id === old.account);
+  if (oldAcc) {
+    if (old.type === 'income')   oldAcc.balance -= old.amount;
+    else if (old.type === 'expense') oldAcc.balance += old.amount;
+    else if (old.type === 'transfer') {
+      oldAcc.balance += old.amount;
+      const oldTo = accounts.find(a => a.id === old.toAccount);
+      if (oldTo) oldTo.balance -= old.amount;
+    }
+  }
+
+  // Reverse old budget spent
+  if (old.type === 'expense') {
+    reverseBudgetSpent(old.category, old.amount, old.date);
+  }
+
+  // Apply updated transaction
+  const updated: Transaction = { ...old, ...data };
+  txns[idx] = updated;
+  save(KEYS.transactions, txns);
+
+  // Apply new balance impact
+  const newAcc = accounts.find(a => a.id === updated.account);
+  if (newAcc) {
+    if (updated.type === 'income')   newAcc.balance += updated.amount;
+    else if (updated.type === 'expense') newAcc.balance -= updated.amount;
+    else if (updated.type === 'transfer') {
+      newAcc.balance -= updated.amount;
+      const newTo = accounts.find(a => a.id === updated.toAccount);
+      if (newTo) newTo.balance += updated.amount;
+    }
+  }
+  save(KEYS.accounts, accounts);
+
+  // Apply new budget spent
+  if (updated.type === 'expense') {
+    updateBudgetSpent(updated.category, updated.amount, updated.date);
   }
 }
 
 export function deleteTransaction(id: string): void {
   const txns = load<Transaction[]>(KEYS.transactions, []);
+  const txn = txns.find(t => t.id === id);
+  if (!txn) return;
+
+  // Reverse balance impact
+  const accounts = getAccounts();
+  const acc = accounts.find(a => a.id === txn.account);
+  if (acc) {
+    if (txn.type === 'income')   acc.balance -= txn.amount;
+    else if (txn.type === 'expense') acc.balance += txn.amount;
+    else if (txn.type === 'transfer') {
+      acc.balance += txn.amount;
+      const toAcc = accounts.find(a => a.id === txn.toAccount);
+      if (toAcc) toAcc.balance -= txn.amount;
+    }
+    save(KEYS.accounts, accounts);
+  }
+
+  // Reverse budget spent
+  if (txn.type === 'expense') {
+    reverseBudgetSpent(txn.category, txn.amount, txn.date);
+  }
+
   save(KEYS.transactions, txns.filter(t => t.id !== id));
 }
 
@@ -153,6 +215,26 @@ function updateBudgetSpent(category: string, amount: number, date: string): void
       }
     } else {
       b.spent += amount;
+      changed = true;
+    }
+  });
+  if (changed) save(KEYS.budgets, budgets);
+}
+
+function reverseBudgetSpent(category: string, amount: number, date: string): void {
+  const budgets = getBudgets();
+  const txDate = new Date(date);
+  let changed = false;
+  budgets.forEach(b => {
+    if (b.category !== category && b.category !== 'all') return;
+    if (b.period === 'monthly') {
+      const start = new Date(b.startDate);
+      if (txDate.getMonth() === start.getMonth() && txDate.getFullYear() === start.getFullYear()) {
+        b.spent = Math.max(0, b.spent - amount);
+        changed = true;
+      }
+    } else {
+      b.spent = Math.max(0, b.spent - amount);
       changed = true;
     }
   });

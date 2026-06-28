@@ -6,6 +6,7 @@ import * as db from '../services/db';
 import type { Goal } from '../types';
 import { formatCurrency, percentage } from '../utils/format';
 import { GOAL_TEMPLATES } from '../data/defaults';
+import { useScrollFAB } from '../hooks/useScrollFAB';
 
 // SVG Progress Ring Component
 const ProgressRing: React.FC<{ percentage: number; color: string; size?: number }> = ({ percentage, color, size = 120 }) => {
@@ -51,6 +52,7 @@ const Goals: React.FC = () => {
   const { pathname } = useLocation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { fabVisible, handleScroll } = useScrollFAB();
   
   // Resolve viewMode from URL
   let viewMode: 'list' | 'create' | 'details' | 'deposit' | 'withdraw' = 'list';
@@ -465,7 +467,7 @@ const Goals: React.FC = () => {
       </div>
 
       {/* Main Content scrollable area */}
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         
         {/* Suggested templates (horizontal chips) */}
         <div style={{ padding: '16px 0 16px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
@@ -518,13 +520,10 @@ const Goals: React.FC = () => {
 
         {/* Active Goals list */}
         {activeGoals.length === 0 ? (
-          <div className="empty-state" style={{ padding: '40px 16px' }}>
-            <span style={{ fontSize: '3rem' }}>🎯</span>
-            <p style={{ margin: '12px 0 4px', fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No active goals</p>
-            <p style={{ margin: '0 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Start saving toward something you love</p>
-            <button className="btn-primary" onClick={() => navigate('/goals/new')}>
-              <Plus size={18} /> Create Goal
-            </button>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '8px', padding: '24px 16px', textAlign: 'center' }}>
+            <span style={{ fontSize: '3.5rem' }}>🎯</span>
+            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1rem' }}>No Goals Yet</p>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Create your first savings goal.</p>
           </div>
         ) : (
           <div style={{ marginTop: '16px' }}>
@@ -557,7 +556,18 @@ const Goals: React.FC = () => {
       </div>
 
       {/* FAB to Add Goal */}
-      <button id="add-goal-fab" className="fab" onClick={() => navigate('/goals/new')} aria-label="Add Goal">
+      <button
+        id="add-goal-fab"
+        className="fab"
+        onClick={() => navigate('/goals/new')}
+        aria-label="Add Goal"
+        style={{
+          opacity: fabVisible ? 1 : 0,
+          transform: fabVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.85)',
+          transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: fabVisible ? 'auto' : 'none',
+        }}
+      >
         <Plus size={28} strokeWidth={2.5} />
       </button>
     </div>

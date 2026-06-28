@@ -1,25 +1,23 @@
 import React from 'react';
-import { Home, ArrowLeftRight, BarChart2, Target, Settings, Sliders } from 'lucide-react';
+import { Home, ArrowLeftRight, BarChart2, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-export type NavTab = 'home' | 'transactions' | 'budgets' | 'reports' | 'goals' | 'settings';
+export type NavTab = 'home' | 'transactions' | 'reports' | 'settings';
 
 const TABS: { id: NavTab; label: string; path: string; icon: React.ComponentType<any> }[] = [
   { id: 'home',         label: 'Home',     path: '/home',         icon: Home },
   { id: 'transactions', label: 'Txns',     path: '/transactions', icon: ArrowLeftRight },
-  { id: 'budgets',      label: 'Budgets',  path: '/budgets',      icon: Sliders },
   { id: 'reports',      label: 'Reports',  path: '/reports',      icon: BarChart2 },
-  { id: 'goals',        label: 'Goals',    path: '/goals',        icon: Target },
   { id: 'settings',     label: 'Settings', path: '/settings',     icon: Settings },
 ];
+
 
 const BottomNav: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  // Hide Bottom Nav on splash, login, transaction creation, edits, details, or subpages
-  // We only show it when the current pathname matches one of our primary tab base roots exactly.
-  const isPrimaryTab = TABS.some(t => pathname === t.path) || pathname === '/';
+  // Show on primary tabs + budgets/goals (reached from home quick actions)
+  const isPrimaryTab = TABS.some(t => pathname === t.path) || pathname === '/' || pathname === '/budgets' || pathname === '/goals';
   if (!isPrimaryTab) return null;
 
   return (

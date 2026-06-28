@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
 import type { TransactionType } from '../types';
+import { useScrollFAB } from '../hooks/useScrollFAB';
 
 const DATE_FILTERS = ['All', 'Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'];
 
@@ -140,6 +141,7 @@ const SwipeableTransactionItem: React.FC<{
 const Transactions: React.FC = () => {
   const { categories, accounts, refresh } = useApp();
   const navigate = useNavigate();
+  const { fabVisible, handleScroll } = useScrollFAB();
   const [search, setSearch]             = useState('');
   const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType>('all');
   const [dateFilter, setDateFilter]     = useState('All');
@@ -290,7 +292,7 @@ const Transactions: React.FC = () => {
           </button>
         </div>
 
-        {/* Filter Inputs */}
+        {/* Delete Dialog */}
         <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
           <div>
             <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
@@ -369,7 +371,6 @@ const Transactions: React.FC = () => {
         {/* Title & Sorting */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Transactions</h2>
-          
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <ArrowUpDown size={14} style={{ color: 'var(--color-text-muted)', marginRight: '4px' }} />
             <select
@@ -447,15 +448,12 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* List */}
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div onScroll={handleScroll} style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {sortedAndFiltered.length === 0 ? (
-          <div className="empty-state">
-            <span style={{ fontSize: '3rem' }}>🔍</span>
-            <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>No transactions found</p>
-            <button className="btn-primary" style={{ height: '44px' }}
-              onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}>
-              <Plus size={18} /> Add Transaction
-            </button>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '8px', padding: '24px 16px' }}>
+            <span style={{ fontSize: '3.5rem' }}>📭</span>
+            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1rem' }}>No Transactions Found</p>
+            <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-muted)', fontSize: '0.8125rem', textAlign: 'center' }}>Try adjusting your search or filters.</p>
           </div>
         ) : (
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
@@ -489,9 +487,18 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* FAB */}
-      <button id="txn-fab-add" className="fab"
+      <button
+        id="fab-add-txn"
+        className="fab"
         onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}
-        aria-label="Add transaction">
+        aria-label="Add transaction"
+        style={{
+          opacity: fabVisible ? 1 : 0,
+          transform: fabVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.85)',
+          transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: fabVisible ? 'auto' : 'none',
+        }}
+      >
         <Plus size={28} strokeWidth={2.5} />
       </button>
 

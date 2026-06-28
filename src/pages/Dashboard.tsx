@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
-  ChevronRight, TrendingUp, TrendingDown, Sliders, BarChart2
+  ChevronRight, TrendingUp, TrendingDown, Sliders, Eye, EyeOff
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -61,6 +61,7 @@ const QuickAction: React.FC<{
 const Dashboard: React.FC = () => {
   const { categories } = useApp();
   const navigate = useNavigate();
+  const [hideBalance, setHideBalance] = useState(false);
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
@@ -118,16 +119,25 @@ const Dashboard: React.FC = () => {
             <div style={{ position: 'absolute', bottom: '-30px', left: '25%', width: '130px', height: '130px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
 
             <p style={{ margin: 0, fontSize: '0.6875rem', opacity: 0.8, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Total Balance</p>
-            <h2 style={{ margin: '6px 0 16px', fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
-              {formatCurrency(balance)}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '6px 0 16px' }}>
+              <h2 style={{ margin: 0, fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
+                {hideBalance ? '₹••••••' : formatCurrency(balance)}
+              </h2>
+              <button
+                onClick={() => setHideBalance(v => !v)}
+                style={{ border: 'none', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', flexShrink: 0 }}
+                aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
+              >
+                {hideBalance ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
 
             {/* Inline stats inside the balance card */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '14px' }}>
               {[
-                { label: 'Income',  value: stats.income,  icon: <TrendingUp size={12} />,  color: 'rgba(134,239,172,1)' },
-                { label: 'Expense', value: stats.expense, icon: <TrendingDown size={12} />, color: 'rgba(252,165,165,1)' },
-                { label: 'Savings', value: stats.savings, icon: <TrendingUp size={12} />,  color: stats.savings >= 0 ? 'rgba(147,197,253,1)' : 'rgba(252,165,165,1)' },
+                { label: 'Income',  value: hideBalance ? '••••' : formatCurrency(stats.income),  icon: <TrendingUp size={12} />,  color: 'rgba(134,239,172,1)' },
+                { label: 'Expense', value: hideBalance ? '••••' : formatCurrency(stats.expense), icon: <TrendingDown size={12} />, color: 'rgba(252,165,165,1)' },
+                { label: 'Savings', value: hideBalance ? '••••' : formatCurrency(stats.savings), icon: <TrendingUp size={12} />,  color: stats.savings >= 0 ? 'rgba(147,197,253,1)' : 'rgba(252,165,165,1)' },
               ].map((item, i) => (
                 <div key={item.label} style={{
                   display: 'flex', flexDirection: 'column', gap: '2px',
@@ -138,7 +148,7 @@ const Dashboard: React.FC = () => {
                     {item.icon}
                     <span style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}</span>
                   </div>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#fff' }}>{formatCurrency(item.value)}</span>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#fff' }}>{item.value}</span>
                 </div>
               ))}
             </div>
@@ -151,9 +161,9 @@ const Dashboard: React.FC = () => {
           <QuickAction icon={<ArrowDownLeft size={20} />} label="Add Expense" color="#EF4444" bg="rgba(239,68,68,0.1)" onClick={() => openForm('expense')} />
           <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.1)"  onClick={() => openForm('income')} />
           <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.1)"  onClick={() => openForm('transfer')} />
-          <QuickAction icon={<Target size={20} />}         label="Add Goal"   color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/goals/new')} />
+          <QuickAction icon={<Target size={20} />}         label="Goals"      color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/goals')} />
           <QuickAction icon={<Sliders size={20} />}        label="Budgets"    color="#7C3AED" bg="rgba(124,58,237,0.1)" onClick={() => navigate('/budgets')} />
-          <QuickAction icon={<BarChart2 size={20} />}      label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
+          <QuickAction icon={<ChevronRight size={20} />}   label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
         </div>
 
         {/* 4. Monthly Summary */}
@@ -190,12 +200,10 @@ const Dashboard: React.FC = () => {
 
         <div style={{ padding: '0 16px' }}>
           {recentTxns.length === 0 ? (
-            <div className="card-elevated" style={{ padding: '32px 24px', textAlign: 'center' }}>
+            <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '2.5rem' }}>📭</span>
-              <p style={{ margin: '8px 0 16px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>No transactions yet</p>
-              <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.8125rem', height: '40px' }} onClick={() => openForm('expense')}>
-                + Add Transaction
-              </button>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>No Transactions Yet</p>
+              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Start tracking your daily expenses.</p>
             </div>
           ) : (
             <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>

@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import * as db from '../services/db';
 import type { Budget } from '../types';
 import { formatCurrency, percentage } from '../utils/format';
+import { useScrollFAB } from '../hooks/useScrollFAB';
 
 const COLORS = ['#2563EB','#22C55E','#EF4444','#F59E0B','#7C3AED','#0891B2','#EA580C','#DB2777','#059669'];
 
@@ -13,6 +14,7 @@ const Budgets: React.FC = () => {
   const { pathname } = useLocation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { fabVisible, handleScroll } = useScrollFAB();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
@@ -48,7 +50,7 @@ const Budgets: React.FC = () => {
       </div>
 
       {/* Scrollable list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
         {/* Summary card (Flat) */}
         {budgets.length > 0 && (
           <div style={{ padding: '16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
@@ -70,15 +72,10 @@ const Budgets: React.FC = () => {
         )}
 
         {budgets.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', padding: '16px' }}>
-            <div className="empty-state" style={{ padding: 0 }}>
-              <span style={{ fontSize: '3rem' }}>⚖️</span>
-              <p style={{ margin: '12px 0 4px', fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No budgets yet</p>
-              <p style={{ margin: '0 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Set spending limits for category controls</p>
-              <button className="btn-primary" onClick={() => navigate('/budgets/new')}>
-                <Plus size={18} /> Create Budget
-              </button>
-            </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '8px', padding: '24px 16px', textAlign: 'center' }}>
+            <span style={{ fontSize: '3.5rem' }}>⚖️</span>
+            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1rem' }}>No Budgets Yet</p>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Set monthly spending limits.</p>
           </div>
         ) : (
           <div className="list-group">
@@ -163,7 +160,18 @@ const Budgets: React.FC = () => {
         </div>
       )}
       {/* FAB to Add Budget */}
-      <button id="add-budget-fab" className="fab" onClick={() => navigate('/budgets/new')} aria-label="Add Budget">
+      <button
+        id="add-budget-fab"
+        className="fab"
+        onClick={() => navigate('/budgets/new')}
+        aria-label="Add Budget"
+        style={{
+          opacity: fabVisible ? 1 : 0,
+          transform: fabVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.85)',
+          transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: fabVisible ? 'auto' : 'none',
+        }}
+      >
         <Plus size={28} strokeWidth={2.5} />
       </button>
     </div>
