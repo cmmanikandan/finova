@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  AlertTriangle, Plus, Trash2, Edit3, X, Save, Sliders,
+  AlertTriangle, Plus, Trash2, Edit3, X, Save, Sliders, Flame, Award,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import * as db from '../services/db';
+import { fireConfetti } from '../utils/confetti';
 import { formatCurrency } from '../utils/format';
 import type { Budget } from '../types';
 
@@ -103,13 +104,15 @@ const WeeklyChart: React.FC<{ limit: number; currencySymbol: string }> = ({ limi
 // ─────────────────────────────────────────────────────────────────────────────
 // Limits Tab
 // ─────────────────────────────────────────────────────────────────────────────
+const MILESTONES = [3, 7, 15, 30, 50, 100, 365];
+
 const LimitsTab: React.FC = () => {
   const { settings, saveSettings, refresh } = useApp();
   const cs = settings.currencySymbol;
 
   const daily  = useMemo(() => db.getDailyLimitStatus(),  [settings]);
   const weekly = useMemo(() => db.getWeeklyLimitStatus(), [settings]);
-  const streak = useMemo(() => db.getBudgetStreak(), [settings]);
+  const streakData = useMemo(() => db.getStreakData(), [settings]);
   const now = new Date();
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
 
@@ -117,6 +120,102 @@ const LimitsTab: React.FC = () => {
   const [editingWeekly, setEditingWeekly] = useState(false);
   const [dailyInput, setDailyInput]       = useState('');
   const [weeklyInput, setWeeklyInput]     = useState('');
+
+  // ── Streak animations & UI state ──
+  const [animatedStreak, setAnimatedStreak] = useState(0);
+  const [pulse, setPulse] = useState(false);
+  const [activeMilestone, setActiveMilestone] = useState<number | null>(null);
+  
+  // Toast notifications
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Helper to format date YYYY-MM-DD
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  // Sync animation values
+  useEffect(() => {
+    setAnimatedStreak(streakData.currentStreak);
+  }, []);
+
+  useEffect(() => {
+    if (streakData.currentStreak > animatedStreak) {
+      setPulse(true);
+      const timer = setTimeout(() => setPulse(false), 800);
+
+      // Trigger Confetti
+      fireConfetti();
+
+      // Trigger Haptics
+      if (window.navigator.vibrate) {
+        window.navigator.vibrate([100, 50, 100]);
+      }
+
+      // Count up
+      let startVal = animatedStreak;
+      const endVal = streakData.currentStreak;
+      const interval = setInterval(() => {
+        startVal += 1;
+        setAnimatedStreak(startVal);
+        if (startVal >= endVal) {
+          clearInterval(interval);
+        }
+      }, 150);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(interval);
+      };
+    } else {
+      setAnimatedStreak(streakData.currentStreak);
+    }
+  }, [streakData.currentStreak]);
+
+  // Milestone triggers
+  useEffect(() => {
+    if (settings.dailyLimitEnabled && streakData.currentStreak > 0) {
+      const nextMilestone = MILESTONES.find(m => 
+        streakData.currentStreak >= m && 
+        (streakData.lastMilestoneClaimed || 0) < m
+      );
+      if (nextMilestone) {
+        setActiveMilestone(nextMilestone);
+      }
+    }
+  }, [streakData.currentStreak, streakData.lastMilestoneClaimed, settings.dailyLimitEnabled]);
+
+  // End of day toast notifications
+  useEffect(() => {
+    if (settings.dailyLimitEnabled && streakData.lastSuccessfulDay) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = formatLocalDate(yesterday);
+      
+      const lastNotifDate = streakData.lastNotificationShownDate || '';
+      if (lastNotifDate < yesterdayStr) {
+        if (streakData.lastSuccessfulDay === yesterdayStr) {
+          setToastType('success');
+          setToastMessage(`🎉 Great job! Your spending streak is now ${streakData.currentStreak} days.`);
+          db.saveStreakData({ lastNotificationShownDate: yesterdayStr });
+        } else if (streakData.lastFailedDay === yesterdayStr) {
+          setToastType('error');
+          setToastMessage(`⚠️ Daily limit exceeded. Your spending streak has been reset.`);
+          db.saveStreakData({ lastNotificationShownDate: yesterdayStr });
+        }
+        
+        // Auto-dismiss toast
+        const dismissTimer = setTimeout(() => {
+          setToastMessage(null);
+        }, 5000);
+        return () => clearTimeout(dismissTimer);
+      }
+    }
+  }, [streakData.lastSuccessfulDay, streakData.lastFailedDay, settings.dailyLimitEnabled]);
 
   const toggleDailyLimit = () => {
     const updated = { ...settings, dailyLimitEnabled: !settings.dailyLimitEnabled };
@@ -151,8 +250,114 @@ const LimitsTab: React.FC = () => {
   const dailyColor  = settings.dailyLimitEnabled  ? ringColor(daily.pct)  : '#94A3B8';
   const weeklyColor = settings.weeklyLimitEnabled ? ringColor(weekly.pct) : '#94A3B8';
 
+  // Get color based on streak count
+  const getStreakColor = (days: number) => {
+    if (days === 0) return '#94A3B8'; // Grey
+    if (days <= 7) return '#3B82F6';  // Blue
+    if (days <= 30) return '#22C55E'; // Green
+    if (days <= 100) return '#EA580C'; // Orange
+    return '#D97706'; // Gold
+  };
+
+  const streakColor = getStreakColor(animatedStreak);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '110px' }}>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '400px',
+          background: toastType === 'success' ? '#10B981' : '#EF4444',
+          color: '#fff',
+          borderRadius: '16px',
+          padding: '14px 18px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 99999,
+          animation: 'slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+        }}>
+          <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Milestone Congratulations Popup Modal */}
+      {activeMilestone && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999999,
+          padding: '20px',
+          animation: 'fadeInText 0.3s ease forwards',
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '30px 24px',
+            maxWidth: '380px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1.5px solid var(--color-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            animation: 'logoFadeScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+          }}>
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#D97706', marginBottom: '8px',
+            }}>
+              <Award size={48} strokeWidth={2} />
+            </div>
+            
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#081A45' }}>Milestone Unlocked!</h3>
+              <p style={{ margin: '8px 0 0', fontSize: '0.9375rem', color: 'var(--color-text-secondary)', fontWeight: 600, lineHeight: 1.45 }}>
+                You've stayed within your daily spending limit for <strong style={{ color: streakColor }}>{activeMilestone} Days</strong> in a row!
+              </p>
+            </div>
+
+            <div style={{
+              width: '100%', padding: '12px', background: '#F8FAFC', borderRadius: '16px',
+              border: '1px solid var(--color-border)', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-secondary)',
+            }}>
+              🔥 Achievement Badge Earned
+            </div>
+
+            <button
+              onClick={() => {
+                db.saveStreakData({ lastMilestoneClaimed: activeMilestone });
+                setActiveMilestone(null);
+              }}
+              style={{
+                width: '100%', padding: '14px', background: '#2563EB', color: '#fff',
+                border: 'none', borderRadius: '16px', fontWeight: 800, fontSize: '0.9375rem',
+                cursor: 'pointer', transition: 'transform 0.1s', boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+              }}
+            >
+              Awesome!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Warning banner */}
       {settings.dailyLimitEnabled && daily.over && (
@@ -187,18 +392,46 @@ const LimitsTab: React.FC = () => {
 
       {/* Streak + Savings Rate pills */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {/* Daily Spending Streak Card */}
         <div style={{
-          background: streak > 0 ? '#FFF7ED' : 'var(--color-card)',
-          border: `1.5px solid ${streak > 0 ? '#FED7AA' : 'var(--color-border)'}`,
+          background: 'var(--color-card)',
+          border: '1.5px solid var(--color-border)',
           borderRadius: '16px', padding: '16px', textAlign: 'center',
+          boxShadow: 'var(--shadow-card)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <div style={{ fontSize: '1.75rem' }}>🔥</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: streak > 0 ? '#EA580C' : 'var(--color-text)', lineHeight: 1.1 }}>{streak}</div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginTop: '4px' }}>
-            {streak === 1 ? 'Day Streak' : 'Day Streak'}
+          <div style={{
+            color: streakColor,
+            transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            transform: pulse ? 'scale(1.35)' : 'scale(1)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '4px',
+          }}>
+            <Flame size={28} fill={streakColor} strokeWidth={1.5} />
           </div>
-          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-            {settings.dailyLimitEnabled ? 'Within daily limit' : 'Enable limit to track'}
+          
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>
+            {animatedStreak}
+          </div>
+          
+          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 700, marginTop: '2px' }}>
+            Days
+          </div>
+          
+          <div style={{ fontSize: '0.625rem', color: 'var(--color-text-secondary)', marginTop: '4px', lineHeight: 1.2 }}>
+            Stayed within limit
+          </div>
+
+          <div style={{
+            fontSize: '0.625rem', fontWeight: 800, color: '#D97706',
+            background: '#FEF3C7', padding: '2px 8px', borderRadius: '8px',
+            marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '2px',
+          }}>
+            🏆 Best: {streakData.bestStreak}
           </div>
         </div>
         <div style={{

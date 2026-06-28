@@ -95,3 +95,14 @@ export interface LimitStatus {
   warn: boolean;   // >= alertThreshold %
   remaining: number;
 }
+
+export interface StreakData {
+  currentStreak: number;
+  bestStreak: number;
+  lastStreakUpdatedDate: string; // YYYY-MM-DD
+  lastSuccessfulDay?: string;    // YYYY-MM-DD
+  lastFailedDay?: string;        // YYYY-MM-DD
+  lastMilestoneClaimed?: number; // e.g. 3, 7, 15, 30, 50, 100, 365
+  lastNotificationShownDate?: string; // YYYY-MM-DD
+}
+

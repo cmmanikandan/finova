@@ -1159,7 +1159,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
                 </div>
                 <button id="clear-data-btn" onClick={() => {
                   if (window.confirm('Are you absolutely sure? This cannot be undone.')) {
-                    ['finova_transactions','finova_budgets','finova_goals','finova_accounts','finova_categories'].forEach(k => localStorage.removeItem(k));
+                    ['finova_transactions','finova_budgets','finova_goals','finova_accounts','finova_categories','finova_streak_data'].forEach(k => localStorage.removeItem(k));
                     refresh();
                     alert('All data cleared.');
                   }

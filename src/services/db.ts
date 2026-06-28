@@ -1,5 +1,5 @@
 // Database service – LocalStorage backed (Supabase ready)
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { syncToSupabase } from './supabaseSync';
@@ -11,6 +11,7 @@ const KEYS = {
   accounts: 'finova_accounts',
   categories: 'finova_categories',
   settings: 'finova_settings',
+  streakData: 'finova_streak_data',
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -358,26 +359,148 @@ export function getSavingsRate(year: number, month: number): number {
 }
 
 // ─── Budget Streak ────────────────────────────────────────────────────────────
-// Count consecutive days (going back from today) where daily expenses <= dailyLimit.
-// Returns 0 if daily limits not enabled or no transactions recorded.
-export function getBudgetStreak(): number {
+// Reconciles and returns the real-time daily spending streak status.
+// Evaluates consecutive days from settings limit.
+export function getStreakData(): StreakData {
   const settings = getSettings();
-  if (!settings.dailyLimitEnabled || settings.dailyLimit <= 0) return 0;
-  const limit = settings.dailyLimit;
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const spent = getDailyExpenses(d.toISOString());
-    // A day with 0 spend (no data) counts as safe
-    if (spent <= limit) {
-      streak++;
-    } else {
-      break; // streak broken
+  if (!settings.dailyLimitEnabled || settings.dailyLimit <= 0) {
+    return { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+  }
+
+  const defaultStreak: StreakData = {
+    currentStreak: 0,
+    bestStreak: 0,
+    lastStreakUpdatedDate: '',
+    lastSuccessfulDay: '',
+    lastFailedDay: '',
+    lastMilestoneClaimed: 0,
+    lastNotificationShownDate: '',
+  };
+  const data = load<StreakData>(KEYS.streakData, defaultStreak);
+
+  // Helper to format date YYYY-MM-DD in local time
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const now = new Date();
+  const todayStr = formatLocalDate(now);
+
+  // Calculate yesterday's date
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayStr = formatLocalDate(yesterday);
+
+  // Determine reconciliation start point
+  let lastUpdated = data.lastStreakUpdatedDate;
+  if (!lastUpdated) {
+    // If first time, start from yesterday
+    lastUpdated = yesterdayStr;
+    data.lastStreakUpdatedDate = yesterdayStr;
+  }
+
+  // If lastUpdated is in the past (before yesterday), catch up day-by-day
+  if (lastUpdated < yesterdayStr) {
+    const cursor = new Date(lastUpdated + 'T00:00:00'); // parse as local start of day
+    cursor.setDate(cursor.getDate() + 1); // start from day after last updated
+    
+    // Safety check to prevent infinite loop or huge loops: limit to 365 days
+    const limitDate = new Date(now);
+    limitDate.setDate(now.getDate() - 365);
+    if (cursor < limitDate) {
+      cursor.setTime(limitDate.getTime());
+    }
+
+    while (formatLocalDate(cursor) <= yesterdayStr) {
+      const curStr = formatLocalDate(cursor);
+      const spent = getDailyExpenses(cursor.toISOString());
+
+      if (spent <= settings.dailyLimit) {
+        data.currentStreak += 1;
+        data.lastSuccessfulDay = curStr;
+      } else {
+        data.currentStreak = 0;
+        data.lastFailedDay = curStr;
+      }
+      data.bestStreak = Math.max(data.bestStreak, data.currentStreak);
+      
+      data.lastStreakUpdatedDate = curStr;
+      cursor.setDate(cursor.getDate() + 1);
     }
   }
-  return streak;
+
+  // Now check today's current live state
+  const todaySpent = getDailyExpenses(now.toISOString());
+  let currentStreakForToday = data.currentStreak;
+  let lastSuccessfulDayForToday = data.lastSuccessfulDay;
+  let lastFailedDayForToday = data.lastFailedDay;
+
+  if (todaySpent <= settings.dailyLimit) {
+    currentStreakForToday = data.currentStreak + 1;
+    lastSuccessfulDayForToday = todayStr;
+  } else {
+    currentStreakForToday = 0;
+    lastFailedDayForToday = todayStr;
+  }
+
+  // Update best streak
+  const bestStreakWithToday = Math.max(data.bestStreak, currentStreakForToday);
+
+  // Compile final status
+  const finalStatus: StreakData = {
+    currentStreak: currentStreakForToday,
+    bestStreak: bestStreakWithToday,
+    lastStreakUpdatedDate: todayStr,
+    lastSuccessfulDay: lastSuccessfulDayForToday,
+    lastFailedDay: lastFailedDayForToday,
+    lastMilestoneClaimed: data.lastMilestoneClaimed || 0,
+    lastNotificationShownDate: data.lastNotificationShownDate || '',
+  };
+
+  // Persist state
+  // We only persist the "stable" reconciled history (up to yesterday) so today's dynamic edits don't corrupt the history
+  // But if today they exceed the limit, we immediately record it as failed in the saved state!
+  if (todaySpent > settings.dailyLimit) {
+    data.currentStreak = 0;
+    data.lastFailedDay = todayStr;
+    data.lastStreakUpdatedDate = todayStr;
+    data.bestStreak = Math.max(data.bestStreak, 0);
+    save(KEYS.streakData, data);
+    
+    // Sync to Supabase
+    syncToSupabase('streakData' as any, data as any);
+  } else {
+    // If we were failed today, but now we deleted the transaction and are back under limit:
+    if (data.lastStreakUpdatedDate === todayStr && data.lastFailedDay === todayStr) {
+      data.currentStreak = Math.max(0, currentStreakForToday - 1); // restore to yesterday's value
+      data.lastStreakUpdatedDate = yesterdayStr;
+      data.lastFailedDay = data.lastFailedDay === todayStr ? '' : data.lastFailedDay;
+      save(KEYS.streakData, data);
+      syncToSupabase('streakData' as any, data as any);
+    } else {
+      // Just save the reconciled yesterday progress
+      save(KEYS.streakData, data);
+      syncToSupabase('streakData' as any, data as any);
+    }
+  }
+
+  return finalStatus;
+}
+
+// Function to save/update milestone claims or notification shown dates directly
+export function saveStreakData(streak: Partial<StreakData>): void {
+  const stored = load<StreakData>(KEYS.streakData, {
+    currentStreak: 0,
+    bestStreak: 0,
+    lastStreakUpdatedDate: '',
+  });
+  
+  const merged = { ...stored, ...streak };
+  save(KEYS.streakData, merged);
+  syncToSupabase('streakData' as any, merged as any);
 }
 
 // ─── 7-day spending heatmap (for mini bar chart) ──────────────────────────────
@@ -408,6 +531,7 @@ export function exportAllData(): object {
     accounts: load(KEYS.accounts, []),
     categories: load(KEYS.categories, []),
     settings: load(KEYS.settings, {}),
+    streakData: load(KEYS.streakData, {}),
   };
 }
 
@@ -418,4 +542,5 @@ export function importAllData(data: any): void {
   if (data.accounts)     save(KEYS.accounts, data.accounts);
   if (data.categories)   save(KEYS.categories, data.categories);
   if (data.settings)     save(KEYS.settings, data.settings);
+  if (data.streakData)   save(KEYS.streakData, data.streakData);
 }
