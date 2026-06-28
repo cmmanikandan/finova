@@ -3,6 +3,7 @@ import type { User, Transaction, Budget, Goal, Account, Category, AppSettings } 
 import { onAuthStateChanged } from '../services/auth';
 import * as db from '../services/db';
 import { setSupabaseUserId } from '../services/supabaseSync';
+import { getSupabase } from '../services/supabase';
 
 function applyTheme(theme: 'light' | 'dark' | 'system') {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -52,8 +53,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
 
   const refresh = useCallback(() => {
-    // Auto-execute any overdue recurring transactions
-    db.processRecurringTransactions();
     setTransactions(db.getTransactions());
     setBudgets(db.getBudgets());
     setGoals(db.getGoals());
@@ -64,24 +63,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     applyTheme(s.theme);
   }, []);
 
+  // Register database write listener to update React UI state on CRUD actions
   useEffect(() => {
-    const unsub = onAuthStateChanged(u => {
+    db.registerWriteListener(refresh);
+  }, [refresh]);
+
+  // Auth observer and initial sync load
+  useEffect(() => {
+    setLoading(true);
+    const unsub = onAuthStateChanged(async (u) => {
       setUser(u);
-      setLoading(false);
       setSupabaseUserId(u ? u.uid : null);
       if (u) {
-        refresh();
+        try {
+          // 1. Pull latest database data from Supabase
+          await db.pullAllFromSupabase();
+          // 2. Process any overdue recurring bills
+          await db.processRecurringTransactions();
+          // 3. Update React UI state
+          refresh();
+        } catch (e) {
+          console.error('Failed to sync Supabase data on login:', e);
+          refresh();
+        } finally {
+          setLoading(false);
+        }
       } else {
+        // Clear active session cache
         setTransactions([]);
         setBudgets([]);
         setGoals([]);
         setAccounts([]);
         setCategories([]);
         setSettings(db.getSettings());
+        setLoading(false);
       }
     });
     return unsub;
   }, [refresh]);
+
+  // Supabase Realtime Synchronization Subscription
+  useEffect(() => {
+    if (!user) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel('public-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public' },
+        async () => {
+          try {
+            await db.pullAllFromSupabase();
+            refresh();
+          } catch (e) {
+            console.error('Failed to sync realtime updates:', e);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refresh]);
 
   const saveSettings = useCallback((s: AppSettings) => {
     db.saveSettings(s);
@@ -100,4 +146,3 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     </AppContext.Provider>
   );
 };
-

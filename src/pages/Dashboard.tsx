@@ -136,10 +136,11 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     // Process any due recurring subscriptions/bills
-    const changed = db.processRecurringTransactions();
-    if (changed) {
-      refresh();
-    }
+    db.processRecurringTransactions().then(changed => {
+      if (changed) {
+        refresh();
+      }
+    });
   }, [refresh]);
 
   const getGreeting = () => {

@@ -99,13 +99,23 @@ CREATE TABLE IF NOT EXISTS public.settings (
     daily_reminder_enabled   BOOLEAN NOT NULL DEFAULT false,
     daily_reminder_time      TEXT NOT NULL DEFAULT '21:00',
     budget_alerts_enabled    BOOLEAN NOT NULL DEFAULT true,
-    language                 TEXT NOT NULL DEFAULT 'en'
+    language                 TEXT NOT NULL DEFAULT 'en',
+    daily_limit_enabled      BOOLEAN NOT NULL DEFAULT false,
+    daily_limit              NUMERIC(15,2) NOT NULL DEFAULT 0,
+    weekly_limit_enabled     BOOLEAN NOT NULL DEFAULT false,
+    weekly_limit             NUMERIC(15,2) NOT NULL DEFAULT 0,
+    savings_goal_percent     NUMERIC(5,2) NOT NULL DEFAULT 20.00
 );
 
 -- Safe column additions in case settings table existed before without these columns
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_reminder_time    TEXT NOT NULL DEFAULT '21:00';
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS budget_alerts_enabled  BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS language                TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_limit_enabled     BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_limit             NUMERIC(15,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit_enabled    BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit            NUMERIC(15,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS savings_goal_percent    NUMERIC(5,2) NOT NULL DEFAULT 20.00;
 
 -- ─── 8. STREAKS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.streaks (
@@ -133,6 +143,21 @@ CREATE TABLE IF NOT EXISTS public.recurring_transactions (
     note                 TEXT,
     active               BOOLEAN NOT NULL DEFAULT true,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ─── 10. DEBTS ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.debts (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    contact_name  TEXT NOT NULL,
+    contact_emoji TEXT NOT NULL DEFAULT '👤',
+    amount        NUMERIC(15,2) NOT NULL CHECK (amount > 0),
+    direction     TEXT NOT NULL CHECK (direction IN ('lent','borrowed')),
+    due_date      DATE,
+    note          TEXT,
+    status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','settled')),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    settled_at    TIMESTAMPTZ
 );
 
 -- ─── AUTO PROFILE / SETTINGS / STREAK TRIGGER ────────────────
@@ -178,6 +203,7 @@ ALTER TABLE public.goals                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.streaks                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.recurring_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.debts                  ENABLE ROW LEVEL SECURITY;
 
 -- ─── RLS POLICIES ────────────────────────────────────────────
 -- Drop all policies first (idempotent), then recreate
@@ -228,6 +254,10 @@ CREATE POLICY "streaks_all_own" ON public.streaks FOR ALL USING (auth.uid() = us
 DROP POLICY IF EXISTS "recurring_transactions_all_own" ON public.recurring_transactions;
 CREATE POLICY "recurring_transactions_all_own" ON public.recurring_transactions FOR ALL USING (auth.uid() = user_id);
 
+-- debts
+DROP POLICY IF EXISTS "debts_all_own" ON public.debts;
+CREATE POLICY "debts_all_own" ON public.debts FOR ALL USING (auth.uid() = user_id);
+
 -- ─── PERFORMANCE INDEXES ─────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_type ON public.transactions(user_id, type);
@@ -237,3 +267,26 @@ CREATE INDEX IF NOT EXISTS idx_budgets_user           ON public.budgets(user_id)
 CREATE INDEX IF NOT EXISTS idx_goals_user             ON public.goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_streaks_user           ON public.streaks(user_id);
 CREATE INDEX IF NOT EXISTS idx_recurring_user         ON public.recurring_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_debts_user             ON public.debts(user_id);
+
+-- ─── ENABLE REALTIME REPLICATION ─────────────────────────────
+-- We create publication if not exists, but safely alter to add tables.
+-- Supabase automatically has a 'supabase_realtime' publication.
+-- In some instances, it might be pre-created or require a check.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    alter publication supabase_realtime add table public.profiles;
+    alter publication supabase_realtime add table public.accounts;
+    alter publication supabase_realtime add table public.categories;
+    alter publication supabase_realtime add table public.transactions;
+    alter publication supabase_realtime add table public.budgets;
+    alter publication supabase_realtime add table public.goals;
+    alter publication supabase_realtime add table public.settings;
+    alter publication supabase_realtime add table public.streaks;
+    alter publication supabase_realtime add table public.recurring_transactions;
+    alter publication supabase_realtime add table public.debts;
+  end if;
+exception
+  when others then null; -- ignore errors if already added
+end $$;
