@@ -615,10 +615,23 @@ const Goals: React.FC = () => {
 
         {/* Active Goals list */}
         {activeGoals.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '8px', padding: '24px 16px', textAlign: 'center' }}>
-            <span style={{ fontSize: '3.5rem' }}>🎯</span>
-            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1rem' }}>No Goals Yet</p>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Create your first savings goal.</p>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', gap: '12px', padding: '24px 32px', textAlign: 'center' }}>
+            <span style={{ fontSize: '4.5rem' }}>🎯</span>
+            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No Goals Yet</p>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
+              Set savings goals to stay motivated and track your milestones.
+            </p>
+            <button
+              onClick={handleCreate}
+              style={{
+                marginTop: '8px', padding: '10px 24px', borderRadius: '20px',
+                background: 'var(--color-primary)', color: '#fff',
+                border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem',
+                display: 'flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              <Plus size={16} /> Create Goal
+            </button>
           </div>
         ) : (
           <div style={{ marginTop: '16px' }}>

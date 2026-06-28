@@ -97,6 +97,36 @@ const AddTransaction: React.FC = () => {
   const willExceedLimit = settings.dailyLimitEnabled && settings.dailyLimit > 0 && type === 'expense' && !editId && projectedSpend > settings.dailyLimit;
   const showLimitWarning = willExceedLimit && !warnDismissed && newAmount > 0;
 
+  const playSuccessSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      
+      const playNote = (freq: number, startTime: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.08, startTime + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = ctx.currentTime;
+      playNote(1046.50, now, 0.35);
+      playNote(1318.51, now + 0.06, 0.45);
+    } catch { /* Audio block ignore */ }
+  };
+
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       amountRef.current?.focus();
@@ -133,6 +163,15 @@ const AddTransaction: React.FC = () => {
           receiptUrl: receipt || undefined,
         });
       }
+      
+      // Trigger haptic & sound feedback
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate(60);
+        }
+      } catch {}
+      playSuccessSound();
+
       refresh();
       navigate(-1);
     } finally {

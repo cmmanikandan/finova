@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit2, Trash2, Calendar, CreditCard, Tag, FileText, Receipt, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Calendar, CreditCard, Tag, FileText, Receipt, ArrowRight, Copy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
@@ -40,6 +40,22 @@ const TransactionDetails: React.FC = () => {
     navigate('/transactions');
   };
 
+  const handleDuplicate = () => {
+    db.addTransaction({
+      type: txn.type,
+      amount: txn.amount,
+      category: txn.category,
+      subcategory: txn.subcategory,
+      account: txn.account,
+      toAccount: txn.toAccount,
+      date: new Date().toISOString(),
+      note: `${txn.note || ''} (Copy)`.trim(),
+      receiptUrl: txn.receiptUrl
+    });
+    refresh();
+    navigate('/transactions');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
       {/* App Bar */}
@@ -71,7 +87,19 @@ const TransactionDetails: React.FC = () => {
 
         <div style={{ display: 'flex', gap: '4px' }}>
           <button
+            onClick={handleDuplicate}
+            title="Duplicate Transaction"
+            style={{
+              width: '40px', height: '40px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', border: 'none', background: 'transparent',
+              borderRadius: '12px', cursor: 'pointer', color: 'var(--color-text-muted)',
+            }}
+          >
+            <Copy size={18} />
+          </button>
+          <button
             onClick={() => navigate(`/transactions/${txn.id}/edit`)}
+            title="Edit Transaction"
             style={{
               width: '40px', height: '40px', display: 'flex', alignItems: 'center',
               justifyContent: 'center', border: 'none', background: 'transparent',
@@ -82,6 +110,7 @@ const TransactionDetails: React.FC = () => {
           </button>
           <button
             onClick={() => setShowDeleteConfirm(true)}
+            title="Delete Transaction"
             style={{
               width: '40px', height: '40px', display: 'flex', alignItems: 'center',
               justifyContent: 'center', border: 'none', background: 'transparent',

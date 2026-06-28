@@ -748,12 +748,12 @@ const BudgetsListTab: React.FC = () => {
 
   if (budgets.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 24px', minHeight: '340px' }}>
-        <div style={{ fontSize: '4.5rem', marginBottom: '16px' }}>⚖️</div>
-        <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: '8px' }}>No Budgets Yet</div>
-        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '24px' }}>Create a budget and control your monthly spending.</div>
-        <button onClick={() => setShowForm(true)} style={{ padding: '12px 24px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '14px', fontWeight: 700, fontSize: '0.9375rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={18} /> Add Budget
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 24px', minHeight: '360px', gap: '12px' }}>
+        <div style={{ fontSize: '4.5rem' }}>⚖️</div>
+        <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>No Budgets Yet</div>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>Create a budget limits tracker to control and audit your spending.</div>
+        <button onClick={() => setShowForm(true)} style={{ marginTop: '8px', padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Plus size={16} /> Add Budget
         </button>
         {showForm && <BudgetForm categories={expenseCategories} onSave={handleAdd} onClose={() => setShowForm(false)} />}
       </div>

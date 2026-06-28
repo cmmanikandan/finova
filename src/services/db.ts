@@ -1,5 +1,5 @@
 // Database service – LocalStorage backed (Supabase ready)
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { syncToSupabase } from './supabaseSync';
@@ -13,6 +13,7 @@ const KEYS = {
   settings: 'finova_settings',
   streakData: 'finova_streak_data',
   recurring: 'finova_recurring',
+  debts: 'finova_debts',
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -649,4 +650,37 @@ export function importAllData(data: any): void {
   if (data.settings)     save(KEYS.settings, data.settings);
   if (data.streakData)   save(KEYS.streakData, data.streakData);
   if (data.recurring)    save(KEYS.recurring, data.recurring);
+}
+
+// ─── Debt Tracker ─────────────────────────────────────────────────────────────
+export function getDebts(): Debt[] {
+  return load<Debt[]>(KEYS.debts, []);
+}
+
+export function addDebt(data: Omit<Debt, 'id' | 'createdAt' | 'status'>): Debt {
+  const debts = getDebts();
+  const debt: Debt = { ...data, id: uuidv4(), createdAt: new Date().toISOString(), status: 'pending' };
+  debts.push(debt);
+  save(KEYS.debts, debts);
+  return debt;
+}
+
+export function settleDebt(id: string): void {
+  const debts = getDebts();
+  const idx = debts.findIndex(d => d.id === id);
+  if (idx !== -1) {
+    debts[idx] = { ...debts[idx], status: 'settled', settledAt: new Date().toISOString() };
+    save(KEYS.debts, debts);
+  }
+}
+
+export function deleteDebt(id: string): void {
+  save(KEYS.debts, getDebts().filter(d => d.id !== id));
+}
+
+export function getPendingDebtsSummary(): { totalLent: number; totalBorrowed: number; netOwed: number } {
+  const pending = getDebts().filter(d => d.status === 'pending');
+  const totalLent = pending.filter(d => d.direction === 'lent').reduce((s, d) => s + d.amount, 0);
+  const totalBorrowed = pending.filter(d => d.direction === 'borrowed').reduce((s, d) => s + d.amount, 0);
+  return { totalLent, totalBorrowed, netOwed: totalLent - totalBorrowed };
 }

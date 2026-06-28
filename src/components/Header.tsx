@@ -1,8 +1,7 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Sun, Moon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import logoUrl from '../assets/logo.jpeg';
-
 import { BrandTitle } from './BrandTitle';
 
 interface HeaderProps {
@@ -13,7 +12,14 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
-  const { user } = useApp();
+  const { user, settings, saveSettings } = useApp();
+
+  const toggleTheme = () => {
+    const next = settings.theme === 'dark' ? 'light' : 'dark';
+    saveSettings({ ...settings, theme: next });
+  };
+
+  const isDark = settings.theme === 'dark';
 
   return (
     <header className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
@@ -23,8 +29,27 @@ const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
         <BrandTitle size="small" showTagline={false} />
       </div>
 
-      {/* Right: Notification + Avatar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* Right: Theme + Notification + Avatar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* Dark/Light Mode Toggle */}
+        <button
+          id="theme-toggle-btn"
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          style={{
+            width: '38px', height: '38px',
+            borderRadius: '12px',
+            background: isDark ? 'rgba(250,204,21,0.12)' : 'rgba(37,99,235,0.08)',
+            border: `1px solid ${isDark ? 'rgba(250,204,21,0.3)' : 'var(--color-border)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            color: isDark ? '#FDE047' : '#4B5563',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+
         <button
           id="notification-btn"
           onClick={onNotification}

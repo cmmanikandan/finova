@@ -121,3 +121,15 @@ export interface RecurringTransaction {
   active: boolean;
 }
 
+export interface Debt {
+  id: string;
+  contactName: string;
+  contactEmoji: string; // avatar emoji
+  amount: number;
+  direction: 'lent' | 'borrowed'; // lent = they owe me, borrowed = I owe them
+  dueDate?: string; // YYYY-MM-DD
+  note?: string;
+  status: 'pending' | 'settled';
+  createdAt: string;
+  settledAt?: string;
+}

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Copy, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Edit2, ArrowUpDown, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
+import * as exportSvc from '../services/export';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
 import type { TransactionType } from '../types';
 import { useScrollFAB } from '../hooks/useScrollFAB';
@@ -39,10 +40,10 @@ const SwipeableTransactionItem: React.FC<{
   t: any;
   cat: any;
   isIncome: boolean;
-  onDuplicate: (t: any) => void;
   onDelete: (id: string) => void;
   onClick: () => void;
-}> = ({ t, cat, isIncome, onDuplicate, onDelete, onClick }) => {
+  onEdit: (id: string) => void;
+}> = ({ t, cat, isIncome, onDelete, onClick, onEdit }) => {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [touchStart, setTouchStart] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -73,13 +74,13 @@ const SwipeableTransactionItem: React.FC<{
 
   return (
     <div style={{ position: 'relative', background: '#F87171', overflow: 'hidden', minHeight: '64px', borderBottom: '1px solid var(--color-border)' }}>
-      {/* Left swipe reveal (Copy Action) */}
+      {/* Left swipe reveal (Edit Action) */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
-        background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+        background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
       }}>
-        <button onClick={(e) => { e.stopPropagation(); onDuplicate(t); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
-          <Copy size={16} /> Copy
+        <button onClick={(e) => { e.stopPropagation(); onEdit(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+          <Edit2 size={16} /> Edit
         </button>
       </div>
 
@@ -146,6 +147,7 @@ const Transactions: React.FC = () => {
   const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType>('all');
   const [dateFilter, setDateFilter]     = useState('All');
   const [deleteId, setDeleteId]         = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   
   // Sorting State
   const [sortBy, setSortBy]             = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
@@ -246,24 +248,7 @@ const Transactions: React.FC = () => {
     }
   };
 
-  const handleDuplicate = (t: any) => {
-    db.addTransaction({
-      type: t.type,
-      amount: t.amount,
-      category: t.category,
-      subcategory: t.subcategory,
-      account: t.account,
-      toAccount: t.toAccount,
-      date: new Date().toISOString(),
-      note: `${t.note || ''} (Copy)`.trim(),
-      receiptUrl: t.receiptUrl
-    });
-    refresh();
-    setSnackbarMessage('Transaction duplicated');
-    setTimeout(() => {
-      setSnackbarMessage(null);
-    }, 3000);
-  };
+
 
   const clearAllFilters = () => {
     setSelectedCategory('all');
@@ -368,32 +353,84 @@ const Transactions: React.FC = () => {
         flexDirection: 'column',
         gap: '12px'
       }}>
-        {/* Title & Sorting */}
+        {/* Title & Sort & Export */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Transactions</h2>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <ArrowUpDown size={14} style={{ color: 'var(--color-text-muted)', marginRight: '4px' }} />
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: 'var(--color-primary)',
-                outline: 'none',
-                cursor: 'pointer',
-                appearance: 'none',
-                paddingRight: '12px'
-              }}
-            >
-              <option value="date_desc">Newest First</option>
-              <option value="date_asc">Oldest First</option>
-              <option value="amount_desc">Amount: High-Low</option>
-              <option value="amount_asc">Amount: Low-High</option>
-            </select>
-            <ChevronDown size={12} style={{ position: 'absolute', right: 0, color: 'var(--color-primary)', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Export Button */}
+            <div style={{ position: 'relative' }}>
+              <button
+                id="export-btn"
+                onClick={() => setShowExportMenu(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  background: 'var(--color-bg)', border: '1px solid var(--color-border)',
+                  borderRadius: '10px', padding: '6px 10px',
+                  cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 700
+                }}
+              >
+                <Download size={14} /> Export
+              </button>
+              {showExportMenu && (
+                <div
+                  style={{
+                    position: 'absolute', right: 0, top: '110%', zIndex: 100,
+                    background: 'var(--color-card)', border: '1px solid var(--color-border)',
+                    borderRadius: '12px', padding: '6px', minWidth: '150px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    display: 'flex', flexDirection: 'column', gap: '2px'
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {[
+                    { label: '📊 Export CSV', action: () => exportSvc.exportCSV(sortedAndFiltered) },
+                    { label: '📗 Export Excel', action: () => exportSvc.exportExcel(sortedAndFiltered) },
+                    { label: '📄 Export PDF', action: () => exportSvc.exportPDF(sortedAndFiltered) },
+                    { label: '🗂 Export JSON', action: () => exportSvc.exportJSON(sortedAndFiltered) },
+                  ].map(item => (
+                    <button
+                      key={item.label}
+                      onClick={() => { item.action(); setShowExportMenu(false); }}
+                      style={{
+                        border: 'none', background: 'transparent', padding: '8px 12px',
+                        cursor: 'pointer', fontWeight: 600, fontSize: '0.8125rem',
+                        color: 'var(--color-text)', textAlign: 'left', borderRadius: '8px',
+                        transition: 'background 0.15s'
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Sort */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <ArrowUpDown size={14} style={{ color: 'var(--color-text-muted)', marginRight: '4px' }} />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as any)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--color-primary)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  paddingRight: '12px'
+                }}
+              >
+                <option value="date_desc">Newest First</option>
+                <option value="date_asc">Oldest First</option>
+                <option value="amount_desc">Amount: High-Low</option>
+                <option value="amount_asc">Amount: Low-High</option>
+              </select>
+              <ChevronDown size={12} style={{ position: 'absolute', right: 0, color: 'var(--color-primary)', pointerEvents: 'none' }} />
+            </div>
           </div>
         </div>
 
@@ -450,10 +487,29 @@ const Transactions: React.FC = () => {
       {/* List */}
       <div onScroll={handleScroll} style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {sortedAndFiltered.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '8px', padding: '24px 16px' }}>
-            <span style={{ fontSize: '3.5rem' }}>📭</span>
-            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1rem' }}>No Transactions Found</p>
-            <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-muted)', fontSize: '0.8125rem', textAlign: 'center' }}>Try adjusting your search or filters.</p>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', gap: '12px', padding: '24px 32px', textAlign: 'center' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '4px' }}>📭</div>
+            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>
+              {allTxns.length === 0 ? 'No Transactions Yet' : 'No Results Found'}
+            </p>
+            <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-muted)', fontSize: '0.8125rem', lineHeight: 1.5 }}>
+              {allTxns.length === 0
+                ? 'Start tracking your income and expenses to see them here.'
+                : 'Try adjusting your search or clearing filters.'}
+            </p>
+            {allTxns.length === 0 && (
+              <button
+                onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}
+                style={{
+                  marginTop: '8px', padding: '10px 24px', borderRadius: '20px',
+                  background: 'var(--color-primary)', color: '#fff',
+                  border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <Plus size={16} /> Add First Transaction
+              </button>
+            )}
           </div>
         ) : (
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
@@ -474,7 +530,7 @@ const Transactions: React.FC = () => {
                       t={t}
                       cat={cat}
                       isIncome={isIncome}
-                      onDuplicate={handleDuplicate}
+                      onEdit={(id) => navigate(`/transactions/${id}/edit`)}
                       onDelete={handleDeleteTrigger}
                       onClick={() => navigate(`/transactions/${t.id}`)}
                     />

@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import Goals from './pages/Goals';
 import Settings from './pages/Settings';
 import PinLock from './pages/PinLock';
+import DebtTracker from './pages/DebtTracker';
 import BottomNav from './components/BottomNav';
 import { ScrollRestoration } from './components/ScrollRestoration';
 import { AndroidBackHandler, PageTransitionTracker } from './components/AndroidBackHandler';
@@ -122,6 +123,7 @@ const AppContent: React.FC = () => {
           <Route path="/goals/:id" element={<Goals />} />
           <Route path="/goals/:id/deposit" element={<Goals />} />
           <Route path="/goals/:id/withdraw" element={<Goals />} />
+          <Route path="/debts" element={<DebtTracker />} />
           
           {/* Settings Sub-Routing */}
           <Route path="/settings" element={<Settings onLogout={() => {}} />} />

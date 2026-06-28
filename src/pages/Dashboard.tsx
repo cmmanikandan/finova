@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
-  ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle
+  ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle,
+  Handshake, Scale
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -163,6 +164,31 @@ const Dashboard: React.FC = () => {
   // Daily limit status
   const dailyStatus = useMemo(() => db.getDailyLimitStatus(), []);
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
+
+  // Last month stats for insights
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastStats = useMemo(() => db.getMonthlyStats(lastMonthDate.getFullYear(), lastMonthDate.getMonth()), []);
+  const expenseDiff = stats.expense - lastStats.expense;
+  const expensePct  = lastStats.expense > 0 ? Math.round(Math.abs(expenseDiff) / lastStats.expense * 100) : null;
+
+  // Top spending category this month
+  const topCategory = useMemo(() => {
+    const txns = db.getTransactions().filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && t.type === 'expense';
+    });
+    const catTotals: Record<string, number> = {};
+    txns.forEach(t => { catTotals[t.category] = (catTotals[t.category] || 0) + t.amount; });
+    const sorted = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) return null;
+    const [catId, total] = sorted[0];
+    const cat = categories.find(c => c.id === catId);
+    return cat ? { cat, total } : null;
+  }, [categories]);
+
+  // Debt summary for net worth
+  const debtSummary = useMemo(() => db.getPendingDebtsSummary(), []);
+  const netWorth = balance + debtSummary.totalLent - debtSummary.totalBorrowed;
 
   // Filter bills due within 7 days
   const upcomingBills = useMemo(() => {
@@ -468,8 +494,10 @@ const Dashboard: React.FC = () => {
           <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.1)"  onClick={() => openForm('income')} />
           <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.1)"  onClick={() => openForm('transfer')} />
           <QuickAction icon={<Target size={20} />}         label="Goals"      color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/goals')} />
+          <QuickAction icon={<Handshake size={20} />}     label="Debts"      color="#EC4899" bg="rgba(236,72,153,0.1)" onClick={() => navigate('/debts')} />
           <QuickAction icon={<Zap size={20} />}            label="Day Limit"  color="#7C3AED" bg="rgba(124,58,237,0.1)" onClick={() => navigate('/budgets')} />
           <QuickAction icon={<ChevronRight size={20} />}   label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
+          <QuickAction icon={<Scale size={20} />}          label="Recurring"  color="#F97316" bg="rgba(249,115,22,0.1)" onClick={() => navigate('/settings/recurring')} />
         </div>
 
         {/* Upcoming Bills Alert widget */}
@@ -528,6 +556,91 @@ const Dashboard: React.FC = () => {
               }
             </div>
           ))}
+        </div>
+
+        {/* 4b. Spending Insights */}
+        {(expensePct !== null || topCategory) && (
+          <>
+            <p className="section-header">Spending Insights</p>
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {expensePct !== null && (
+                <div style={{
+                  background: expenseDiff > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.06)',
+                  border: `1.5px solid ${expenseDiff > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                  borderRadius: '14px', padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                }}>
+                  <div style={{ fontSize: '1.5rem' }}>{expenseDiff > 0 ? '📈' : '📉'}</div>
+                  <div>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      {expenseDiff > 0
+                        ? `Spending up ${expensePct}% vs last month`
+                        : `Spending down ${expensePct}% vs last month`}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>
+                      {expenseDiff > 0
+                        ? `You spent ${formatCurrency(Math.abs(expenseDiff))} more than ${lastMonthDate.toLocaleString('default', { month: 'long' })}`
+                        : `You saved ${formatCurrency(Math.abs(expenseDiff))} more than ${lastMonthDate.toLocaleString('default', { month: 'long' })}`}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {topCategory && (
+                <div style={{
+                  background: 'var(--color-card)', border: '1.5px solid var(--color-border)',
+                  borderRadius: '14px', padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                }}>
+                  <div style={{ fontSize: '1.5rem' }}>{topCategory.cat.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      Top spend: {topCategory.cat.name}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>
+                      {formatCurrency(topCategory.total)} this month
+                    </div>
+                  </div>
+                  {stats.expense > 0 && (
+                    <div style={{
+                      fontSize: '0.875rem', fontWeight: 900,
+                      color: topCategory.cat.color || 'var(--color-text-muted)'
+                    }}>
+                      {Math.round(topCategory.total / stats.expense * 100)}%
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* 4c. Net Worth Snapshot */}
+        <p className="section-header">Net Worth</p>
+        <div style={{ padding: '0 16px' }}>
+          <div style={{
+            background: 'var(--color-card)', border: '1.5px solid var(--color-border)',
+            borderRadius: '18px', padding: '16px',
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0',
+          }}>
+            {[
+              { label: 'Assets', value: balance + debtSummary.totalLent, icon: '🏦', color: '#16A34A' },
+              { label: 'Owed', value: debtSummary.totalBorrowed, icon: '💸', color: '#DC2626' },
+              { label: 'Net Worth', value: netWorth, icon: '💎', color: netWorth >= 0 ? '#2563EB' : '#DC2626' },
+            ].map((item, i) => (
+              <div key={item.label} style={{
+                display: 'flex', flexDirection: 'column', gap: '4px',
+                paddingLeft: i > 0 ? '12px' : 0,
+                borderLeft: i > 0 ? '1px solid var(--color-border)' : 'none',
+              }}>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {item.icon} {item.label}
+                </div>
+                <div style={{ fontSize: '0.9375rem', fontWeight: 900, color: item.color }}>
+                  {hideBalance ? '••••' : formatCurrency(item.value)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* 5. Recent Transactions */}

@@ -52,6 +52,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
 
   const refresh = useCallback(() => {
+    // Auto-execute any overdue recurring transactions
+    db.processRecurringTransactions();
     setTransactions(db.getTransactions());
     setBudgets(db.getBudgets());
     setGoals(db.getGoals());
