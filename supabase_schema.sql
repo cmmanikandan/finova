@@ -677,3 +677,44 @@ ALTER TABLE public.xp_history ADD CONSTRAINT xp_history_user_id_fkey FOREIGN KEY
 ALTER TABLE public.user_levels ADD CONSTRAINT user_levels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.user_badges ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+-- ============================================================
+-- ─── SYSTEM MIGRATION: CONVERT ID & REFERENCE COLUMNS TO TEXT ───
+-- ============================================================
+-- 1. Drop foreign key constraints that reference accounts(id) or categories(id)
+ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_account_id_fkey;
+ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_to_account_id_fkey;
+ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_category_id_fkey;
+ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_category_id_fkey;
+ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_category_id_fkey;
+ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_account_id_fkey;
+ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_to_account_id_fkey;
+ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_category_id_fkey;
+ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_account_id_fkey;
+
+-- 2. Alter primary keys in accounts and categories to TEXT
+ALTER TABLE public.accounts ALTER COLUMN id TYPE TEXT;
+ALTER TABLE public.categories ALTER COLUMN id TYPE TEXT;
+
+-- 3. Alter reference columns in transactions, budgets, recurring_transactions, split_bills to TEXT
+ALTER TABLE public.transactions ALTER COLUMN account_id TYPE TEXT;
+ALTER TABLE public.transactions ALTER COLUMN to_account_id TYPE TEXT;
+ALTER TABLE public.transactions ALTER COLUMN category_id TYPE TEXT;
+ALTER TABLE public.budgets ALTER COLUMN category_id TYPE TEXT;
+ALTER TABLE public.recurring_transactions ALTER COLUMN category_id TYPE TEXT;
+ALTER TABLE public.recurring_transactions ALTER COLUMN account_id TYPE TEXT;
+ALTER TABLE public.recurring_transactions ALTER COLUMN to_account_id TYPE TEXT;
+ALTER TABLE public.split_bills ALTER COLUMN category_id TYPE TEXT;
+ALTER TABLE public.split_bills ALTER COLUMN account_id TYPE TEXT;
+
+-- 4. Re-add foreign key constraints
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_to_account_id_fkey FOREIGN KEY (to_account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+ALTER TABLE public.budgets ADD CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
+ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
+ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_to_account_id_fkey FOREIGN KEY (to_account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
+ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
+ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
