@@ -533,28 +533,28 @@ ALTER TABLE public.planner_statistics ENABLE ROW LEVEL SECURITY;
 
 -- Drop and recreate RLS policies
 DROP POLICY IF EXISTS "daily_tasks_all_own" ON public.daily_tasks;
-CREATE POLICY "daily_tasks_all_own" ON public.daily_tasks FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "daily_tasks_all_own" ON public.daily_tasks FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "daily_task_logs_all_own" ON public.daily_task_logs;
-CREATE POLICY "daily_task_logs_all_own" ON public.daily_task_logs FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "daily_task_logs_all_own" ON public.daily_task_logs FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "planner_schedule_all_own" ON public.planner_schedule;
-CREATE POLICY "planner_schedule_all_own" ON public.planner_schedule FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "planner_schedule_all_own" ON public.planner_schedule FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "planner_reminders_all_own" ON public.planner_reminders;
-CREATE POLICY "planner_reminders_all_own" ON public.planner_reminders FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "planner_reminders_all_own" ON public.planner_reminders FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "xp_history_all_own" ON public.xp_history;
-CREATE POLICY "xp_history_all_own" ON public.xp_history FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "xp_history_all_own" ON public.xp_history FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "user_levels_all_own" ON public.user_levels;
-CREATE POLICY "user_levels_all_own" ON public.user_levels FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "user_levels_all_own" ON public.user_levels FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "user_badges_all_own" ON public.user_badges;
-CREATE POLICY "user_badges_all_own" ON public.user_badges FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "user_badges_all_own" ON public.user_badges FOR ALL USING (auth.uid()::text = user_id);
 
 DROP POLICY IF EXISTS "planner_statistics_all_own" ON public.planner_statistics;
-CREATE POLICY "planner_statistics_all_own" ON public.planner_statistics FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "planner_statistics_all_own" ON public.planner_statistics FOR ALL USING (auth.uid()::text = user_id);
 
 -- Add to publication if it exists
 DO $$
