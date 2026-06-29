@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
   ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle,
-  Handshake, Scale, Download
+  Handshake, Scale, Download, Trophy, Users, LineChart
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -545,10 +545,11 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
           <QuickAction icon={<ArrowDownLeft size={20} />} label="Add Expense" color="#EF4444" bg="rgba(239,68,68,0.1)" onClick={() => openForm('expense')} />
           <QuickAction icon={<ArrowUpRight size={20} />}  label="Add Income"  color="#22C55E" bg="rgba(34,197,94,0.1)"  onClick={() => openForm('income')} />
           <QuickAction icon={<ArrowLeftRight size={20} />} label="Transfer"   color="#2563EB" bg="rgba(37,99,235,0.1)"  onClick={() => openForm('transfer')} />
-          <QuickAction icon={<Target size={20} />}         label="Goals"      color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/goals')} />
-          <QuickAction icon={<Handshake size={20} />}     label="Debts"      color="#EC4899" bg="rgba(236,72,153,0.1)" onClick={() => navigate('/debts')} />
-          <QuickAction icon={<Zap size={20} />}            label="Day Limit"  color="#7C3AED" bg="rgba(124,58,237,0.1)" onClick={() => navigate('/budgets')} />
-          <QuickAction icon={<ChevronRight size={20} />}   label="Reports"    color="#06B6D4" bg="rgba(6,182,212,0.1)"  onClick={() => navigate('/reports')} />
+          <QuickAction icon={<Trophy size={20} />}         label="Challenges" color="#F59E0B" bg="rgba(245,158,11,0.1)" onClick={() => navigate('/challenges')} />
+          <QuickAction icon={<Users size={20} />}          label="Split Bill"  color="#EC4899" bg="rgba(236,72,153,0.1)" onClick={() => navigate('/split-bill')} />
+          <QuickAction icon={<LineChart size={20} />}      label="Forecasts"  color="#8B5CF6" bg="rgba(139,92,246,0.1)" onClick={() => navigate('/forecast')} />
+          <QuickAction icon={<Target size={20} />}         label="Goals"      color="#3B82F6" bg="rgba(59,130,246,0.1)" onClick={() => navigate('/goals')} />
+          <QuickAction icon={<Handshake size={20} />}     label="Debts"      color="#10B981" bg="rgba(16,185,129,0.1)" onClick={() => navigate('/debts')} />
           <QuickAction icon={<Scale size={20} />}          label="Recurring"  color="#F97316" bg="rgba(249,115,22,0.1)" onClick={() => navigate('/settings/recurring')} />
         </div>
 

@@ -133,3 +133,16 @@ export interface Debt {
   createdAt: string;
   settledAt?: string;
 }
+
+export interface Challenge {
+  id: string;
+  name: string;
+  type: string; // 'no-spend' | 'category-limit'
+  targetCategory?: string;
+  limitAmount: number;
+  durationDays: number;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
+  status: 'active' | 'completed' | 'failed';
+  checkedDays: number[];
+}

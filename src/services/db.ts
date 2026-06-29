@@ -1,5 +1,5 @@
 // Database service – Supabase backed with local synchronized cache
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt, Challenge } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -17,6 +17,7 @@ const KEYS = {
   streakData: 'finova_streak_data',
   recurring: 'finova_recurring',
   debts: 'finova_debts',
+  challenges: 'finova_challenges',
 };
 
 // ─── Active cache variables in memory ──────────────────────────────────────────
@@ -29,6 +30,7 @@ let _settings: AppSettings = DEFAULT_SETTINGS;
 let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
 let _recurring: RecurringTransaction[] = [];
 let _debts: Debt[] = [];
+let _challenges: Challenge[] = [];
 
 let _currentUid: string | null = null;
 
@@ -59,6 +61,15 @@ function loadBackup<T>(key: string, fallback: T): T {
   return fallback;
 }
 
+// Public wrapper for testing or page checks
+export function getBackupRaw(key: string): string | null {
+  try {
+    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
+    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
+    return localStorage.getItem(nsKey);
+  } catch { return null; }
+}
+
 function saveBackup<T>(key: string, value: T): void {
   try {
     const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
@@ -79,6 +90,7 @@ export function initLocalCache() {
     _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
     _recurring = [];
     _debts = [];
+    _challenges = [];
     return;
   }
 
@@ -92,6 +104,7 @@ export function initLocalCache() {
   _streakData = loadBackup<StreakData>(KEYS.streakData, { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' });
   _recurring = loadBackup<RecurringTransaction[]>(KEYS.recurring, []);
   _debts = loadBackup<Debt[]>(KEYS.debts, []);
+  _challenges = loadBackup<Challenge[]>(KEYS.challenges, []);
 }
 
 // Trigger initial load
@@ -356,6 +369,36 @@ function mapDebtFromDb(row: any): Debt {
   };
 }
 
+function mapChallengeToDb(c: Challenge): any {
+  return {
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    target_category: c.targetCategory || null,
+    limit_amount: c.limitAmount,
+    duration_days: c.durationDays,
+    start_date: c.startDate,
+    end_date: c.endDate,
+    status: c.status,
+    checked_days: c.checkedDays,
+  };
+}
+
+function mapChallengeFromDb(row: any): Challenge {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    targetCategory: row.target_category || undefined,
+    limitAmount: Number(row.limit_amount),
+    durationDays: row.duration_days,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    status: row.status,
+    checkedDays: row.checked_days || [],
+  };
+}
+
 // ─── Sync provisioning on new user ──────────────────────────────────────────
 
 async function autoProvisionAccounts(uid: string) {
@@ -416,7 +459,7 @@ export async function pullAllFromSupabase(): Promise<void> {
     console.error('Failed to ensure profiles record:', e);
   }
 
-  const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes] = await Promise.all([
+  const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes, challengesRes] = await Promise.all([
     supabase.from('transactions').select('*').eq('user_id', uid),
     supabase.from('budgets').select('*').eq('user_id', uid),
     supabase.from('goals').select('*').eq('user_id', uid),
@@ -426,6 +469,7 @@ export async function pullAllFromSupabase(): Promise<void> {
     supabase.from('streaks').select('*').eq('user_id', uid).maybeSingle(),
     supabase.from('recurring_transactions').select('*').eq('user_id', uid),
     supabase.from('debts').select('*').eq('user_id', uid),
+    supabase.from('challenges').select('*').eq('user_id', uid),
   ]);
 
   if (txnsRes.data) {
@@ -478,6 +522,10 @@ export async function pullAllFromSupabase(): Promise<void> {
   if (debtsRes.data) {
     _debts = debtsRes.data.map(mapDebtFromDb);
     saveBackup(KEYS.debts, _debts);
+  }
+  if (challengesRes.data) {
+    _challenges = challengesRes.data.map(mapChallengeFromDb);
+    saveBackup(KEYS.challenges, _challenges);
   }
 }
 
@@ -1345,6 +1393,63 @@ export function get7DaySpending(): { date: string; amount: number; label: string
   return result;
 }
 
+// ─── Challenges Operations ───────────────────────────────────────────────────
+
+export function getChallenges(): Challenge[] {
+  return _challenges;
+}
+
+export async function addChallenge(data: Omit<Challenge, 'id' | 'startDate' | 'endDate' | 'status' | 'checkedDays'>): Promise<Challenge> {
+  const now = new Date();
+  const end = new Date();
+  end.setDate(now.getDate() + data.durationDays);
+  const c: Challenge = {
+    ...data,
+    id: uuidv4(),
+    startDate: now.toISOString(),
+    endDate: end.toISOString(),
+    status: 'active',
+    checkedDays: [],
+  };
+
+  if (isSupabaseConfigured && supabase) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData?.session?.user?.id;
+    if (uid) {
+      const row = { ...mapChallengeToDb(c), user_id: uid };
+      const { error } = await supabase.from('challenges').insert(row);
+      if (error) throw error;
+    }
+  }
+
+  _challenges.push(c);
+  saveBackup(KEYS.challenges, _challenges);
+  notifyWrite();
+  return c;
+}
+
+export async function updateChallenge(id: string, data: Partial<Challenge>): Promise<void> {
+  const idx = _challenges.findIndex(c => c.id === id);
+  if (idx === -1) return;
+  _challenges[idx] = { ..._challenges[idx], ...data };
+  saveBackup(KEYS.challenges, _challenges);
+  notifyWrite();
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from('challenges').update(mapChallengeToDb(_challenges[idx])).eq('id', id);
+    if (error) console.error('Failed to update challenge in Supabase:', error);
+  }
+}
+
+export async function deleteChallenge(id: string): Promise<void> {
+  _challenges = _challenges.filter(c => c.id !== id);
+  saveBackup(KEYS.challenges, _challenges);
+  notifyWrite();
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from('challenges').delete().eq('id', id);
+    if (error) console.error('Failed to delete challenge in Supabase:', error);
+  }
+}
+
 // ─── Backup All Data ─────────────────────────────────────────────────────────
 
 export function exportAllData(): object {
@@ -1360,6 +1465,7 @@ export function exportAllData(): object {
     streakData: _streakData,
     recurring: _recurring,
     debts: _debts,
+    challenges: _challenges,
   };
 }
 
@@ -1373,6 +1479,7 @@ export function importAllData(data: any): void {
   if (data.streakData)   { _streakData = data.streakData; saveBackup(KEYS.streakData, _streakData); }
   if (data.recurring)    { _recurring = data.recurring; saveBackup(KEYS.recurring, _recurring); }
   if (data.debts)        { _debts = data.debts; saveBackup(KEYS.debts, _debts); }
+  if (data.challenges)   { _challenges = data.challenges; saveBackup(KEYS.challenges, _challenges); }
   notifyWrite();
 }
 
@@ -1383,6 +1490,7 @@ export async function clearAllData(): Promise<void> {
   _goals = [];
   _recurring = [];
   _debts = [];
+  _challenges = [];
   
   // Re-initialize accounts and categories to default templates (non-custom)
   _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
@@ -1414,6 +1522,7 @@ export async function clearAllData(): Promise<void> {
           supabase.from('goals').delete().eq('user_id', uid),
           supabase.from('recurring_transactions').delete().eq('user_id', uid),
           supabase.from('debts').delete().eq('user_id', uid),
+          supabase.from('challenges').delete().eq('user_id', uid),
           supabase.from('accounts').delete().eq('user_id', uid),
           supabase.from('categories').delete().eq('user_id', uid),
           supabase.from('settings').delete().eq('user_id', uid),
