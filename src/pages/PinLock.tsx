@@ -6,9 +6,11 @@ interface PinLockProps {
   onUnlock: () => void;
 }
 
+import { getSettings } from '../services/db';
+
 const CORRECT_HASH_KEY = 'finova_pin_hash';
 
-function simpleHash(pin: string): string {
+export function simpleHash(pin: string): string {
   // Simple djb2 hash (not crypto-secure, but sufficient for local PIN)
   let hash = 5381;
   for (let i = 0; i < pin.length; i++) {
@@ -26,11 +28,19 @@ export function clearPIN() {
 }
 
 export function verifyPIN(pin: string): boolean {
+  const settings = getSettings();
+  if (settings.pinEnabled && settings.pinHash) {
+    return settings.pinHash === simpleHash(pin);
+  }
   const stored = localStorage.getItem(CORRECT_HASH_KEY);
   return stored !== null && stored === simpleHash(pin);
 }
 
 export function isPINSet(): boolean {
+  const settings = getSettings();
+  if (settings.pinEnabled && settings.pinHash) {
+    return true;
+  }
   return localStorage.getItem(CORRECT_HASH_KEY) !== null;
 }
 

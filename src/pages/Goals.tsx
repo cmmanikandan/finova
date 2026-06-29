@@ -178,9 +178,9 @@ const Goals: React.FC = () => {
   const completedGoals = goals.filter(g => g.status === 'completed');
   const archivedGoals  = goals.filter(g => g.status === 'archived');
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!name || !target || parseFloat(target) <= 0) return;
-    db.addGoal({
+    await db.addGoal({
       name, targetAmount: parseFloat(target), currentAmount: parseFloat(current) || 0,
       targetDate: targetDate || new Date(Date.now() + 90 * 86400000).toISOString(),
       icon, color, status: 'active', notes,
@@ -189,13 +189,13 @@ const Goals: React.FC = () => {
     navigate('/goals');
   };
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     if (!selectedGoal || !amountInput || parseFloat(amountInput) <= 0) return;
     const value = parseFloat(amountInput);
     const nextAmount = Math.min(selectedGoal.currentAmount + value, selectedGoal.targetAmount);
     const nextStatus: 'active' | 'completed' | 'archived' = nextAmount >= selectedGoal.targetAmount ? 'completed' : 'active';
     
-    db.updateGoal(selectedGoal.id, {
+    await db.updateGoal(selectedGoal.id, {
       currentAmount: nextAmount,
       status: nextStatus
     });
@@ -205,13 +205,13 @@ const Goals: React.FC = () => {
     navigate(`/goals/${selectedGoal.id}`);
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (!selectedGoal || !amountInput || parseFloat(amountInput) <= 0) return;
     const value = parseFloat(amountInput);
     const nextAmount = Math.max(selectedGoal.currentAmount - value, 0);
     const nextStatus: 'active' | 'completed' | 'archived' = nextAmount >= selectedGoal.targetAmount ? 'completed' : 'active';
     
-    db.updateGoal(selectedGoal.id, {
+    await db.updateGoal(selectedGoal.id, {
       currentAmount: nextAmount,
       status: nextStatus
     });
@@ -221,18 +221,18 @@ const Goals: React.FC = () => {
     navigate(`/goals/${selectedGoal.id}`);
   };
 
-  const handleArchiveToggle = () => {
+  const handleArchiveToggle = async () => {
     if (!selectedGoal) return;
     const nextStatus = selectedGoal.status === 'archived' ? 'active' : 'archived';
-    db.updateGoal(selectedGoal.id, { status: nextStatus });
+    await db.updateGoal(selectedGoal.id, { status: nextStatus });
     refresh();
     navigate('/goals');
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!selectedGoal) return;
     if (window.confirm('Delete this goal permanently?')) {
-      db.deleteGoal(selectedGoal.id);
+      await db.deleteGoal(selectedGoal.id);
       refresh();
       navigate('/goals');
     }
@@ -578,8 +578,8 @@ const Goals: React.FC = () => {
             {GOAL_TEMPLATES.map(t => (
               <button
                 key={t.name}
-                onClick={() => {
-                  db.addGoal({
+                onClick={async () => {
+                  await db.addGoal({
                     name: t.name,
                     targetAmount: 30000,
                     currentAmount: 0,

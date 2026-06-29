@@ -114,7 +114,8 @@ const Dashboard: React.FC = () => {
     };
     const currentCats = db.getCategories();
     const hasCategories = currentCats.length !== 18 || currentCats.some(c => {
-      const def = defaultsMap[c.id];
+      const baseId = c.id.split('_')[0];
+      const def = defaultsMap[baseId];
       if (!def) return true;
       return c.name !== def.name || c.icon !== def.icon || c.color !== def.color;
     });

@@ -74,6 +74,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUser(u);
       if (u) {
         try {
+          // Set cache namespace to current user's UID
+          db.setUserIdForCache(u.uid);
           // 1. Pull latest database data from Supabase
           await db.pullAllFromSupabase();
           // 2. Process any overdue recurring bills
@@ -88,6 +90,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       } else {
         // Clear active session cache
+        db.setUserIdForCache(null);
         setTransactions([]);
         setBudgets([]);
         setGoals([]);

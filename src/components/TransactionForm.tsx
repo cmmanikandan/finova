@@ -38,10 +38,13 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ onClose, onSaved, def
     if (type !== 'transfer' && !category) return;
     setSaving(true);
     try {
-      db.addTransaction({
+      const transferCat = categories.find(c => c.id === 'transfer' || c.id.startsWith('transfer_'));
+      const transferCatId = transferCat?.id || 'transfer';
+
+      await db.addTransaction({
         type,
         amount: parseFloat(amount),
-        category: type === 'transfer' ? 'transfer' : category,
+        category: type === 'transfer' ? transferCatId : category,
         subcategory: type === 'transfer' ? undefined : (subcategory || undefined),
         account,
         toAccount: type === 'transfer' ? toAccount : undefined,

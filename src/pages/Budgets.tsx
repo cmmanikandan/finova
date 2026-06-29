@@ -679,7 +679,7 @@ const BudgetForm: React.FC<{
         <select value={category} onChange={e => setCategory(e.target.value)}
           style={{ padding: '12px 14px', borderRadius: '12px', border: '1.5px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.9375rem', fontWeight: 600 }}>
           <option value="">— Select Category —</option>
-          {categories.filter(c => c.id !== 'transfer').map(c => (
+          {categories.filter(c => !c.id.startsWith('transfer')).map(c => (
             <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
           ))}
         </select>
@@ -734,14 +734,18 @@ const BudgetsListTab: React.FC = () => {
     [categories]
   );
 
-  const handleAdd = useCallback((data: Omit<Budget, 'id' | 'spent'>) => {
-    db.addBudget(data);
+  const handleAdd = useCallback(async (data: Omit<Budget, 'id' | 'spent'>) => {
+    if (editBudget) {
+      await db.updateBudget(editBudget.id, data);
+    } else {
+      await db.addBudget(data);
+    }
     refresh();
-  }, [refresh]);
+  }, [editBudget, refresh]);
 
-  const handleDelete = useCallback((id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('Delete this budget?')) {
-      db.deleteBudget(id);
+      await db.deleteBudget(id);
       refresh();
     }
   }, [refresh]);

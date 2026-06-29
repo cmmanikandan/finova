@@ -30,6 +30,13 @@ let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdat
 let _recurring: RecurringTransaction[] = [];
 let _debts: Debt[] = [];
 
+let _currentUid: string | null = null;
+
+export function setUserIdForCache(uid: string | null) {
+  _currentUid = uid;
+  initLocalCache();
+}
+
 // ─── Write listener registration ──────────────────────────────────────────────
 let _writeListener: (() => void) | null = null;
 
@@ -44,7 +51,9 @@ function notifyWrite() {
 // ─── Backup Load/Save helpers ────────────────────────────────────────────────
 function loadBackup<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
+    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
+    const raw = localStorage.getItem(nsKey);
     if (raw) return JSON.parse(raw) as T;
   } catch { /* ignore */ }
   return fallback;
@@ -52,17 +61,33 @@ function loadBackup<T>(key: string, fallback: T): T {
 
 function saveBackup<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
+    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
+    localStorage.setItem(nsKey, JSON.stringify(value));
   } catch { /* ignore */ }
 }
 
 // Initialize memory cache from backup copy immediately to avoid blank flashes
 export function initLocalCache() {
+  if (!_currentUid) {
+    _transactions = [];
+    _budgets = [];
+    _goals = [];
+    _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
+    _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
+    _settings = DEFAULT_SETTINGS;
+    _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+    _recurring = [];
+    _debts = [];
+    return;
+  }
+
+  const suffix = `_${_currentUid}`;
   _transactions = loadBackup<Transaction[]>(KEYS.transactions, []);
   _budgets = loadBackup<Budget[]>(KEYS.budgets, []);
   _goals = loadBackup<Goal[]>(KEYS.goals, []);
-  _accounts = loadBackup<Account[]>(KEYS.accounts, DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false })));
-  _categories = loadBackup<Category[]>(KEYS.categories, DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false })));
+  _accounts = loadBackup<Account[]>(KEYS.accounts, DEFAULT_ACCOUNTS.map(a => ({ ...a, id: `${a.id}${suffix}`, isCustom: false })));
+  _categories = loadBackup<Category[]>(KEYS.categories, DEFAULT_CATEGORIES.map(c => ({ ...c, id: `${c.id}${suffix}`, isCustom: false })));
   _settings = loadBackup<AppSettings>(KEYS.settings, DEFAULT_SETTINGS);
   _streakData = loadBackup<StreakData>(KEYS.streakData, { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' });
   _recurring = loadBackup<RecurringTransaction[]>(KEYS.recurring, []);
@@ -334,32 +359,38 @@ function mapDebtFromDb(row: any): Debt {
 // ─── Sync provisioning on new user ──────────────────────────────────────────
 
 async function autoProvisionAccounts(uid: string) {
-  _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
+  const suffix = `_${uid}`;
+  _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, id: `${a.id}${suffix}`, isCustom: false }));
   saveBackup(KEYS.accounts, _accounts);
   if (isSupabaseConfigured && supabase) {
     const rows = _accounts.map(a => ({ ...mapAccountToDb(a), user_id: uid }));
-    await supabase.from('accounts').insert(rows);
+    const { error } = await supabase.from('accounts').insert(rows);
+    if (error) console.error('Failed to auto-provision accounts:', error);
   }
 }
 
 async function autoProvisionCategories(uid: string) {
-  _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
+  const suffix = `_${uid}`;
+  _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, id: `${c.id}${suffix}`, isCustom: false }));
   saveBackup(KEYS.categories, _categories);
   if (isSupabaseConfigured && supabase) {
     const rows = _categories.map(c => ({ ...mapCategoryToDb(c), user_id: uid }));
-    await supabase.from('categories').insert(rows);
+    const { error } = await supabase.from('categories').insert(rows);
+    if (error) console.error('Failed to auto-provision categories:', error);
   }
 }
 
 async function autoProvisionSettings(uid: string) {
   if (isSupabaseConfigured && supabase) {
-    await supabase.from('settings').insert({ ...mapSettingsToDb(_settings), user_id: uid });
+    const { error } = await supabase.from('settings').insert({ ...mapSettingsToDb(_settings), user_id: uid });
+    if (error) console.error('Failed to auto-provision settings:', error);
   }
 }
 
 async function autoProvisionStreak(uid: string) {
   if (isSupabaseConfigured && supabase) {
-    await supabase.from('streaks').insert({ ...mapStreakToDb(_streakData), user_id: uid });
+    const { error } = await supabase.from('streaks').insert({ ...mapStreakToDb(_streakData), user_id: uid });
+    if (error) console.error('Failed to auto-provision streaks:', error);
   }
 }
 
@@ -1359,10 +1390,17 @@ export async function clearAllData(): Promise<void> {
   _settings = DEFAULT_SETTINGS;
   _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
 
-  // 2. Clear localStorage
-  Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  // 2. Clear localStorage (both default and namespaced keys)
+  Object.values(KEYS).forEach(k => {
+    localStorage.removeItem(k);
+    if (_currentUid) {
+      localStorage.removeItem(`${k}_${_currentUid}`);
+    }
+  });
   localStorage.removeItem('finova_pin_hash');
   localStorage.removeItem('finova_hidden_accounts');
+  localStorage.removeItem('finova_hidden_categories');
+  localStorage.removeItem('finova_onboarding_dismissed');
 
   // 3. Clear from Supabase if logged in
   if (isSupabaseConfigured && supabase) {

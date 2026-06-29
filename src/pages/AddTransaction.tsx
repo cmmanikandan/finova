@@ -138,11 +138,14 @@ const AddTransaction: React.FC = () => {
     }
     setSaving(true);
     try {
+      const transferCat = categories.find(c => c.id === 'transfer' || c.id.startsWith('transfer_'));
+      const transferCatId = transferCat?.id || 'transfer';
+
       if (editId) {
-        db.updateTransaction(editId, {
+        await db.updateTransaction(editId, {
           type,
           amount: parseFloat(amount),
-          category: type === 'transfer' ? 'transfer' : category,
+          category: type === 'transfer' ? transferCatId : category,
           subcategory: subcategory || undefined,
           account,
           toAccount: type === 'transfer' ? toAccount : undefined,
@@ -151,10 +154,10 @@ const AddTransaction: React.FC = () => {
           receiptUrl: receipt || undefined,
         });
       } else {
-        db.addTransaction({
+        await db.addTransaction({
           type,
           amount: parseFloat(amount),
-          category: type === 'transfer' ? 'transfer' : category,
+          category: type === 'transfer' ? transferCatId : category,
           subcategory: subcategory || undefined,
           account,
           toAccount: type === 'transfer' ? toAccount : undefined,

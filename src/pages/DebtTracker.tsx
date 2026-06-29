@@ -36,10 +36,10 @@ const DebtTracker: React.FC = () => {
 
   const displayed = tab === 'pending' ? pending : settled;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!contactName.trim() || !amount || parseFloat(amount) <= 0) return;
     setSaving(true);
-    db.addDebt({
+    await db.addDebt({
       contactName: contactName.trim(),
       contactEmoji,
       amount: parseFloat(amount),
@@ -53,13 +53,13 @@ const DebtTracker: React.FC = () => {
     setSaving(false);
   };
 
-  const handleSettle = (id: string) => {
-    db.settleDebt(id);
+  const handleSettle = async (id: string) => {
+    await db.settleDebt(id);
     refresh();
   };
 
-  const handleDelete = (id: string) => {
-    db.deleteDebt(id);
+  const handleDelete = async (id: string) => {
+    await db.deleteDebt(id);
     setDeleteId(null);
     refresh();
   };

@@ -12,7 +12,7 @@ import * as db from '../services/db';
 import { exportAllData, importAllData } from '../services/db';
 import { CURRENCIES } from '../data/defaults';
 import logoUrl from '../assets/logo.jpeg';
-import { setPIN, clearPIN } from './PinLock';
+import { setPIN, clearPIN, simpleHash } from './PinLock';
 import { BrandTitle } from '../components/BrandTitle';
 
 
@@ -244,7 +244,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     refresh();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
 
     // Duplicate Prevention
@@ -257,7 +257,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     }
 
     if (formMode === 'add') {
-      db.addCategory({ name: name.trim(), type, icon, color });
+      await db.addCategory({ name: name.trim(), type, icon, color });
     } else if (formMode === 'edit' && editId) {
       const allCats = db.getCategories();
       const idx = allCats.findIndex((c: any) => c.id === editId);
@@ -288,9 +288,9 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     setDeleteId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId) {
-      db.deleteCategory(deleteId);
+      await db.deleteCategory(deleteId);
       setDeleteId(null);
       refresh();
     }
@@ -567,7 +567,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     refresh();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
 
     // Duplicate Prevention
@@ -580,7 +580,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     }
 
     if (formMode === 'add') {
-      db.addAccount({
+      await db.addAccount({
         name: name.trim(),
         type,
         balance: parseFloat(balance) || 0,
@@ -626,7 +626,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     setDeleteId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteId) {
       const acc = accounts.find(a => a.id === deleteId);
       if (acc && !acc.isCustom) {
@@ -635,7 +635,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
         setDeleteId(null);
       } else {
         // Custom account - delete
-        db.deleteAccount(deleteId);
+        await db.deleteAccount(deleteId);
         setDeleteId(null);
         refresh();
       }
@@ -996,7 +996,7 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
     if (pinEnabled) {
       clearPIN();
       setPinEnabled(false);
-      saveSettings({ ...settings, pinEnabled: false });
+      saveSettings({ ...settings, pinEnabled: false, pinHash: undefined });
       alert('PIN Lock disabled successfully.');
     } else {
       setStep('setup_pin');
@@ -1019,9 +1019,10 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
       setPinConfirm('');
       return;
     }
+    const hash = simpleHash(pinConfirm);
     setPIN(pinConfirm);
     setPinEnabled(true);
-    saveSettings({ ...settings, pinEnabled: true });
+    saveSettings({ ...settings, pinEnabled: true, pinHash: hash });
     setStep('toggle');
     setPinInput('');
     setPinConfirm('');
@@ -1113,7 +1114,7 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
     }
   }, [formMode, type, categories, visibleAccounts]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) {
       alert('Please enter a valid amount.');
@@ -1141,11 +1142,11 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
     };
 
     if (formMode === 'add') {
-      db.addRecurringTransaction(payload);
+      await db.addRecurringTransaction(payload);
     } else if (formMode === 'edit' && editId) {
       const original = recurringList.find((r: RecurringTransaction) => r.id === editId);
       if (original) {
-        db.updateRecurringTransaction({
+        await db.updateRecurringTransaction({
           ...original,
           ...payload,
           id: editId,
@@ -1186,17 +1187,17 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
     setFormMode('add');
   };
 
-  const toggleActive = (rt: RecurringTransaction) => {
-    db.updateRecurringTransaction({
+  const toggleActive = async (rt: RecurringTransaction) => {
+    await db.updateRecurringTransaction({
       ...rt,
       active: !rt.active,
     });
     refresh();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this recurring transaction?')) {
-      db.deleteRecurringTransaction(id);
+      await db.deleteRecurringTransaction(id);
       refresh();
     }
   };
