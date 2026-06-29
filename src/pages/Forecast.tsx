@@ -271,7 +271,7 @@ const Forecast: React.FC = () => {
         <div style={{ width: 40 }} />
       </header>
 
-      <div className="page-content" style={{ padding: '16px' }}>
+      <div style={{ padding: '16px 16px 120px' }}>
         {/* Deficit Alert Warning */}
         {deficitDate ? (
           <div 

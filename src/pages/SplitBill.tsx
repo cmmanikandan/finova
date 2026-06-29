@@ -738,20 +738,9 @@ const SplitBill: React.FC = () => {
           className="fab"
           style={{
             position: 'fixed',
-            bottom: '84px',
+            bottom: '96px',
             right: '20px',
-            zIndex: 999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--color-primary)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '56px',
-            height: '56px',
-            boxShadow: '0 6px 20px rgba(37,99,235,0.3)',
-            cursor: 'pointer',
+            zIndex: 50
           }}
           aria-label="Create Split Bill"
         >
