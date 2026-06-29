@@ -270,23 +270,60 @@ CREATE INDEX IF NOT EXISTS idx_recurring_user         ON public.recurring_transa
 CREATE INDEX IF NOT EXISTS idx_debts_user             ON public.debts(user_id);
 
 -- ─── ENABLE REALTIME REPLICATION ─────────────────────────────
--- We create publication if not exists, but safely alter to add tables.
--- Supabase automatically has a 'supabase_realtime' publication.
--- In some instances, it might be pre-created or require a check.
+-- We safely add each table to the realtime publication.
+-- Each table is wrapped in a sub-block so that if it is already present,
+-- the script safely continues to register the rest of the tables.
 do $$
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    alter publication supabase_realtime add table public.profiles;
-    alter publication supabase_realtime add table public.accounts;
-    alter publication supabase_realtime add table public.categories;
-    alter publication supabase_realtime add table public.transactions;
-    alter publication supabase_realtime add table public.budgets;
-    alter publication supabase_realtime add table public.goals;
-    alter publication supabase_realtime add table public.settings;
-    alter publication supabase_realtime add table public.streaks;
-    alter publication supabase_realtime add table public.recurring_transactions;
-    alter publication supabase_realtime add table public.debts;
+    begin
+      alter publication supabase_realtime add table public.profiles;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.accounts;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.categories;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.transactions;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.budgets;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.goals;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.settings;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.streaks;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.recurring_transactions;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.debts;
+    exception when others then null;
+    end;
   end if;
-exception
-  when others then null; -- ignore errors if already added
 end $$;
