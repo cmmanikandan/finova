@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
   ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle,
-  Handshake, Scale
+  Handshake, Scale, Download
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +59,13 @@ const QuickAction: React.FC<{
   </button>
 );
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  deferredPrompt?: any;
+  isInstalled?: boolean;
+  onInstallPWA?: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onInstallPWA }) => {
   const { user, categories, settings, refresh } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(() => {
@@ -445,6 +451,50 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* PWA Promotion Card */}
+        {deferredPrompt && !isInstalled && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%)',
+              border: '1.5px dashed rgba(37, 99, 235, 0.3)',
+              borderRadius: '16px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              boxShadow: 'var(--shadow-card)',
+            }}>
+              <div style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+                <Download size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Install FINOVA App</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 600 }}>Access transactions instantly from your home screen.</div>
+              </div>
+              <button
+                onClick={onInstallPWA}
+                style={{
+                  padding: '8px 16px',
+                  background: '#2563EB',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                  transition: 'transform 0.1s ease',
+                }}
+                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Install
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 2. Daily Budget Limit Progress Card — rendered under the balance card */}
         {settings.dailyLimitEnabled && settings.dailyLimit > 0 && (

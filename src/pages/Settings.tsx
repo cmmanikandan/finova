@@ -18,7 +18,14 @@ import { BrandTitle } from '../components/BrandTitle';
 
 type SettingsView = 'main' | 'profile' | 'currency' | 'backup' | 'security' | 'about' | 'categories' | 'accounts' | 'theme' | 'notifications' | 'recurring';
 
-const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) => {
+interface SettingsProps {
+  onLogout: () => void;
+  deferredPrompt?: any;
+  isInstalled?: boolean;
+  onInstallPWA?: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ onLogout: _onLogout, deferredPrompt, isInstalled, onInstallPWA }) => {
   const { user, settings } = useApp();
   const { subpage } = useParams<{ subpage: string }>();
   const navigate = useNavigate();
@@ -59,6 +66,7 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
     {
       title: 'Application',
       items: [
+        ...(deferredPrompt && !isInstalled ? [{ id: 'install', icon: <Download size={20} />, label: 'Install App', sub: 'Install FINOVA on your home screen', color: '#10B981' }] : []),
         { id: 'about',         icon: <Info size={20} />,        label: 'About FINOVA',     sub: 'Version 1.0.0', color: '#0891B2' },
       ]
     }
@@ -120,7 +128,13 @@ const Settings: React.FC<{ onLogout: () => void }> = ({ onLogout: _onLogout }) =
                 <button
                   key={item.id}
                   id={`settings-${item.id}`}
-                  onClick={() => navigate(`/settings/${item.id}`)}
+                  onClick={() => {
+                    if (item.id === 'install') {
+                      onInstallPWA?.();
+                    } else {
+                      navigate(`/settings/${item.id}`);
+                    }
+                  }}
                   className="list-row"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>

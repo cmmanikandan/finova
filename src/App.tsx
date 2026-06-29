@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import SplashScreen from './pages/SplashScreen';
@@ -20,10 +20,114 @@ import * as db from './services/db';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings } = useApp();
+  const { user, loading, settings, refresh } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
   const [showReminderToast, setShowReminderToast] = useState(false);
+
+  const pageContentRef = useRef<HTMLDivElement>(null);
+
+  // ─── PWA States ───────────────────────────────────────────────────────────
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        setIsInstalled(true);
+        setDeferredPrompt(null);
+      }
+    });
+  };
+
+  // ─── Pull-to-Refresh States & Event Handlers ──────────────────────────────
+  const [pullY, setPullY] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const startYRef = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isRefreshing) return;
+    const container = pageContentRef.current;
+    if (container && container.scrollTop === 0) {
+      startYRef.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  };
+
+  useEffect(() => {
+    const el = pageContentRef.current;
+    if (!el) return;
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isPulling || isRefreshing) return;
+      if (el.scrollTop > 0) {
+        setIsPulling(false);
+        setPullY(0);
+        return;
+      }
+      const currentY = e.touches[0].clientY;
+      const diff = currentY - startYRef.current;
+      if (diff > 0) {
+        if (e.cancelable) e.preventDefault();
+        // Non-linear visual resistance
+        const pullDistance = Math.pow(diff, 0.85);
+        setPullY(pullDistance);
+      }
+    };
+
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [isPulling, isRefreshing]);
+
+  const handleTouchEnd = async () => {
+    if (!isPulling || isRefreshing) return;
+    setIsPulling(false);
+    if (pullY > 70) {
+      setIsRefreshing(true);
+      setPullY(60); // Hold spinner container visible
+      try {
+        await db.pullAllFromSupabase();
+        await db.processRecurringTransactions();
+        refresh();
+      } catch (e) {
+        console.error('Failed to sync on pull-to-refresh:', e);
+      } finally {
+        setIsRefreshing(false);
+        setPullY(0);
+      }
+    } else {
+      setPullY(0);
+    }
+  };
 
   useEffect(() => {
     setUnlocked(!settings.pinEnabled);
@@ -101,13 +205,54 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      <div className="page-content">
+      {/* Custom Pull-to-Refresh Indicator */}
+      {pullY > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: `${Math.min(pullY - 30, 45)}px`,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          background: 'var(--color-card)',
+          boxShadow: 'var(--shadow-elevated)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          transition: isPulling ? 'none' : 'top 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s ease',
+        }}>
+          <div style={{
+            width: '20px',
+            height: '20px',
+            border: '2px solid var(--color-border)',
+            borderTopColor: 'var(--color-primary)',
+            borderRadius: '50%',
+            animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none',
+            transform: isRefreshing ? 'none' : `rotate(${pullY * 4.5}deg)`,
+          }} />
+        </div>
+      )}
+
+      <div 
+        className="page-content"
+        ref={pageContentRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <Routes>
           {/* Main Redirect */}
           <Route path="/" element={<Navigate to="/home" replace />} />
 
           {/* Primary Tabs */}
-          <Route path="/home" element={<Dashboard />} />
+          <Route path="/home" element={
+            <Dashboard 
+              deferredPrompt={deferredPrompt} 
+              isInstalled={isInstalled} 
+              onInstallPWA={handleInstallPWA} 
+            />
+          } />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/budgets" element={<Budgets />} />
           <Route path="/reports" element={<Reports />} />
@@ -126,8 +271,22 @@ const AppContent: React.FC = () => {
           <Route path="/debts" element={<DebtTracker />} />
           
           {/* Settings Sub-Routing */}
-          <Route path="/settings" element={<Settings onLogout={() => {}} />} />
-          <Route path="/settings/:subpage" element={<Settings onLogout={() => {}} />} />
+          <Route path="/settings" element={
+            <Settings 
+              onLogout={() => {}} 
+              deferredPrompt={deferredPrompt} 
+              isInstalled={isInstalled} 
+              onInstallPWA={handleInstallPWA} 
+            />
+          } />
+          <Route path="/settings/:subpage" element={
+            <Settings 
+              onLogout={() => {}} 
+              deferredPrompt={deferredPrompt} 
+              isInstalled={isInstalled} 
+              onInstallPWA={handleInstallPWA} 
+            />
+          } />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/home" replace />} />
