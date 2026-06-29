@@ -271,59 +271,59 @@ ALTER TABLE public.split_bills             ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
-CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid()::text = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid()::text = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid()::text = id);
 
 -- accounts
 DROP POLICY IF EXISTS "accounts_all_own" ON public.accounts;
-CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid()::text = user_id);
 
 -- categories (global defaults readable by all logged-in users; custom ones only by owner)
 DROP POLICY IF EXISTS "categories_select_own_or_global"     ON public.categories;
 DROP POLICY IF EXISTS "categories_insert_update_delete_own" ON public.categories;
 CREATE POLICY "categories_select_own_or_global"
   ON public.categories FOR SELECT
-  USING (user_id IS NULL OR auth.uid() = user_id);
+  USING (user_id IS NULL OR auth.uid()::text = user_id);
 CREATE POLICY "categories_insert_update_delete_own"
   ON public.categories FOR ALL
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- transactions
 DROP POLICY IF EXISTS "transactions_all_own" ON public.transactions;
-CREATE POLICY "transactions_all_own" ON public.transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "transactions_all_own" ON public.transactions FOR ALL USING (auth.uid()::text = user_id);
 
 -- budgets
 DROP POLICY IF EXISTS "budgets_all_own" ON public.budgets;
-CREATE POLICY "budgets_all_own" ON public.budgets FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "budgets_all_own" ON public.budgets FOR ALL USING (auth.uid()::text = user_id);
 
 -- goals
 DROP POLICY IF EXISTS "goals_all_own" ON public.goals;
-CREATE POLICY "goals_all_own" ON public.goals FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "goals_all_own" ON public.goals FOR ALL USING (auth.uid()::text = user_id);
 
 -- settings
 DROP POLICY IF EXISTS "settings_all_own" ON public.settings;
-CREATE POLICY "settings_all_own" ON public.settings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "settings_all_own" ON public.settings FOR ALL USING (auth.uid()::text = user_id);
 
 -- streaks
 DROP POLICY IF EXISTS "streaks_all_own" ON public.streaks;
-CREATE POLICY "streaks_all_own" ON public.streaks FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "streaks_all_own" ON public.streaks FOR ALL USING (auth.uid()::text = user_id);
 
 -- recurring_transactions
 DROP POLICY IF EXISTS "recurring_transactions_all_own" ON public.recurring_transactions;
-CREATE POLICY "recurring_transactions_all_own" ON public.recurring_transactions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "recurring_transactions_all_own" ON public.recurring_transactions FOR ALL USING (auth.uid()::text = user_id);
 
 -- debts
 DROP POLICY IF EXISTS "debts_all_own" ON public.debts;
-CREATE POLICY "debts_all_own" ON public.debts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "debts_all_own" ON public.debts FOR ALL USING (auth.uid()::text = user_id);
 
 -- challenges
 DROP POLICY IF EXISTS "challenges_all_own" ON public.challenges;
-CREATE POLICY "challenges_all_own" ON public.challenges FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "challenges_all_own" ON public.challenges FOR ALL USING (auth.uid()::text = user_id);
 
 -- split_bills
 DROP POLICY IF EXISTS "split_bills_all_own" ON public.split_bills;
-CREATE POLICY "split_bills_all_own" ON public.split_bills FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "split_bills_all_own" ON public.split_bills FOR ALL USING (auth.uid()::text = user_id);
 
 -- ─── PERFORMANCE INDEXES ─────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date DESC);
@@ -815,11 +815,11 @@ ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_
 ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
 -- 3. Re-create RLS policies on profiles, accounts, and categories
-CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid()::text = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid()::text = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid()::text = id);
 
-CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid()::text = user_id);
 
-CREATE POLICY "categories_select_own_or_global" ON public.categories FOR SELECT USING (user_id IS NULL OR auth.uid() = user_id);
-CREATE POLICY "categories_insert_update_delete_own" ON public.categories FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "categories_select_own_or_global" ON public.categories FOR SELECT USING (user_id IS NULL OR auth.uid()::text = user_id);
+CREATE POLICY "categories_insert_update_delete_own" ON public.categories FOR ALL USING (auth.uid()::text = user_id);
