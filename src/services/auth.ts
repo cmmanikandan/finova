@@ -1,4 +1,5 @@
 // Auth service – Firebase Google Sign-In → Supabase session sync
+// User state is NEVER stored in localStorage. Auth state comes from Firebase/Supabase only.
 import type { User } from '../types';
 import { app } from './firebase';
 import {
@@ -8,11 +9,8 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged as firebaseOnAuthStateChanged,
 } from 'firebase/auth';
-import { getSupabase, isSupabaseConfigured } from './supabase';
-
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const supabase = getSupabase();
 
 type AuthCallback = (user: User | null) => void;
 const listeners: AuthCallback[] = [];
@@ -29,7 +27,8 @@ function mapFirebaseUser(fu: any): User {
 }
 
 function notifyListeners(user: User | null) {
-  localStorage.setItem('finova_user', user ? JSON.stringify(user) : '');
+  // NOTE: User object is NOT stored in localStorage.
+  // Auth state is always resolved from Firebase / Supabase session, never from cache.
   listeners.forEach(cb => cb(user));
 }
 
@@ -40,25 +39,14 @@ export async function signInWithGoogle(): Promise<User | null> {
     const firebaseUser = result.user;
     const user = mapFirebaseUser(firebaseUser);
 
-    // Sync Google ID token → Supabase so RLS works correctly
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const idToken = await firebaseUser.getIdToken();
-        await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: idToken,
-        });
-      } catch (supabaseErr) {
-        // Supabase sync failed, but Firebase login succeeded – app still works offline
-        console.warn('Supabase session sync failed (data may store locally):', supabaseErr);
-      }
-    }
-
     notifyListeners(user);
     return user;
   } catch (err: any) {
     // User closed the popup – not an error
-    if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+    if (
+      err.code === 'auth/popup-closed-by-user' ||
+      err.code === 'auth/cancelled-popup-request'
+    ) {
       return null;
     }
     throw err;
@@ -70,31 +58,21 @@ export async function signOut(): Promise<void> {
   try {
     await firebaseSignOut(auth);
   } catch {}
-  if (isSupabaseConfigured && supabase) {
-    try { await supabase.auth.signOut(); } catch {}
-  }
-  localStorage.removeItem('finova_user');
   notifyListeners(null);
 }
 
 // ─── Auth State Observer ──────────────────────────────────────────────────────
+// Auth state is resolved from Firebase in real-time. No localStorage reads.
 export function onAuthStateChanged(callback: AuthCallback): () => void {
   listeners.push(callback);
 
-  // Immediately check stored session
-  const stored = localStorage.getItem('finova_user');
-  try {
-    if (stored) callback(JSON.parse(stored) as User);
-  } catch { /* ignore */ }
-
-  // Firebase state change is the source of truth
+  // Firebase state change is the source of truth.
+  // We do NOT check localStorage for a cached user – that was the source of the bug.
   const unsubscribe = firebaseOnAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       const user = mapFirebaseUser(firebaseUser);
-      localStorage.setItem('finova_user', JSON.stringify(user));
       callback(user);
     } else {
-      localStorage.removeItem('finova_user');
       callback(null);
     }
   });
@@ -106,11 +84,17 @@ export function onAuthStateChanged(callback: AuthCallback): () => void {
   };
 }
 
+// ─── Get Current User (from live Firebase Auth, not localStorage) ─────────────
+export async function getCurrentUserAsync(): Promise<User | null> {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return null;
+  return mapFirebaseUser(firebaseUser);
+}
+
+// Synchronous getter kept for backward compatibility – returns null if no cached user.
+// Pages should prefer useApp().user from AppContext which is set by the auth observer.
 export function getCurrentUser(): User | null {
-  const stored = localStorage.getItem('finova_user');
-  try {
-    return stored ? (JSON.parse(stored) as User) : null;
-  } catch {
-    return null;
-  }
+  // NOTE: This returns null on first load since we no longer cache in localStorage.
+  // Components should subscribe via onAuthStateChanged / useApp() instead.
+  return null;
 }

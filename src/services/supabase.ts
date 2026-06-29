@@ -1,5 +1,6 @@
-// Supabase client – used for cloud sync when credentials are present
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getAuth } from 'firebase/auth';
+import { app } from './firebase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -11,7 +12,20 @@ let _client: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!_client) {
-    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      accessToken: async () => {
+        try {
+          const auth = getAuth(app);
+          const user = auth.currentUser;
+          if (user) {
+            return await user.getIdToken();
+          }
+        } catch (e) {
+          console.error('Error fetching Firebase ID token for Supabase:', e);
+        }
+        return null;
+      }
+    });
   }
   return _client;
 }

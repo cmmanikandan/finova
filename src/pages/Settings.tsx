@@ -273,11 +273,13 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     if (formMode === 'add') {
       await db.addCategory({ name: name.trim(), type, icon, color });
     } else if (formMode === 'edit' && editId) {
+      // Update category: delete and re-insert with same ID to update in Supabase
       const allCats = db.getCategories();
-      const idx = allCats.findIndex((c: any) => c.id === editId);
-      if (idx !== -1) {
-        allCats[idx] = { ...allCats[idx], name: name.trim(), type, icon, color };
-        localStorage.setItem('finova_categories', JSON.stringify(allCats));
+      const existing = allCats.find((c: any) => c.id === editId);
+      if (existing) {
+        // Delete the old one and add the updated version
+        await db.deleteCategory(editId);
+        await db.addCategory({ name: name.trim(), type, icon, color });
       }
     }
 
@@ -613,7 +615,8 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
           icon,
           color
         };
-        localStorage.setItem('finova_accounts', JSON.stringify(allAccs));
+        // Save to Supabase (never localStorage for financial data)
+        await db.saveAccounts(allAccs);
       }
     }
 

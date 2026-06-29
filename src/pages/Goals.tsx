@@ -1,23 +1,26 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, ChevronRight, CheckCircle, Archive, Trash2, ArrowLeft, ArrowUpRight, ArrowDownLeft, Award, TrendingUp } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Plus, ChevronRight, CheckCircle, Archive, Trash2, 
+  ArrowLeft, TrendingUp, Edit2, Download, Upload 
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import * as db from '../services/db';
 import type { Goal } from '../types';
 import { formatCurrency, percentage } from '../utils/format';
 import { GOAL_TEMPLATES } from '../data/defaults';
-import { useScrollFAB } from '../hooks/useScrollFAB';
+import { fireConfetti } from '../utils/confetti';
 
-// SVG Progress Ring Component
-const ProgressRing: React.FC<{ percentage: number; color: string; size?: number }> = ({ percentage, color, size = 120 }) => {
+// ─── SVG Progress Ring Component ──────────────────────────────────────────────
+const ProgressRing: React.FC<{ percentage: number; color: string; size?: number }> = ({ percentage, color, size = 96 }) => {
   const radius = size * 0.4;
   const stroke = size * 0.08;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (Math.min(percentage, 100) / 100) * circumference;
+  const strokeDashoffset = circumference - (Math.min(Math.max(percentage, 0), 100) / 100) * circumference;
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+    <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
       <svg height={size} width={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle
           stroke="var(--color-border)"
@@ -26,13 +29,14 @@ const ProgressRing: React.FC<{ percentage: number; color: string; size?: number 
           r={normalizedRadius}
           cx={size / 2}
           cy={size / 2}
+          style={{ opacity: 0.5 }}
         />
         <circle
           stroke={color}
           fill="transparent"
           strokeWidth={stroke}
           strokeDasharray={circumference + ' ' + circumference}
-          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.35s' }}
+          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.4s ease-out' }}
           strokeLinecap="round"
           r={normalizedRadius}
           cx={size / 2}
@@ -40,15 +44,15 @@ const ProgressRing: React.FC<{ percentage: number; color: string; size?: number 
         />
       </svg>
       <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>{Math.round(percentage)}%</span>
-        <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>saved</span>
+        <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>{Math.round(percentage)}%</span>
+        <span style={{ fontSize: '0.55rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Saved</span>
       </div>
     </div>
   );
 };
 
-// ─── Savings Info Card ────────────────────────────────────────────────────────
-const SavingsInfoCard: React.FC = () => {
+// ─── Savings Overview Card ───────────────────────────────────────────────────
+const SavingsOverviewCard: React.FC = () => {
   const { settings } = useApp();
   const now = new Date();
   const { income, expense, savings } = useMemo(
@@ -58,96 +62,73 @@ const SavingsInfoCard: React.FC = () => {
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
   const cs = settings.currencySymbol;
 
-  const rateColor = savingsRate >= 20 ? '#16A34A' : savingsRate >= 10 ? '#D97706' : savingsRate < 0 ? '#DC2626' : '#2563EB';
+  const rateColor = savingsRate >= 20 ? '#10B981' : savingsRate >= 10 ? '#F59E0B' : savingsRate < 0 ? '#EF4444' : '#2563EB';
 
   return (
     <div style={{
-      margin: '14px 16px',
+      margin: '16px',
       background: 'var(--color-card)',
-      borderRadius: '20px',
-      border: '1.5px solid var(--color-border)',
-      overflow: 'hidden',
+      borderRadius: '24px',
+      border: '1px solid var(--color-border)',
       boxShadow: 'var(--shadow-card)',
+      overflow: 'hidden',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
     }}>
-      {/* Header */}
+      {/* Top Header Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
-        padding: '14px 16px',
-        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '16px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        color: '#fff',
       }}>
-        <TrendingUp size={20} color="rgba(255,255,255,0.9)" />
+        <TrendingUp size={20} style={{ opacity: 0.9 }} />
         <div>
-          <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#fff' }}>Your Savings This Month</div>
-          <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.75)', marginTop: '1px' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.3px' }}>Savings Performance</div>
+          <div style={{ fontSize: '0.6875rem', opacity: 0.8, marginTop: '2px', fontWeight: 600 }}>
             {now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
           </div>
         </div>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', padding: '14px 16px', gap: '8px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Income</div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#16A34A', marginTop: '3px' }}>{cs}{income.toLocaleString()}</div>
-        </div>
-        <div style={{ textAlign: 'center', borderLeft: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Expenses</div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#DC2626', marginTop: '3px' }}>{cs}{expense.toLocaleString()}</div>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saved</div>
-          <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: savings >= 0 ? '#2563EB' : '#DC2626', marginTop: '3px' }}>
-            {savings >= 0 ? '' : '-'}{cs}{Math.abs(savings).toLocaleString()}
+      {/* Main Content Row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px' }}>
+        {/* Animated Progress Ring */}
+        <ProgressRing percentage={savingsRate} color={rateColor} size={96} />
+
+        {/* Stats Column */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Income</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#10B981' }}>{cs}{income.toLocaleString()}</span>
           </div>
-        </div>
-      </div>
-
-      {/* Savings rate bar */}
-      <div style={{ padding: '0 16px 14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Savings Rate</span>
-          <span style={{ fontSize: '0.875rem', fontWeight: 800, color: rateColor }}>{savingsRate}%</span>
-        </div>
-        <div style={{ height: '6px', borderRadius: '99px', background: 'var(--color-border)', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', borderRadius: '99px',
-            width: `${Math.max(0, Math.min(savingsRate, 100))}%`,
-            background: rateColor,
-            transition: 'width 0.5s ease',
-          }} />
-        </div>
-        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginTop: '6px', lineHeight: 1.4 }}>
-          {savingsRate >= 20 ? '🎉 Great! You\'re hitting your savings target.' :
-           savingsRate >= 10 ? '👍 Good progress. Try to reach 20% for financial health.' :
-           savingsRate < 0 ? '⚠️ You spent more than you earned this month.' :
-           '💡 Add income and reduce expenses to improve your savings rate.'}
-        </div>
-      </div>
-
-      {/* How savings works */}
-      <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px', background: '#F8FAFF' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)', marginBottom: '6px' }}>💡 How Savings Goals Work</div>
-        <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', lineHeight: 1.55 }}>
-          • Create a goal with a <strong>target amount</strong> (e.g. ₹50,000 for a laptop)<br />
-          • Use <strong>Deposit</strong> to manually track money you set aside for a goal<br />
-          • Use <strong>Withdraw</strong> when you dip into your savings<br />
-          • Goals are <em>separate from your account balance</em> — they are savings buckets<br />
-          • When you hit 100% of a target, the goal auto-marks as <strong>Completed 🎉</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '8px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Expenses</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#EF4444' }}>{cs}{expense.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '8px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Saved</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: savings >= 0 ? '#2563EB' : '#EF4444' }}>
+              {savings >= 0 ? '' : '-'}{cs}{Math.abs(savings).toLocaleString()}
+            </span>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
+// ─── Main Component ───────────────────────────────────────────────────────────
 const Goals: React.FC = () => {
   const { goals, refresh } = useApp();
   const { pathname } = useLocation();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fabVisible, handleScroll } = useScrollFAB();
-  
-  // Resolve viewMode from URL
-  let viewMode: 'list' | 'create' | 'details' | 'deposit' | 'withdraw' = 'list';
+
+  // Resolve views
+  let viewMode: 'list' | 'create' | 'edit' | 'details' | 'deposit' | 'withdraw' = 'list';
   if (pathname === '/goals/new') {
     viewMode = 'create';
   } else if (id) {
@@ -155,6 +136,8 @@ const Goals: React.FC = () => {
       viewMode = 'deposit';
     } else if (pathname.endsWith('/withdraw')) {
       viewMode = 'withdraw';
+    } else if (pathname.endsWith('/edit')) {
+      viewMode = 'edit';
     } else {
       viewMode = 'details';
     }
@@ -162,29 +145,74 @@ const Goals: React.FC = () => {
 
   const selectedGoal = id ? goals.find(g => g.id === id) || null : null;
 
-  // Form inputs
+  // Form Field States
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [current, setCurrent] = useState('');
-  const [targetDate, setTargetDate] = useState('');
+  const [targetDate, setTargetDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3); // default 3 months out
+    return d.toISOString().split('T')[0];
+  });
   const [icon, setIcon] = useState('🎯');
   const [color, setColor] = useState('#2563EB');
   const [notes, setNotes] = useState('');
-  
-  // Transaction Amount State
   const [amountInput, setAmountInput] = useState('');
 
-  const activeGoals    = goals.filter(g => g.status === 'active');
-  const completedGoals = goals.filter(g => g.status === 'completed');
-  const archivedGoals  = goals.filter(g => g.status === 'archived');
+  // Handle template selection auto-fill
+  useEffect(() => {
+    if (location.state && (viewMode === 'create' || viewMode === 'edit')) {
+      const s = location.state as any;
+      if (s.name) setName(s.name);
+      if (s.icon) setIcon(s.icon);
+      if (s.color) setColor(s.color);
+      if (s.target) setTarget(s.target);
+      if (s.notes) setNotes(s.notes);
+    }
+  }, [location.state, viewMode]);
 
-  const handleCreate = async () => {
-    if (!name || !target || parseFloat(target) <= 0) return;
-    await db.addGoal({
-      name, targetAmount: parseFloat(target), currentAmount: parseFloat(current) || 0,
-      targetDate: targetDate || new Date(Date.now() + 90 * 86400000).toISOString(),
-      icon, color, status: 'active', notes,
-    });
+  // Load goal for edit mode
+  useEffect(() => {
+    if (viewMode === 'edit' && selectedGoal) {
+      setName(selectedGoal.name);
+      setTarget(String(selectedGoal.targetAmount));
+      setCurrent(String(selectedGoal.currentAmount));
+      setTargetDate(selectedGoal.targetDate.split('T')[0]);
+      setIcon(selectedGoal.icon);
+      setColor(selectedGoal.color);
+      setNotes(selectedGoal.notes || '');
+    }
+  }, [viewMode, selectedGoal]);
+
+  const activeGoals = goals.filter(g => g.status === 'active');
+  const completedGoals = goals.filter(g => g.status === 'completed');
+  const archivedGoals = goals.filter(g => g.status === 'archived');
+
+  const handleCreateOrUpdate = async () => {
+    if (!name.trim() || !target || parseFloat(target) <= 0) return;
+    
+    if (viewMode === 'edit' && selectedGoal) {
+      await db.updateGoal(selectedGoal.id, {
+        name: name.trim(),
+        targetAmount: parseFloat(target),
+        currentAmount: parseFloat(current) || 0,
+        targetDate: new Date(targetDate).toISOString(),
+        icon,
+        color,
+        notes: notes.trim() || undefined,
+      });
+    } else {
+      await db.addGoal({
+        name: name.trim(),
+        targetAmount: parseFloat(target),
+        currentAmount: parseFloat(current) || 0,
+        targetDate: new Date(targetDate).toISOString(),
+        icon,
+        color,
+        status: 'active',
+        notes: notes.trim() || undefined,
+      });
+    }
     refresh();
     navigate('/goals');
   };
@@ -193,12 +221,17 @@ const Goals: React.FC = () => {
     if (!selectedGoal || !amountInput || parseFloat(amountInput) <= 0) return;
     const value = parseFloat(amountInput);
     const nextAmount = Math.min(selectedGoal.currentAmount + value, selectedGoal.targetAmount);
-    const nextStatus: 'active' | 'completed' | 'archived' = nextAmount >= selectedGoal.targetAmount ? 'completed' : 'active';
-    
+    const completed = nextAmount >= selectedGoal.targetAmount;
+    const nextStatus = completed ? 'completed' : 'active';
+
     await db.updateGoal(selectedGoal.id, {
       currentAmount: nextAmount,
-      status: nextStatus
+      status: nextStatus,
     });
+
+    if (completed) {
+      fireConfetti();
+    }
 
     setAmountInput('');
     refresh();
@@ -209,11 +242,10 @@ const Goals: React.FC = () => {
     if (!selectedGoal || !amountInput || parseFloat(amountInput) <= 0) return;
     const value = parseFloat(amountInput);
     const nextAmount = Math.max(selectedGoal.currentAmount - value, 0);
-    const nextStatus: 'active' | 'completed' | 'archived' = nextAmount >= selectedGoal.targetAmount ? 'completed' : 'active';
-    
+
     await db.updateGoal(selectedGoal.id, {
       currentAmount: nextAmount,
-      status: nextStatus
+      status: 'active', // revert completed status if withdrawn below target
     });
 
     setAmountInput('');
@@ -238,289 +270,317 @@ const Goals: React.FC = () => {
     }
   };
 
-  // ─── 1. Subpage: Create Goal ───
-  if (viewMode === 'create') {
+  // ─── Subpage: Create / Edit Form ───
+  if (viewMode === 'create' || viewMode === 'edit') {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
-        {/* App Bar */}
-        <div className="app-bar">
-          <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        {/* Sticky App Bar */}
+        <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+          <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={22} />
           </button>
-          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>New Goal</h2>
-          <button className="btn-primary" style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', boxShadow: 'none' }} onClick={handleCreate}>
-            Save
-          </button>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>
+            {viewMode === 'edit' ? 'Edit Goal' : 'New Goal'}
+          </h2>
+          <div style={{ width: '22px' }} />
         </div>
 
-        {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
+        {/* Scrollable Form Content */}
+        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Scrolling Templates */}
-          <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Savings Templates</label>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: '4px' }}>
-              {GOAL_TEMPLATES.map(t => (
-                <button
-                  key={t.name}
-                  onClick={() => { setName(t.name); setIcon(t.icon); setColor(t.color); setTarget('50000'); }}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '16px',
-                    border: `1.5px solid ${name === t.name ? t.color : 'var(--color-border)'}`,
-                    background: name === t.name ? `${t.color}15` : 'var(--color-card)',
-                    color: name === t.name ? t.color : 'var(--color-text-muted)',
-                    fontSize: '0.8125rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  {t.icon} {t.name}
-                </button>
-              ))}
+          {viewMode === 'create' && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Templates</label>
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {GOAL_TEMPLATES.map(t => (
+                  <button
+                    key={t.name}
+                    type="button"
+                    onClick={() => {
+                      setName(t.name);
+                      setIcon(t.icon);
+                      setColor(t.color);
+                      setTarget('50000');
+                    }}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '16px',
+                      border: `1.5px solid ${name === t.name ? t.color : 'var(--color-border)'}`,
+                      background: name === t.name ? `${t.color}12` : 'var(--color-card)',
+                      color: name === t.name ? t.color : 'var(--color-text-muted)',
+                      fontSize: '0.8125rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {t.icon} {t.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Form Card */}
-          <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '24px' }}>
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Goal Name</label>
-              <input type="text" className="input-field" placeholder="e.g. New iPhone" value={name} onChange={e => setName(e.target.value)} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal Name</label>
+              <input type="text" className="input-field" placeholder="e.g. Dream Vacation" value={name} onChange={e => setName(e.target.value)} required />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Target (₹)</label>
-                <input type="number" className="input-field" placeholder="Target amount" value={target} onChange={e => setTarget(e.target.value)} />
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target Limit (₹)</label>
+                <input type="number" className="input-field" placeholder="0.00" value={target} onChange={e => setTarget(e.target.value)} required min="1" />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Already Saved (₹)</label>
+                <label style={{ fontSize: '0.75rem', fontWeight: 850, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Saved Amount (₹)</label>
                 <input type="number" className="input-field" placeholder="Optional" value={current} onChange={e => setCurrent(e.target.value)} />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Target Date</label>
-              <input type="date" className="input-field" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Target Date</label>
+              <input type="date" className="input-field" value={targetDate} onChange={e => setTargetDate(e.target.value)} required />
             </div>
 
+            {/* Icon Picker */}
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Goal Icon</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px', background: 'var(--color-bg)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-                {['🎯', '🚗', '🏠', '✈️', '🎓', '💻', '💍', '💼', '🐖', '🪙', '🎄', '🎁', '📱'].map(emoji => (
-                  <button key={emoji} onClick={() => setIcon(emoji)} style={{ fontSize: '1.5rem', width: '40px', height: '40px', background: icon === emoji ? 'rgba(37,99,235,0.12)' : 'transparent', border: 'none', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal Icon</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '10px', background: 'var(--color-bg)', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                {['🎯', '✈️', '🏠', '💻', '🚗', '🎓', '💍', '💰', '🏖️', '🏍️', '🎁', '📱'].map(emoji => (
+                  <button key={emoji} type="button" onClick={() => setIcon(emoji)} style={{ fontSize: '1.5rem', width: '44px', height: '44px', background: icon === emoji ? 'rgba(37,99,235,0.12)' : 'transparent', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                     {emoji}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Color Picker */}
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Theme Color</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {['#2563EB', '#16A34A', '#DC2626', '#EA580C', '#7C3AED', '#0891B2', '#475569'].map(c => (
-                  <button key={c} onClick={() => setColor(c)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: c, border: color === c ? '3px solid var(--color-text)' : 'none', cursor: 'pointer', outline: 'none' }} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Theme Color</label>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', padding: '4px' }}>
+                {['#2563EB', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#06B6D4', '#64748B'].map(c => (
+                  <button key={c} type="button" onClick={() => setColor(c)} style={{ width: '36px', height: '36px', borderRadius: '50%', background: c, border: color === c ? '3px solid var(--color-text)' : '2px solid transparent', cursor: 'pointer', outline: 'none', transition: 'transform 0.1s' }} />
                 ))}
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Notes (optional)</label>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notes (optional)</label>
               <input type="text" className="input-field" placeholder="Description of your goal" value={notes} onChange={e => setNotes(e.target.value)} />
             </div>
           </div>
-        </div>
 
-        {/* Footer save */}
-        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate('/goals')}>Cancel</button>
-          <button className="btn-primary" style={{ flex: 2 }} onClick={handleCreate}>Save Goal</button>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+            <button className="btn-ghost" type="button" style={{ flex: 1, height: '48px', borderRadius: '16px' }} onClick={() => navigate('/goals')}>Cancel</button>
+            <button className="btn-primary" type="button" style={{ flex: 2, height: '48px', borderRadius: '16px' }} onClick={handleCreateOrUpdate}>
+              {viewMode === 'edit' ? 'Save Changes' : 'Create Goal'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ─── 2. Subpage: Goal Details ───
+  // ─── Subpage: Goal Details ───
   if (viewMode === 'details' && selectedGoal) {
     const pct = percentage(selectedGoal.currentAmount, selectedGoal.targetAmount);
     const daysLeft = Math.ceil((new Date(selectedGoal.targetDate).getTime() - Date.now()) / 86400000);
     const isCompleted = selectedGoal.status === 'completed';
 
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
-        {/* App Bar */}
-        <div className="app-bar">
-          <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        {/* Sticky App Bar */}
+        <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+          <button onClick={() => navigate('/goals')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
             <ArrowLeft size={22} />
           </button>
-          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Goal Details</h2>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button onClick={handleArchiveToggle} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '8px' }}>
-              <Archive size={20} />
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>Goal Details</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => navigate(`/goals/${selectedGoal.id}/edit`)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Edit2 size={18} />
             </button>
-            <button onClick={handleDelete} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '8px' }}>
-              <Trash2 size={20} />
+            <button onClick={handleDelete} style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Trash2 size={18} />
             </button>
           </div>
         </div>
 
-        {/* Scrollable details */}
-        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-          {/* Progress Ring Card */}
-          <div className="card" style={{ padding: '24px', textAlign: 'center', gap: '16px' }}>
-            {isCompleted && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '0 auto', background: 'rgba(34,197,94,0.1)', padding: '4px 12px', borderRadius: '12px', color: '#22C55E', animation: 'countUp 0.4s ease both' }}>
-                <Award size={16} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Goal Completed</span>
+        {/* Details Scroll Area */}
+        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card text-center" style={{ padding: '32px 24px', borderRadius: '24px', position: 'relative' }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>{selectedGoal.icon}</div>
+            <h3 style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-text)' }}>{selectedGoal.name}</h3>
+            {selectedGoal.notes && <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>{selectedGoal.notes}</p>}
+
+            {/* Circular Progress Ring */}
+            <div style={{ margin: '24px 0' }}>
+              <ProgressRing percentage={pct} color={selectedGoal.color} size={120} />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '6px' }}>
+              <span style={{ fontWeight: 800, color: selectedGoal.color }}>{formatCurrency(selectedGoal.currentAmount)} Saved</span>
+              <span style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>Target: {formatCurrency(selectedGoal.targetAmount)}</span>
+            </div>
+
+            {/* Linear Progress Indicator */}
+            <div className="progress-bar" style={{ height: '8px', margin: '0 0 16px 0', borderRadius: '4px' }}>
+              <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: selectedGoal.color, borderRadius: '4px' }} />
+            </div>
+
+            {/* Deadline Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginTop: '16px' }}>
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Deadline</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{new Date(selectedGoal.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
-            )}
-            <ProgressRing percentage={pct} color={selectedGoal.color} size={150} />
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>{selectedGoal.icon} {selectedGoal.name}</h3>
-              {selectedGoal.notes && <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{selectedGoal.notes}</p>}
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Remaining</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: isCompleted ? '#10B981' : daysLeft > 0 ? 'var(--color-text)' : '#EF4444' }}>
+                  {isCompleted ? 'Target Achieved! 🎉' : daysLeft > 0 ? `${daysLeft} days left` : 'Overdue!'}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Details Row */}
-          <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-              <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Target Amount</span>
-              <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{formatCurrency(selectedGoal.targetAmount)}</span>
+          {/* Action Row */}
+          {!isCompleted && (
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => navigate(`/goals/${selectedGoal.id}/withdraw`)} className="btn-ghost flex-center" style={{ flex: 1, borderRadius: '16px', gap: '8px' }}>
+                <Upload size={16} /> Withdraw
+              </button>
+              <button onClick={() => navigate(`/goals/${selectedGoal.id}/deposit`)} className="btn-primary flex-center" style={{ flex: 2, borderRadius: '16px', gap: '8px', background: `linear-gradient(135deg, ${selectedGoal.color}, ${selectedGoal.color}dd)` }}>
+                <Download size={16} /> Deposit
+              </button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Current Savings</span>
-              <span style={{ fontWeight: 800, color: selectedGoal.color }}>{formatCurrency(selectedGoal.currentAmount)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Target Date</span>
-              <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{new Date(selectedGoal.targetDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
-              <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Timeline</span>
-              <span style={{ fontWeight: 800, color: daysLeft > 0 ? 'var(--color-text)' : '#EF4444' }}>
-                {daysLeft > 0 ? `${daysLeft} days remaining` : 'Overdue'}
-              </span>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* Footer quick money actions */}
-        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
-          <button className="btn-ghost" style={{ flex: 1, display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }} onClick={() => navigate(`/goals/${selectedGoal.id}/withdraw`)}>
-            <ArrowDownLeft size={16} /> Withdraw
-          </button>
-          <button className="btn-primary" style={{ flex: 1, display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg, ${selectedGoal.color}, ${selectedGoal.color}cc)`, boxShadow: `0 4px 16px ${selectedGoal.color}35` }} onClick={() => navigate(`/goals/${selectedGoal.id}/deposit`)}>
-            <ArrowUpRight size={16} /> Add Money
+          {isCompleted && (
+            <div className="card flex-center" style={{ padding: '16px', background: 'rgba(16,185,129,0.06)', border: '1.5px dashed #10B981', color: '#10B981', fontWeight: 800, fontSize: '0.9375rem', gap: '8px', borderRadius: '16px' }}>
+              <CheckCircle size={20} /> Target Completed Successfully!
+            </div>
+          )}
+
+          <button className="btn-ghost" onClick={handleArchiveToggle} style={{ width: '100%', borderRadius: '16px' }}>
+            {selectedGoal.status === 'archived' ? 'Unarchive Goal' : 'Archive Goal'}
           </button>
         </div>
       </div>
     );
   }
 
-  // ─── 3. Subpage: Add Money ───
+  // ─── Subpage: Deposit Money ───
   if (viewMode === 'deposit' && selectedGoal) {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
-        {/* App Bar */}
-        <div className="app-bar">
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
           <button onClick={() => navigate(`/goals/${selectedGoal.id}`)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
             <ArrowLeft size={22} />
           </button>
-          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Add Savings</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>Add Savings</h2>
           <div style={{ width: '22px' }} />
         </div>
 
-        {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-          <div className="card" style={{ padding: '16px', gap: '16px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>{selectedGoal.name}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                {formatCurrency(selectedGoal.targetAmount - selectedGoal.currentAmount)} remaining to complete
-              </p>
-            </div>
-            
+        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>{selectedGoal.name}</h3>
+            <p style={{ margin: '4px 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              {formatCurrency(selectedGoal.currentAmount)} saved of {formatCurrency(selectedGoal.targetAmount)}
+            </p>
+
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Amount to Deposit (₹)</label>
-              <input type="number" className="input-field" placeholder="₹ 0" value={amountInput} onChange={e => setAmountInput(e.target.value)} style={{ fontSize: '1.5rem', textAlign: 'center', fontWeight: 800 }} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount to Deposit (₹)</label>
+              <input type="number" className="input-field" placeholder="₹ 0.00" value={amountInput} onChange={e => setAmountInput(e.target.value)} style={{ fontSize: '1.75rem', textAlign: 'center', fontWeight: 800, height: '60px' }} required min="1" autoFocus />
             </div>
           </div>
-        </div>
 
-        {/* Footer actions */}
-        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
-          <button className="btn-primary" style={{ flex: 2, background: `linear-gradient(135deg, ${selectedGoal.color}, ${selectedGoal.color}cc)` }} onClick={handleDeposit}>
-            Deposit Amount
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn-ghost" style={{ flex: 1, borderRadius: '16px' }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
+            <button className="btn-primary" style={{ flex: 2, borderRadius: '16px', background: `linear-gradient(135deg, ${selectedGoal.color}, ${selectedGoal.color}dd)` }} onClick={handleDeposit}>
+              Confirm Deposit
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ─── 4. Subpage: Withdraw Money ───
+  // ─── Subpage: Withdraw Money ───
   if (viewMode === 'withdraw' && selectedGoal) {
     return (
-      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
-        {/* App Bar */}
-        <div className="app-bar">
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
           <button onClick={() => navigate(`/goals/${selectedGoal.id}`)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
             <ArrowLeft size={22} />
           </button>
-          <h2 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Withdraw Savings</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>Withdraw Savings</h2>
           <div style={{ width: '22px' }} />
         </div>
 
-        {/* Form Body */}
-        <div style={{ flex: 1, padding: '20px 16px 24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-          <div className="card" style={{ padding: '16px', gap: '16px' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>{selectedGoal.name}</h3>
-              <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                {formatCurrency(selectedGoal.currentAmount)} currently saved
-              </p>
-            </div>
-            
+        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
+            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>{selectedGoal.name}</h3>
+            <p style={{ margin: '4px 0 20px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              {formatCurrency(selectedGoal.currentAmount)} currently saved
+            </p>
+
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Amount to Withdraw (₹)</label>
-              <input type="number" className="input-field" placeholder="₹ 0" value={amountInput} onChange={e => setAmountInput(e.target.value)} style={{ fontSize: '1.5rem', textAlign: 'center', fontWeight: 800 }} />
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount to Withdraw (₹)</label>
+              <input type="number" className="input-field" placeholder="₹ 0.00" value={amountInput} onChange={e => setAmountInput(e.target.value)} style={{ fontSize: '1.75rem', textAlign: 'center', fontWeight: 800, height: '60px' }} required min="1" autoFocus />
             </div>
           </div>
-        </div>
 
-        {/* Footer actions */}
-        <div style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', padding: '16px', display: 'flex', gap: '12px', zIndex: 10 }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
-          <button className="btn-primary" style={{ flex: 2, background: 'linear-gradient(135deg, #EF4444, #DC2626)', boxShadow: 'none' }} onClick={handleWithdraw}>
-            Withdraw Amount
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn-ghost" style={{ flex: 1, borderRadius: '16px' }} onClick={() => navigate(`/goals/${selectedGoal.id}`)}>Cancel</button>
+            <button className="btn-primary" style={{ flex: 2, borderRadius: '16px', background: 'linear-gradient(135deg, #EF4444, #DC2626)' }} onClick={handleWithdraw}>
+              Confirm Withdraw
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ─── 5. Main: Goals List ───
+  // ─── Main View: Goals List ───
   const GoalCard = ({ g }: { g: Goal }) => {
     const pct = percentage(g.currentAmount, g.targetAmount);
     const daysLeft = Math.ceil((new Date(g.targetDate).getTime() - Date.now()) / 86400000);
     const isCompleted = g.status === 'completed';
 
     return (
-      <div className="list-row" style={{ padding: '16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', flexDirection: 'column', alignItems: 'stretch', gap: '10px' }} onClick={() => navigate(`/goals/${g.id}`)}>
+      <div 
+        className="list-row clickable" 
+        style={{
+          padding: '16px',
+          background: 'var(--color-card)',
+          borderBottom: '1px solid var(--color-border)',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '12px',
+        }}
+        onClick={() => navigate(`/goals/${g.id}`)}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <div style={{
-              width: '42px', height: '42px', borderRadius: '12px', fontSize: '1.25rem',
-              background: `${g.color}15`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              fontSize: '1.35rem',
+              background: `${g.color}12`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>{g.icon}</div>
             <div>
-              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{g.name}</div>
+              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.95rem' }}>{g.name}</div>
               {isCompleted ? (
-                <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 700 }}>Finished 🎉</div>
+                <div style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>Finished 🎉</div>
               ) : g.status === 'archived' ? (
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Archived</div>
               ) : daysLeft > 0 ? (
@@ -530,19 +590,23 @@ const Goals: React.FC = () => {
               )}
             </div>
           </div>
-          {isCompleted ? (
-            <CheckCircle size={20} color="#22C55E" />
-          ) : g.status === 'archived' ? (
-            <Archive size={20} color="var(--color-text-muted)" />
-          ) : (
-            <ChevronRight size={18} color="var(--color-border)" />
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isCompleted ? (
+              <CheckCircle size={20} color="#10B981" />
+            ) : g.status === 'archived' ? (
+              <Archive size={20} color="var(--color-text-muted)" />
+            ) : (
+              <ChevronRight size={18} color="var(--color-border)" />
+            )}
+          </div>
         </div>
 
-        <div className="progress-bar" style={{ height: '6px', margin: 0 }}>
-          <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: g.color }} />
+        {/* Progress bar */}
+        <div className="progress-bar" style={{ height: '6px', margin: '2px 0 0 0', borderRadius: '3px' }}>
+          <div className="progress-fill" style={{ width: `${Math.min(pct, 100)}%`, background: g.color, borderRadius: '3px' }} />
         </div>
 
+        {/* Amount details */}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
           <span style={{ fontWeight: 800, color: g.color }}>{formatCurrency(g.currentAmount)} saved</span>
           <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>Target: {formatCurrency(g.targetAmount)}</span>
@@ -552,48 +616,42 @@ const Goals: React.FC = () => {
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      {/* Sticky top bar */}
-      <div className="app-bar">
-        <h2>Goals</h2>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {/* Sticky top app bar */}
+      <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={() => navigate('/home')} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <ArrowLeft size={20} />
+          </button>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Goals</h2>
+        </div>
+        <button
+          className="btn-primary"
+          style={{ height: '36px', padding: '0 16px', borderRadius: '18px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: 'none' }}
+          onClick={() => navigate('/goals/new')}
+        >
+          <Plus size={14} /> Add Goal
+        </button>
       </div>
 
-      {/* Main Content scrollable area */}
-      <div onScroll={handleScroll} style={{ flex: 1, overflowY: 'auto', padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      {/* Savings Info Cards & List */}
+      <div style={{ paddingBottom: '120px', display: 'flex', flexDirection: 'column' }}>
+        {/* Savings Performance Overview */}
+        <SavingsOverviewCard />
 
-        {/* Savings Info Card */}
-        <SavingsInfoCard />
-
-        {/* Suggested templates (horizontal chips) */}
-        <div style={{ padding: '16px 0 16px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Goals</h3>
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            paddingBottom: '4px'
-          }}>
+        {/* Horizontal scroll templates */}
+        <div style={{ padding: '16px 0 16px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-card)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h3 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Suggested Goals</h3>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
             {GOAL_TEMPLATES.map(t => (
               <button
                 key={t.name}
-                onClick={async () => {
-                  await db.addGoal({
-                    name: t.name,
-                    targetAmount: 30000,
-                    currentAmount: 0,
-                    targetDate: new Date(Date.now() + 120 * 86400000).toISOString(),
-                    icon: t.icon,
-                    color: t.color,
-                    status: 'active'
-                  });
-                  refresh();
-                }}
+                type="button"
+                onClick={() => navigate('/goals/new', { state: { name: t.name, icon: t.icon, color: t.color, target: '50000' } })}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
                   padding: '10px 16px',
                   borderRadius: '16px',
                   border: '1.5px solid var(--color-border)',
@@ -603,39 +661,59 @@ const Goals: React.FC = () => {
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
                 }}
               >
                 <span>{t.icon}</span>
                 <span>{t.name}</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>({formatCurrency(30000)})</span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>({formatCurrency(50000)})</span>
               </button>
             ))}
+            {/* Custom Goal option */}
+            <button
+              type="button"
+              onClick={() => navigate('/goals/new')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '16px',
+                border: '1.5px dashed var(--color-primary)',
+                background: 'rgba(37,99,235,0.03)',
+                color: 'var(--color-primary)',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Plus size={14} /> Custom Goal
+            </button>
           </div>
         </div>
 
-        {/* Active Goals list */}
+        {/* Goals lists */}
         {activeGoals.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', gap: '12px', padding: '24px 32px', textAlign: 'center' }}>
-            <span style={{ fontSize: '4.5rem' }}>🎯</span>
-            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>No Goals Yet</p>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
-              Set savings goals to stay motivated and track your milestones.
-            </p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '16px', padding: '32px', textAlign: 'center' }}>
+            <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))' }}>🎯</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>No Goals Yet</p>
+              <p style={{ margin: '6px 0 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
+                Start building your financial future today. Create your first savings goal.
+              </p>
+            </div>
             <button
-              onClick={handleCreate}
-              style={{
-                marginTop: '8px', padding: '10px 24px', borderRadius: '20px',
-                background: 'var(--color-primary)', color: '#fff',
-                border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem',
-                display: 'flex', alignItems: 'center', gap: '6px'
-              }}
+              onClick={() => navigate('/goals/new')}
+              className="btn-primary"
+              style={{ padding: '12px 28px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
-              <Plus size={16} /> Create Goal
+              <Plus size={16} /> Create Your First Goal
             </button>
           </div>
         ) : (
           <div style={{ marginTop: '16px' }}>
-            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Goals</h3>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Goals</h3>
             <div className="list-group">
               {activeGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
@@ -645,7 +723,7 @@ const Goals: React.FC = () => {
         {/* Completed Goals */}
         {completedGoals.length > 0 && (
           <div style={{ marginTop: '20px' }}>
-            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completed 🎉</h3>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completed 🎉</h3>
             <div className="list-group">
               {completedGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
@@ -655,29 +733,13 @@ const Goals: React.FC = () => {
         {/* Archived Goals */}
         {archivedGoals.length > 0 && (
           <div style={{ marginTop: '20px' }}>
-            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Archived 📦</h3>
+            <h3 style={{ margin: '0 0 8px 16px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Archived 📦</h3>
             <div className="list-group">
               {archivedGoals.map(g => <GoalCard key={g.id} g={g} />)}
             </div>
           </div>
         )}
       </div>
-
-      {/* FAB to Add Goal */}
-      <button
-        id="add-goal-fab"
-        className="fab"
-        onClick={() => navigate('/goals/new')}
-        aria-label="Add Goal"
-        style={{
-          opacity: fabVisible ? 1 : 0,
-          transform: fabVisible ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.85)',
-          transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.4,0,0.2,1)',
-          pointerEvents: fabVisible ? 'auto' : 'none',
-        }}
-      >
-        <Plus size={28} strokeWidth={2.5} />
-      </button>
     </div>
   );
 };

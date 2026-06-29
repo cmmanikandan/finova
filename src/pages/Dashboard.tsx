@@ -162,7 +162,10 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
 
   const now = new Date();
   const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
-  const balance = db.getTotalBalance();
+  const balance = db.getTotalBalance((() => {
+    try { return JSON.parse(localStorage.getItem('finova_hidden_accounts') || '[]'); }
+    catch { return []; }
+  })());
   const budgets = db.getBudgets();
   const goals = db.getGoals().filter(g => g.status === 'active');
   const recentTxns = db.getTransactions().slice(0, 5);

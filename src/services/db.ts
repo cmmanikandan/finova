@@ -1,44 +1,47 @@
-// Database service – Supabase backed with local synchronized cache
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt, Challenge, SplitBillItem } from '../types';
+// Database service – Supabase is the ONLY source of truth.
+// Financial data is NEVER stored in localStorage, sessionStorage, or any browser cache.
+// In-memory state is populated exclusively from Supabase after a successful fetch.
+import type {
+  Transaction, Budget, Goal, Account, Category,
+  AppSettings, LimitStatus, StreakData, RecurringTransaction,
+  Debt, Challenge, SplitBillItem,
+} from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { getSupabase, isSupabaseConfigured } from './supabase';
+import { getAuth } from 'firebase/auth';
+import { app } from './firebase';
 
 const supabase = getSupabase();
 
-// ─── Local storage keys for backup cache ──────────────────────────────────────
-const KEYS = {
-  transactions: 'finova_transactions',
-  budgets: 'finova_budgets',
-  goals: 'finova_goals',
-  accounts: 'finova_accounts',
-  categories: 'finova_categories',
-  settings: 'finova_settings',
-  streakData: 'finova_streak_data',
-  recurring: 'finova_recurring',
-  debts: 'finova_debts',
-  challenges: 'finova_challenges',
-  splitBills: 'finova_split_bills',
-};
-
-// ─── Active cache variables in memory ──────────────────────────────────────────
+// ─── In-memory Runtime State (populated from Supabase, never localStorage) ────
+// These are reset to empty on every login and filled via pullAllFromSupabase().
 let _transactions: Transaction[] = [];
 let _budgets: Budget[] = [];
 let _goals: Goal[] = [];
 let _accounts: Account[] = [];
 let _categories: Category[] = [];
-let _settings: AppSettings = DEFAULT_SETTINGS;
+let _settings: AppSettings = { ...DEFAULT_SETTINGS };
 let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
 let _recurring: RecurringTransaction[] = [];
 let _debts: Debt[] = [];
 let _challenges: Challenge[] = [];
 let _splitBills: SplitBillItem[] = [];
 
-let _currentUid: string | null = null;
 
-export function setUserIdForCache(uid: string | null) {
-  _currentUid = uid;
-  initLocalCache();
+// Clear all in-memory state when user changes (never reads from localStorage)
+export function setUserIdForCache(_uid: string | null) {
+  _transactions = [];
+  _budgets = [];
+  _goals = [];
+  _accounts = [];
+  _categories = [];
+  _settings = { ...DEFAULT_SETTINGS };
+  _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+  _recurring = [];
+  _debts = [];
+  _challenges = [];
+  _splitBills = [];
 }
 
 // ─── Write listener registration ──────────────────────────────────────────────
@@ -51,68 +54,6 @@ export function registerWriteListener(cb: () => void) {
 function notifyWrite() {
   if (_writeListener) _writeListener();
 }
-
-// ─── Backup Load/Save helpers ────────────────────────────────────────────────
-function loadBackup<T>(key: string, fallback: T): T {
-  try {
-    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
-    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
-    const raw = localStorage.getItem(nsKey);
-    if (raw) return JSON.parse(raw) as T;
-  } catch { /* ignore */ }
-  return fallback;
-}
-
-// Public wrapper for testing or page checks
-export function getBackupRaw(key: string): string | null {
-  try {
-    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
-    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
-    return localStorage.getItem(nsKey);
-  } catch { return null; }
-}
-
-function saveBackup<T>(key: string, value: T): void {
-  try {
-    const rawKey = Object.keys(KEYS).find(k => KEYS[k as keyof typeof KEYS] === key);
-    const nsKey = rawKey && _currentUid ? `${key}_${_currentUid}` : key;
-    localStorage.setItem(nsKey, JSON.stringify(value));
-  } catch { /* ignore */ }
-}
-
-// Initialize memory cache from backup copy immediately to avoid blank flashes
-export function initLocalCache() {
-  if (!_currentUid) {
-    _transactions = [];
-    _budgets = [];
-    _goals = [];
-    _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
-    _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
-    _settings = DEFAULT_SETTINGS;
-    _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
-    _recurring = [];
-    _debts = [];
-    _challenges = [];
-    _splitBills = [];
-    return;
-  }
-
-  const suffix = `_${_currentUid}`;
-  _transactions = loadBackup<Transaction[]>(KEYS.transactions, []);
-  _budgets = loadBackup<Budget[]>(KEYS.budgets, []);
-  _goals = loadBackup<Goal[]>(KEYS.goals, []);
-  _accounts = loadBackup<Account[]>(KEYS.accounts, DEFAULT_ACCOUNTS.map(a => ({ ...a, id: `${a.id}${suffix}`, isCustom: false })));
-  _categories = loadBackup<Category[]>(KEYS.categories, DEFAULT_CATEGORIES.map(c => ({ ...c, id: `${c.id}${suffix}`, isCustom: false })));
-  _settings = loadBackup<AppSettings>(KEYS.settings, DEFAULT_SETTINGS);
-  _streakData = loadBackup<StreakData>(KEYS.streakData, { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' });
-  _recurring = loadBackup<RecurringTransaction[]>(KEYS.recurring, []);
-  _debts = loadBackup<Debt[]>(KEYS.debts, []);
-  _challenges = loadBackup<Challenge[]>(KEYS.challenges, []);
-  _splitBills = loadBackup<SplitBillItem[]>(KEYS.splitBills, []);
-}
-
-// Trigger initial load
-initLocalCache();
 
 // ─── Database Mappings ────────────────────────────────────────────────────────
 
@@ -436,67 +377,78 @@ function mapSplitBillFromDb(row: any): SplitBillItem {
 }
 
 // ─── Sync provisioning on new user ──────────────────────────────────────────
+// Creates default accounts/categories/settings/streak in Supabase on first login.
 
 async function autoProvisionAccounts(uid: string) {
+  if (!isSupabaseConfigured || !supabase) return;
   const suffix = `_${uid}`;
   _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, id: `${a.id}${suffix}`, isCustom: false }));
-  saveBackup(KEYS.accounts, _accounts);
-  if (isSupabaseConfigured && supabase) {
-    const rows = _accounts.map(a => ({ ...mapAccountToDb(a), user_id: uid }));
-    const { error } = await supabase.from('accounts').insert(rows);
-    if (error) console.error('Failed to auto-provision accounts:', error);
-  }
+  const rows = _accounts.map(a => ({ ...mapAccountToDb(a), user_id: uid }));
+  const { error } = await supabase.from('accounts').insert(rows);
+  if (error) console.error('Failed to auto-provision accounts:', error);
 }
 
 async function autoProvisionCategories(uid: string) {
+  if (!isSupabaseConfigured || !supabase) return;
   const suffix = `_${uid}`;
   _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, id: `${c.id}${suffix}`, isCustom: false }));
-  saveBackup(KEYS.categories, _categories);
-  if (isSupabaseConfigured && supabase) {
-    const rows = _categories.map(c => ({ ...mapCategoryToDb(c), user_id: uid }));
-    const { error } = await supabase.from('categories').insert(rows);
-    if (error) console.error('Failed to auto-provision categories:', error);
-  }
+  const rows = _categories.map(c => ({ ...mapCategoryToDb(c), user_id: uid }));
+  const { error } = await supabase.from('categories').insert(rows);
+  if (error) console.error('Failed to auto-provision categories:', error);
 }
 
 async function autoProvisionSettings(uid: string) {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('settings').insert({ ...mapSettingsToDb(_settings), user_id: uid });
-    if (error) console.error('Failed to auto-provision settings:', error);
-  }
+  if (!isSupabaseConfigured || !supabase) return;
+  const { error } = await supabase
+    .from('settings')
+    .insert({ ...mapSettingsToDb(_settings), user_id: uid });
+  if (error) console.error('Failed to auto-provision settings:', error);
 }
 
 async function autoProvisionStreak(uid: string) {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('streaks').insert({ ...mapStreakToDb(_streakData), user_id: uid });
-    if (error) console.error('Failed to auto-provision streaks:', error);
-  }
+  if (!isSupabaseConfigured || !supabase) return;
+  const { error } = await supabase
+    .from('streaks')
+    .insert({ ...mapStreakToDb(_streakData), user_id: uid });
+  if (error) console.error('Failed to auto-provision streaks:', error);
 }
 
 // ─── PULL ALL FROM SUPABASE (Single Source of Truth Load) ────────────────────
+// This is the ONLY function that populates in-memory state.
+// It is called on login and after every Realtime change event.
 
 export async function pullAllFromSupabase(): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
-  const { data: sessionData } = await supabase.auth.getSession();
-  const sessionUser = sessionData?.session?.user;
-  if (!sessionUser) return;
-  const uid = sessionUser.id;
+  const auth = getAuth(app);
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return;
+  const uid = firebaseUser.uid;
 
   // Ensure user profile exists to satisfy foreign key constraints
   try {
-    const { data: profile } = await supabase.from('profiles').select('id').eq('id', uid).maybeSingle();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', uid)
+      .maybeSingle();
     if (!profile) {
-      const name = sessionUser.user_metadata?.full_name || sessionUser.email?.split('@')[0] || 'User';
-      const email = sessionUser.email || '';
-      const photo_url = sessionUser.user_metadata?.avatar_url || null;
+      const name =
+        firebaseUser.displayName ||
+        firebaseUser.email?.split('@')[0] ||
+        'User';
+      const email = firebaseUser.email || '';
+      const photo_url = firebaseUser.photoURL || null;
       await supabase.from('profiles').insert({ id: uid, name, email, photo_url });
     }
   } catch (e) {
     console.error('Failed to ensure profiles record:', e);
   }
 
-  const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes, challengesRes, splitBillsRes] = await Promise.all([
-    supabase.from('transactions').select('*').eq('user_id', uid),
+  const [
+    txnsRes, budgetsRes, goalsRes, accountsRes, catsRes,
+    settingsRes, streaksRes, recRes, debtsRes, challengesRes, splitBillsRes,
+  ] = await Promise.all([
+    supabase.from('transactions').select('*').eq('user_id', uid).order('date', { ascending: false }),
     supabase.from('budgets').select('*').eq('user_id', uid),
     supabase.from('goals').select('*').eq('user_id', uid),
     supabase.from('accounts').select('*').eq('user_id', uid),
@@ -509,68 +461,57 @@ export async function pullAllFromSupabase(): Promise<void> {
     supabase.from('split_bills').select('*').eq('user_id', uid),
   ]);
 
+  // Populate in-memory state from Supabase responses only
   if (txnsRes.data) {
-    _transactions = txnsRes.data.map(mapTxFromDb).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    saveBackup(KEYS.transactions, _transactions);
+    _transactions = txnsRes.data.map(mapTxFromDb);
   }
   if (budgetsRes.data) {
     _budgets = budgetsRes.data.map(mapBudgetFromDb);
-    saveBackup(KEYS.budgets, _budgets);
   }
   if (goalsRes.data) {
     _goals = goalsRes.data.map(mapGoalFromDb);
-    saveBackup(KEYS.goals, _goals);
   }
 
   if (accountsRes.data && accountsRes.data.length > 0) {
     _accounts = accountsRes.data.map(mapAccountFromDb);
-    saveBackup(KEYS.accounts, _accounts);
   } else {
     await autoProvisionAccounts(uid);
   }
 
   if (catsRes.data && catsRes.data.length > 0) {
     _categories = catsRes.data.map(mapCategoryFromDb);
-    saveBackup(KEYS.categories, _categories);
   } else {
     await autoProvisionCategories(uid);
   }
 
   if (settingsRes.data) {
     _settings = mapSettingsFromDb(settingsRes.data);
-    saveBackup(KEYS.settings, _settings);
   } else {
     await autoProvisionSettings(uid);
   }
 
   if (streaksRes.data) {
     _streakData = mapStreakFromDb(streaksRes.data);
-    saveBackup(KEYS.streakData, _streakData);
   } else {
     await autoProvisionStreak(uid);
   }
 
   if (recRes.data) {
     _recurring = recRes.data.map(mapRecurringFromDb);
-    saveBackup(KEYS.recurring, _recurring);
   }
   if (debtsRes.data) {
     _debts = debtsRes.data.map(mapDebtFromDb);
-    saveBackup(KEYS.debts, _debts);
   }
   if (challengesRes.data) {
     _challenges = challengesRes.data.map(mapChallengeFromDb);
-    saveBackup(KEYS.challenges, _challenges);
   }
   if (splitBillsRes.data) {
     _splitBills = splitBillsRes.data.map(mapSplitBillFromDb);
-    saveBackup(KEYS.splitBills, _splitBills);
   }
 }
 
-// ─── Read Operations (Synchronous from Cache) ────────────────────────────────
+// ─── Read Operations (Synchronous from In-Memory State) ──────────────────────
+// In-memory state is populated exclusively from pullAllFromSupabase().
 
 export function getTransactions(): Transaction[] {
   return _transactions;
@@ -604,72 +545,103 @@ export function getDebts(): Debt[] {
   return _debts;
 }
 
-// ─── Write Operations (Supabase API first -> cache update -> notify) ─────────
+// ─── Write Operations (Supabase FIRST → memory update on success) ─────────────
+// CRITICAL: Never update in-memory state before Supabase confirms success.
+// If Supabase insert/update/delete fails, throw the error.
+// Never fake success. Never update UI on failure.
 
 export async function addTransaction(data: Omit<Transaction, 'id' | 'createdAt'>): Promise<Transaction> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add transaction.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
   const t: Transaction = {
     ...data,
     id: uuidv4(),
     createdAt: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapTxToDb(t), user_id: uid };
-      const { error } = await supabase.from('transactions').insert(row);
-      if (error) throw error;
-    }
-  }
+  // 1. Write to Supabase first
+  const row = { ...mapTxToDb(t), user_id: uid };
+  const { error: txnError } = await supabase.from('transactions').insert(row);
+  if (txnError) throw txnError;
 
-  _transactions.push(t);
-  _transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  saveBackup(KEYS.transactions, _transactions);
-
+  // 2. Update account balance in Supabase
   const acc = _accounts.find(a => a.id === data.account);
   if (acc) {
-    if (data.type === 'income') acc.balance += data.amount;
-    else if (data.type === 'expense') acc.balance -= data.amount;
+    const updatedAcc = { ...acc };
+    if (data.type === 'income') updatedAcc.balance += data.amount;
+    else if (data.type === 'expense') updatedAcc.balance -= data.amount;
     else if (data.type === 'transfer') {
-      acc.balance -= data.amount;
+      updatedAcc.balance -= data.amount;
       const toAcc = _accounts.find(a => a.id === data.toAccount);
       if (toAcc) {
-        toAcc.balance += data.amount;
-        if (isSupabaseConfigured && supabase) {
-          await supabase.from('accounts').update(mapAccountToDb(toAcc)).eq('id', toAcc.id);
+        const updatedToAcc = { ...toAcc, balance: toAcc.balance + data.amount };
+        const { error: toAccErr } = await supabase
+          .from('accounts')
+          .update({ balance: updatedToAcc.balance })
+          .eq('id', toAcc.id);
+        if (!toAccErr) {
+          const idx = _accounts.findIndex(a => a.id === toAcc.id);
+          if (idx !== -1) _accounts[idx] = updatedToAcc;
         }
       }
     }
-    saveBackup(KEYS.accounts, _accounts);
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('accounts').update(mapAccountToDb(acc)).eq('id', acc.id);
+    const { error: accError } = await supabase
+      .from('accounts')
+      .update({ balance: updatedAcc.balance })
+      .eq('id', acc.id);
+    if (!accError) {
+      const idx = _accounts.findIndex(a => a.id === acc.id);
+      if (idx !== -1) _accounts[idx] = updatedAcc;
     }
   }
 
+  // 3. Update budget spent if it's an expense
   if (data.type === 'expense') {
     await updateBudgetSpent(data.category, data.amount, data.date);
   }
+
+  // 4. Update in-memory state only after all Supabase writes succeed
+  _transactions.unshift(t);
+  _transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   notifyWrite();
   return t;
 }
 
 export async function updateTransaction(id: string, data: Partial<Transaction>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update transaction.');
+  }
+
   const idx = _transactions.findIndex(t => t.id === id);
   if (idx === -1) return;
   const old = _transactions[idx];
 
-  // Reverse old transaction balance impact
+  // Reverse old transaction balance impact in Supabase first
   const oldAcc = _accounts.find(a => a.id === old.account);
   if (oldAcc) {
-    if (old.type === 'income') oldAcc.balance -= old.amount;
-    else if (old.type === 'expense') oldAcc.balance += old.amount;
+    let revertedBalance = oldAcc.balance;
+    if (old.type === 'income') revertedBalance -= old.amount;
+    else if (old.type === 'expense') revertedBalance += old.amount;
     else if (old.type === 'transfer') {
-      oldAcc.balance += old.amount;
+      revertedBalance += old.amount;
       const oldTo = _accounts.find(a => a.id === old.toAccount);
-      if (oldTo) oldTo.balance -= old.amount;
+      if (oldTo) {
+        const revertedToBalance = oldTo.balance - old.amount;
+        await supabase.from('accounts').update({ balance: revertedToBalance }).eq('id', oldTo.id);
+        const toIdx = _accounts.findIndex(a => a.id === oldTo.id);
+        if (toIdx !== -1) _accounts[toIdx] = { ...oldTo, balance: revertedToBalance };
+      }
     }
+    await supabase.from('accounts').update({ balance: revertedBalance }).eq('id', oldAcc.id);
+    const accIdx = _accounts.findIndex(a => a.id === oldAcc.id);
+    if (accIdx !== -1) _accounts[accIdx] = { ...oldAcc, balance: revertedBalance };
   }
 
   if (old.type === 'expense') {
@@ -678,33 +650,31 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
 
   const updated: Transaction = { ...old, ...data };
 
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('transactions').update(mapTxToDb(updated)).eq('id', id);
-    if (error) throw error;
-  }
+  // Write updated transaction to Supabase
+  const { error } = await supabase.from('transactions').update(mapTxToDb(updated)).eq('id', id);
+  if (error) throw error;
 
   _transactions[idx] = updated;
-  saveBackup(KEYS.transactions, _transactions);
 
   // Apply new transaction balance impact
   const newAcc = _accounts.find(a => a.id === updated.account);
   if (newAcc) {
-    if (updated.type === 'income') newAcc.balance += updated.amount;
-    else if (updated.type === 'expense') newAcc.balance -= updated.amount;
+    let newBalance = newAcc.balance;
+    if (updated.type === 'income') newBalance += updated.amount;
+    else if (updated.type === 'expense') newBalance -= updated.amount;
     else if (updated.type === 'transfer') {
-      newAcc.balance -= updated.amount;
+      newBalance -= updated.amount;
       const newTo = _accounts.find(a => a.id === updated.toAccount);
       if (newTo) {
-        newTo.balance += updated.amount;
-        if (isSupabaseConfigured && supabase) {
-          await supabase.from('accounts').update(mapAccountToDb(newTo)).eq('id', newTo.id);
-        }
+        const newToBalance = newTo.balance + updated.amount;
+        await supabase.from('accounts').update({ balance: newToBalance }).eq('id', newTo.id);
+        const toIdx = _accounts.findIndex(a => a.id === newTo.id);
+        if (toIdx !== -1) _accounts[toIdx] = { ...newTo, balance: newToBalance };
       }
     }
-    saveBackup(KEYS.accounts, _accounts);
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('accounts').update(mapAccountToDb(newAcc)).eq('id', newAcc.id);
-    }
+    await supabase.from('accounts').update({ balance: newBalance }).eq('id', newAcc.id);
+    const accIdx = _accounts.findIndex(a => a.id === newAcc.id);
+    if (accIdx !== -1) _accounts[accIdx] = { ...newAcc, balance: newBalance };
   }
 
   if (updated.type === 'expense') {
@@ -715,40 +685,44 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete transaction.');
+  }
+
   const txn = _transactions.find(t => t.id === id);
   if (!txn) return;
 
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) throw error;
-  }
+  // Delete from Supabase first
+  const { error } = await supabase.from('transactions').delete().eq('id', id);
+  if (error) throw error;
 
-  _transactions = _transactions.filter(t => t.id !== id);
-  saveBackup(KEYS.transactions, _transactions);
-
+  // Reverse balance impact
   const acc = _accounts.find(a => a.id === txn.account);
   if (acc) {
-    if (txn.type === 'income') acc.balance -= txn.amount;
-    else if (txn.type === 'expense') acc.balance += txn.amount;
+    let revertedBalance = acc.balance;
+    if (txn.type === 'income') revertedBalance -= txn.amount;
+    else if (txn.type === 'expense') revertedBalance += txn.amount;
     else if (txn.type === 'transfer') {
-      acc.balance += txn.amount;
+      revertedBalance += txn.amount;
       const toAcc = _accounts.find(a => a.id === txn.toAccount);
       if (toAcc) {
-        toAcc.balance -= txn.amount;
-        if (isSupabaseConfigured && supabase) {
-          await supabase.from('accounts').update(mapAccountToDb(toAcc)).eq('id', toAcc.id);
-        }
+        const revertedToBalance = toAcc.balance - txn.amount;
+        await supabase.from('accounts').update({ balance: revertedToBalance }).eq('id', toAcc.id);
+        const toIdx = _accounts.findIndex(a => a.id === toAcc.id);
+        if (toIdx !== -1) _accounts[toIdx] = { ...toAcc, balance: revertedToBalance };
       }
     }
-    saveBackup(KEYS.accounts, _accounts);
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('accounts').update(mapAccountToDb(acc)).eq('id', acc.id);
-    }
+    await supabase.from('accounts').update({ balance: revertedBalance }).eq('id', acc.id);
+    const accIdx = _accounts.findIndex(a => a.id === acc.id);
+    if (accIdx !== -1) _accounts[accIdx] = { ...acc, balance: revertedBalance };
   }
 
   if (txn.type === 'expense') {
     await reverseBudgetSpent(txn.category, txn.amount, txn.date);
   }
+
+  // Update memory only after successful Supabase delete
+  _transactions = _transactions.filter(t => t.id !== id);
 
   notifyWrite();
 }
@@ -756,134 +730,139 @@ export async function deleteTransaction(id: string): Promise<void> {
 // ─── Accounts CRUD ───────────────────────────────────────────────────────────
 
 export async function addAccount(data: Omit<Account, 'id'>): Promise<Account> {
-  const acc: Account = { ...data, id: uuidv4(), isCustom: true };
-
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapAccountToDb(acc), user_id: uid };
-      const { error } = await supabase.from('accounts').insert(row);
-      if (error) throw error;
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add account.');
   }
 
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const acc: Account = { ...data, id: uuidv4(), isCustom: true };
+  const row = { ...mapAccountToDb(acc), user_id: uid };
+  const { error } = await supabase.from('accounts').insert(row);
+  if (error) throw error;
+
   _accounts.push(acc);
-  saveBackup(KEYS.accounts, _accounts);
   notifyWrite();
   return acc;
 }
 
 export async function deleteAccount(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('accounts').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete account.');
   }
 
+  const { error } = await supabase.from('accounts').delete().eq('id', id);
+  if (error) throw error;
+
   _accounts = _accounts.filter(a => a.id !== id);
-  saveBackup(KEYS.accounts, _accounts);
   notifyWrite();
 }
 
 export async function saveAccounts(accounts: Account[]): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      for (const a of accounts) {
-        await supabase.from('accounts').upsert({ ...mapAccountToDb(a), user_id: uid });
-      }
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot save accounts.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  for (const a of accounts) {
+    await supabase.from('accounts').upsert({ ...mapAccountToDb(a), user_id: uid });
   }
   _accounts = accounts;
-  saveBackup(KEYS.accounts, _accounts);
   notifyWrite();
 }
 
 // ─── Categories CRUD ──────────────────────────────────────────────────────────
 
 export async function addCategory(data: Omit<Category, 'id'>): Promise<Category> {
-  const cat: Category = { ...data, id: uuidv4(), isCustom: true };
-
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapCategoryToDb(cat), user_id: uid };
-      const { error } = await supabase.from('categories').insert(row);
-      if (error) throw error;
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add category.');
   }
 
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const cat: Category = { ...data, id: uuidv4(), isCustom: true };
+  const row = { ...mapCategoryToDb(cat), user_id: uid };
+  const { error } = await supabase.from('categories').insert(row);
+  if (error) throw error;
+
   _categories.push(cat);
-  saveBackup(KEYS.categories, _categories);
   notifyWrite();
   return cat;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('categories').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete category.');
   }
 
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) throw error;
+
   _categories = _categories.filter(c => c.id !== id);
-  saveBackup(KEYS.categories, _categories);
   notifyWrite();
 }
 
 // ─── Budgets CRUD ────────────────────────────────────────────────────────────
 
 export async function addBudget(data: Omit<Budget, 'id' | 'spent'>): Promise<Budget> {
-  const b: Budget = { ...data, id: uuidv4(), spent: 0 };
-
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapBudgetToDb(b), user_id: uid };
-      const { error } = await supabase.from('budgets').insert(row);
-      if (error) throw error;
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add budget.');
   }
 
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const b: Budget = { ...data, id: uuidv4(), spent: 0 };
+  const row = { ...mapBudgetToDb(b), user_id: uid };
+  const { error } = await supabase.from('budgets').insert(row);
+  if (error) throw error;
+
   _budgets.push(b);
-  saveBackup(KEYS.budgets, _budgets);
   notifyWrite();
   return b;
 }
 
 export async function updateBudget(id: string, data: Partial<Budget>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update budget.');
+  }
+
   const idx = _budgets.findIndex(b => b.id === id);
   if (idx === -1) return;
   const updated = { ..._budgets[idx], ...data };
 
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('budgets').update(mapBudgetToDb(updated)).eq('id', id);
-    if (error) throw error;
-  }
+  const { error } = await supabase.from('budgets').update(mapBudgetToDb(updated)).eq('id', id);
+  if (error) throw error;
 
   _budgets[idx] = updated;
-  saveBackup(KEYS.budgets, _budgets);
   notifyWrite();
 }
 
 export async function deleteBudget(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('budgets').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete budget.');
   }
 
+  const { error } = await supabase.from('budgets').delete().eq('id', id);
+  if (error) throw error;
+
   _budgets = _budgets.filter(b => b.id !== id);
-  saveBackup(KEYS.budgets, _budgets);
   notifyWrite();
 }
 
 async function updateBudgetSpent(category: string, amount: number, dateStr: string) {
+  if (!isSupabaseConfigured || !supabase) return;
   const date = new Date(dateStr);
   const year = date.getFullYear();
   const month = date.getMonth();
-  let changed = false;
 
   for (const b of _budgets) {
     const isCatMatch = b.category === 'all' || b.category === category;
@@ -904,24 +883,18 @@ async function updateBudgetSpent(category: string, amount: number, dateStr: stri
     }
 
     if (dateMatch) {
-      b.spent += amount;
-      changed = true;
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from('budgets').update(mapBudgetToDb(b)).eq('id', b.id);
-      }
+      const newSpent = b.spent + amount;
+      await supabase.from('budgets').update({ spent_amount: newSpent }).eq('id', b.id);
+      b.spent = newSpent;
     }
-  }
-
-  if (changed) {
-    saveBackup(KEYS.budgets, _budgets);
   }
 }
 
 async function reverseBudgetSpent(category: string, amount: number, dateStr: string) {
+  if (!isSupabaseConfigured || !supabase) return;
   const date = new Date(dateStr);
   const year = date.getFullYear();
   const month = date.getMonth();
-  let changed = false;
 
   for (const b of _budgets) {
     const isCatMatch = b.category === 'all' || b.category === category;
@@ -942,83 +915,91 @@ async function reverseBudgetSpent(category: string, amount: number, dateStr: str
     }
 
     if (dateMatch) {
-      b.spent = Math.max(0, b.spent - amount);
-      changed = true;
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from('budgets').update(mapBudgetToDb(b)).eq('id', b.id);
-      }
+      const newSpent = Math.max(0, b.spent - amount);
+      await supabase.from('budgets').update({ spent_amount: newSpent }).eq('id', b.id);
+      b.spent = newSpent;
     }
-  }
-
-  if (changed) {
-    saveBackup(KEYS.budgets, _budgets);
   }
 }
 
 // ─── Goals CRUD ──────────────────────────────────────────────────────────────
 
 export async function addGoal(data: Omit<Goal, 'id' | 'createdAt'>): Promise<Goal> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add goal.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
   const g: Goal = {
     ...data,
     id: uuidv4(),
     createdAt: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapGoalToDb(g), user_id: uid };
-      const { error } = await supabase.from('goals').insert(row);
-      if (error) throw error;
-    }
-  }
+  const row = { ...mapGoalToDb(g), user_id: uid };
+  const { error } = await supabase.from('goals').insert(row);
+  if (error) throw error;
 
   _goals.push(g);
-  saveBackup(KEYS.goals, _goals);
   notifyWrite();
   return g;
 }
 
 export async function updateGoal(id: string, data: Partial<Goal>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update goal.');
+  }
+
   const idx = _goals.findIndex(g => g.id === id);
   if (idx === -1) return;
   const updated = { ..._goals[idx], ...data };
 
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('goals').update(mapGoalToDb(updated)).eq('id', id);
-    if (error) throw error;
-  }
+  const { error } = await supabase.from('goals').update(mapGoalToDb(updated)).eq('id', id);
+  if (error) throw error;
 
   _goals[idx] = updated;
-  saveBackup(KEYS.goals, _goals);
   notifyWrite();
 }
 
 export async function deleteGoal(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('goals').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete goal.');
   }
 
+  const { error } = await supabase.from('goals').delete().eq('id', id);
+  if (error) throw error;
+
   _goals = _goals.filter(g => g.id !== id);
-  saveBackup(KEYS.goals, _goals);
   notifyWrite();
 }
 
 // ─── Settings CRUD ───────────────────────────────────────────────────────────
 
 export async function saveSettings(settings: AppSettings): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const { error } = await supabase.from('settings').upsert({ ...mapSettingsToDb(settings), user_id: uid });
-      if (error) throw error;
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    // Fallback: keep in memory only (UI still works, won't persist cross-device)
+    _settings = settings;
+    notifyWrite();
+    return;
   }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    _settings = settings;
+    notifyWrite();
+    return;
+  }
+
+  const { error } = await supabase
+    .from('settings')
+    .upsert({ ...mapSettingsToDb(settings), user_id: uid });
+  if (error) throw error;
+
   _settings = settings;
-  saveBackup(KEYS.settings, _settings);
   notifyWrite();
 }
 
@@ -1026,58 +1007,70 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
 
 export async function saveStreakData(streak: Partial<StreakData>): Promise<void> {
   const merged = { ..._streakData, ...streak };
+
   if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
+    const auth = getAuth(app);
+    const uid = auth.currentUser?.uid;
     if (uid) {
       await supabase.from('streaks').upsert({ ...mapStreakToDb(merged), user_id: uid });
     }
   }
+
   _streakData = merged;
-  saveBackup(KEYS.streakData, _streakData);
   notifyWrite();
 }
 
 // ─── Recurring Transactions CRUD ─────────────────────────────────────────────
 
-export async function addRecurringTransaction(rt: Omit<RecurringTransaction, 'id'>): Promise<RecurringTransaction> {
-  const item: RecurringTransaction = { ...rt, id: uuidv4() };
-
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const { error } = await supabase.from('recurring_transactions').insert({ ...mapRecurringToDb(item), user_id: uid });
-      if (error) throw error;
-    }
+export async function addRecurringTransaction(
+  rt: Omit<RecurringTransaction, 'id'>
+): Promise<RecurringTransaction> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add recurring transaction.');
   }
 
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const item: RecurringTransaction = { ...rt, id: uuidv4() };
+  const { error } = await supabase
+    .from('recurring_transactions')
+    .insert({ ...mapRecurringToDb(item), user_id: uid });
+  if (error) throw error;
+
   _recurring.push(item);
-  saveBackup(KEYS.recurring, _recurring);
   notifyWrite();
   return item;
 }
 
 export async function updateRecurringTransaction(rt: RecurringTransaction): Promise<void> {
-  const idx = _recurring.findIndex(item => item.id === rt.id);
-  if (idx !== -1) {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('recurring_transactions').update(mapRecurringToDb(rt)).eq('id', rt.id);
-      if (error) throw error;
-    }
-    _recurring[idx] = rt;
-    saveBackup(KEYS.recurring, _recurring);
-    notifyWrite();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update recurring transaction.');
   }
+
+  const idx = _recurring.findIndex(item => item.id === rt.id);
+  if (idx === -1) return;
+
+  const { error } = await supabase
+    .from('recurring_transactions')
+    .update(mapRecurringToDb(rt))
+    .eq('id', rt.id);
+  if (error) throw error;
+
+  _recurring[idx] = rt;
+  notifyWrite();
 }
 
 export async function deleteRecurringTransaction(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('recurring_transactions').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete recurring transaction.');
   }
+
+  const { error } = await supabase.from('recurring_transactions').delete().eq('id', id);
+  if (error) throw error;
+
   _recurring = _recurring.filter(item => item.id !== id);
-  saveBackup(KEYS.recurring, _recurring);
   notifyWrite();
 }
 
@@ -1098,14 +1091,13 @@ export async function processRecurringTransactions(): Promise<boolean> {
   for (const rt of _recurring) {
     if (!rt.active) continue;
 
-    let nextDue = new Date(rt.nextDueDate + 'T00:00:00');
-    let updatedNextDue = new Date(nextDue);
+    let updatedNextDue = new Date(rt.nextDueDate + 'T00:00:00');
     let lastProcessed = rt.lastProcessedDate;
     let itemMutated = false;
 
     while (formatLocalDate(updatedNextDue) <= todayStr) {
       const curStr = formatLocalDate(updatedNextDue);
-      
+
       const txn: Omit<Transaction, 'id' | 'createdAt'> = {
         type: rt.type,
         amount: rt.amount,
@@ -1114,11 +1106,16 @@ export async function processRecurringTransactions(): Promise<boolean> {
         date: new Date(curStr + 'T12:00:00').toISOString(),
         note: rt.note ? `${rt.note} (Auto-recurring)` : 'Auto-recurring bill',
       };
-      
-      await addTransaction(txn);
-      lastProcessed = curStr;
-      itemMutated = true;
-      changed = true;
+
+      try {
+        await addTransaction(txn);
+        lastProcessed = curStr;
+        itemMutated = true;
+        changed = true;
+      } catch (e) {
+        console.error('Failed to process recurring transaction:', e);
+        break;
+      }
 
       if (rt.frequency === 'daily') {
         updatedNextDue.setDate(updatedNextDue.getDate() + 1);
@@ -1135,21 +1132,31 @@ export async function processRecurringTransactions(): Promise<boolean> {
       rt.nextDueDate = formatLocalDate(updatedNextDue);
       rt.lastProcessedDate = lastProcessed;
       if (isSupabaseConfigured && supabase) {
-        await supabase.from('recurring_transactions').update(mapRecurringToDb(rt)).eq('id', rt.id);
+        await supabase
+          .from('recurring_transactions')
+          .update(mapRecurringToDb(rt))
+          .eq('id', rt.id);
       }
     }
   }
 
-  if (changed) {
-    saveBackup(KEYS.recurring, _recurring);
-    notifyWrite();
-  }
+  if (changed) notifyWrite();
   return changed;
 }
 
 // ─── Debts CRUD ──────────────────────────────────────────────────────────────
 
-export async function addDebt(data: Omit<Debt, 'id' | 'createdAt' | 'status'>): Promise<Debt> {
+export async function addDebt(
+  data: Omit<Debt, 'id' | 'createdAt' | 'status'>
+): Promise<Debt> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add debt.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
   const d: Debt = {
     ...data,
     id: uuidv4(),
@@ -1157,23 +1164,20 @@ export async function addDebt(data: Omit<Debt, 'id' | 'createdAt' | 'status'>): 
     status: 'pending',
   };
 
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapDebtToDb(d), user_id: uid };
-      const { error } = await supabase.from('debts').insert(row);
-      if (error) throw error;
-    }
-  }
+  const row = { ...mapDebtToDb(d), user_id: uid };
+  const { error } = await supabase.from('debts').insert(row);
+  if (error) throw error;
 
   _debts.push(d);
-  saveBackup(KEYS.debts, _debts);
   notifyWrite();
   return d;
 }
 
 export async function settleDebt(id: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot settle debt.');
+  }
+
   const idx = _debts.findIndex(d => d.id === id);
   if (idx === -1) return;
   const updated: Debt = {
@@ -1182,35 +1186,37 @@ export async function settleDebt(id: string): Promise<void> {
     settledAt: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('debts').update(mapDebtToDb(updated)).eq('id', id);
-    if (error) throw error;
-  }
+  const { error } = await supabase.from('debts').update(mapDebtToDb(updated)).eq('id', id);
+  if (error) throw error;
 
   _debts[idx] = updated;
-  saveBackup(KEYS.debts, _debts);
   notifyWrite();
 }
 
 export async function deleteDebt(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('debts').delete().eq('id', id);
-    if (error) throw error;
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete debt.');
   }
 
+  const { error } = await supabase.from('debts').delete().eq('id', id);
+  if (error) throw error;
+
   _debts = _debts.filter(d => d.id !== id);
-  saveBackup(KEYS.debts, _debts);
   notifyWrite();
 }
 
 export function getPendingDebtsSummary(): { totalLent: number; totalBorrowed: number; netOwed: number } {
   const pending = _debts.filter(d => d.status === 'pending');
-  const totalLent = pending.filter(d => d.direction === 'lent').reduce((s, d) => s + d.amount, 0);
-  const totalBorrowed = pending.filter(d => d.direction === 'borrowed').reduce((s, d) => s + d.amount, 0);
+  const totalLent = pending
+    .filter(d => d.direction === 'lent')
+    .reduce((s, d) => s + d.amount, 0);
+  const totalBorrowed = pending
+    .filter(d => d.direction === 'borrowed')
+    .reduce((s, d) => s + d.amount, 0);
   return { totalLent, totalBorrowed, netOwed: totalLent - totalBorrowed };
 }
 
-// ─── Computed Statistics helpers (synchronous from live cache) ───────────────
+// ─── Computed Statistics helpers (synchronous from live in-memory state) ─────
 
 export function getMonthlyStats(year: number, month: number) {
   const txns = _transactions.filter(t => {
@@ -1222,16 +1228,9 @@ export function getMonthlyStats(year: number, month: number) {
   return { income, expense, savings: income - expense, transactions: txns };
 }
 
-export function getTotalBalance(): number {
-  let hiddenIds: string[] = [];
-  try {
-    const raw = localStorage.getItem('finova_hidden_accounts');
-    hiddenIds = raw ? JSON.parse(raw) : [];
-  } catch {
-    hiddenIds = [];
-  }
+export function getTotalBalance(hiddenAccountIds: string[] = []): number {
   return _accounts
-    .filter(a => !hiddenIds.includes(a.id))
+    .filter(a => !hiddenAccountIds.includes(a.id))
     .reduce((s, a) => s + a.balance, 0);
 }
 
@@ -1328,7 +1327,7 @@ export function getStreakData(): StreakData {
   if (lastUpdated < yesterdayStr) {
     const cursor = new Date(lastUpdated + 'T00:00:00');
     cursor.setDate(cursor.getDate() + 1);
-    
+
     const limitDate = new Date(now);
     limitDate.setDate(now.getDate() - 365);
     if (cursor < limitDate) {
@@ -1377,18 +1376,16 @@ export function getStreakData(): StreakData {
     lastNotificationShownDate: data.lastNotificationShownDate || '',
   };
 
+  // Persist streak update to Supabase (fire-and-forget)
   if (todaySpent > _settings.dailyLimit) {
     data.currentStreak = 0;
     data.lastFailedDay = todayStr;
     data.lastStreakUpdatedDate = todayStr;
     data.bestStreak = Math.max(data.bestStreak, 0);
     _streakData = data;
-    saveBackup(KEYS.streakData, data);
     if (isSupabaseConfigured && supabase) {
-      supabase.auth.getSession().then(({ data: sess }) => {
-        const uid = sess?.session?.user?.id;
-        if (uid) supabase.from('streaks').upsert({ ...mapStreakToDb(data), user_id: uid });
-      });
+      const uid = getAuth(app).currentUser?.uid;
+      if (uid) supabase.from('streaks').upsert({ ...mapStreakToDb(data), user_id: uid });
     }
   } else {
     if (data.lastStreakUpdatedDate === todayStr && data.lastFailedDay === todayStr) {
@@ -1396,22 +1393,12 @@ export function getStreakData(): StreakData {
       data.lastStreakUpdatedDate = yesterdayStr;
       data.lastFailedDay = '';
       _streakData = data;
-      saveBackup(KEYS.streakData, data);
-      if (isSupabaseConfigured && supabase) {
-        supabase.auth.getSession().then(({ data: sess }) => {
-          const uid = sess?.session?.user?.id;
-          if (uid) supabase.from('streaks').upsert({ ...mapStreakToDb(data), user_id: uid });
-        });
-      }
     } else {
       _streakData = data;
-      saveBackup(KEYS.streakData, data);
-      if (isSupabaseConfigured && supabase) {
-        supabase.auth.getSession().then(({ data: sess }) => {
-          const uid = sess?.session?.user?.id;
-          if (uid) supabase.from('streaks').upsert({ ...mapStreakToDb(data), user_id: uid });
-        });
-      }
+    }
+    if (isSupabaseConfigured && supabase) {
+      const uid = getAuth(app).currentUser?.uid;
+      if (uid) supabase.from('streaks').upsert({ ...mapStreakToDb(data), user_id: uid });
     }
   }
 
@@ -1440,7 +1427,17 @@ export function getChallenges(): Challenge[] {
   return _challenges;
 }
 
-export async function addChallenge(data: Omit<Challenge, 'id' | 'startDate' | 'endDate' | 'status' | 'checkedDays'>): Promise<Challenge> {
+export async function addChallenge(
+  data: Omit<Challenge, 'id' | 'startDate' | 'endDate' | 'status' | 'checkedDays'>
+): Promise<Challenge> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add challenge.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
   const now = new Date();
   const end = new Date();
   end.setDate(now.getDate() + data.durationDays);
@@ -1453,42 +1450,45 @@ export async function addChallenge(data: Omit<Challenge, 'id' | 'startDate' | 'e
     checkedDays: [],
   };
 
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapChallengeToDb(c), user_id: uid };
-      const { error } = await supabase.from('challenges').insert(row);
-      if (error) throw error;
-    }
-  }
+  const row = { ...mapChallengeToDb(c), user_id: uid };
+  const { error } = await supabase.from('challenges').insert(row);
+  if (error) throw error;
 
   _challenges.push(c);
-  saveBackup(KEYS.challenges, _challenges);
   notifyWrite();
   return c;
 }
 
 export async function updateChallenge(id: string, data: Partial<Challenge>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update challenge.');
+  }
+
   const idx = _challenges.findIndex(c => c.id === id);
   if (idx === -1) return;
   _challenges[idx] = { ..._challenges[idx], ...data };
-  saveBackup(KEYS.challenges, _challenges);
-  notifyWrite();
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('challenges').update(mapChallengeToDb(_challenges[idx])).eq('id', id);
-    if (error) console.error('Failed to update challenge in Supabase:', error);
+
+  const { error } = await supabase
+    .from('challenges')
+    .update(mapChallengeToDb(_challenges[idx]))
+    .eq('id', id);
+  if (error) {
+    console.error('Failed to update challenge in Supabase:', error);
   }
+  notifyWrite();
 }
 
 export async function deleteChallenge(id: string): Promise<void> {
-  _challenges = _challenges.filter(c => c.id !== id);
-  saveBackup(KEYS.challenges, _challenges);
-  notifyWrite();
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('challenges').delete().eq('id', id);
-    if (error) console.error('Failed to delete challenge in Supabase:', error);
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete challenge.');
   }
+
+  const { error } = await supabase.from('challenges').delete().eq('id', id);
+  if (error) {
+    console.error('Failed to delete challenge in Supabase:', error);
+  }
+  _challenges = _challenges.filter(c => c.id !== id);
+  notifyWrite();
 }
 
 // ─── Split Bill Operations ────────────────────────────────────────────────────
@@ -1498,47 +1498,57 @@ export function getSplitBills(): SplitBillItem[] {
 }
 
 export async function addSplitBill(data: Omit<SplitBillItem, 'id'>): Promise<SplitBillItem> {
-  const s: SplitBillItem = { ...data, id: uuidv4() };
-
-  if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
-    if (uid) {
-      const row = { ...mapSplitBillToDb(s), user_id: uid };
-      const { error } = await supabase.from('split_bills').insert(row);
-      if (error) throw error;
-    }
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add split bill.');
   }
 
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const s: SplitBillItem = { ...data, id: uuidv4() };
+  const row = { ...mapSplitBillToDb(s), user_id: uid };
+  const { error } = await supabase.from('split_bills').insert(row);
+  if (error) throw error;
+
   _splitBills.unshift(s);
-  saveBackup(KEYS.splitBills, _splitBills);
   notifyWrite();
   return s;
 }
 
 export async function updateSplitBill(id: string, data: Partial<SplitBillItem>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update split bill.');
+  }
+
   const idx = _splitBills.findIndex(s => s.id === id);
   if (idx === -1) return;
   _splitBills[idx] = { ..._splitBills[idx], ...data };
-  saveBackup(KEYS.splitBills, _splitBills);
-  notifyWrite();
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('split_bills').update(mapSplitBillToDb(_splitBills[idx])).eq('id', id);
-    if (error) console.error('Failed to update split bill in Supabase:', error);
+
+  const { error } = await supabase
+    .from('split_bills')
+    .update(mapSplitBillToDb(_splitBills[idx]))
+    .eq('id', id);
+  if (error) {
+    console.error('Failed to update split bill in Supabase:', error);
   }
+  notifyWrite();
 }
 
 export async function deleteSplitBill(id: string): Promise<void> {
-  _splitBills = _splitBills.filter(s => s.id !== id);
-  saveBackup(KEYS.splitBills, _splitBills);
-  notifyWrite();
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('split_bills').delete().eq('id', id);
-    if (error) console.error('Failed to delete split bill in Supabase:', error);
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete split bill.');
   }
+
+  const { error } = await supabase.from('split_bills').delete().eq('id', id);
+  if (error) {
+    console.error('Failed to delete split bill in Supabase:', error);
+  }
+  _splitBills = _splitBills.filter(s => s.id !== id);
+  notifyWrite();
 }
 
-// ─── Backup All Data ─────────────────────────────────────────────────────────
+// ─── Export / Import All Data ─────────────────────────────────────────────────
 
 export function exportAllData(): object {
   return {
@@ -1558,23 +1568,59 @@ export function exportAllData(): object {
   };
 }
 
-export function importAllData(data: any): void {
-  if (data.transactions) { _transactions = data.transactions; saveBackup(KEYS.transactions, _transactions); }
-  if (data.budgets)      { _budgets = data.budgets; saveBackup(KEYS.budgets, _budgets); }
-  if (data.goals)        { _goals = data.goals; saveBackup(KEYS.goals, _goals); }
-  if (data.accounts)     { _accounts = data.accounts; saveBackup(KEYS.accounts, _accounts); }
-  if (data.categories)   { _categories = data.categories; saveBackup(KEYS.categories, _categories); }
-  if (data.settings)     { _settings = data.settings; saveBackup(KEYS.settings, _settings); }
-  if (data.streakData)   { _streakData = data.streakData; saveBackup(KEYS.streakData, _streakData); }
-  if (data.recurring)    { _recurring = data.recurring; saveBackup(KEYS.recurring, _recurring); }
-  if (data.debts)        { _debts = data.debts; saveBackup(KEYS.debts, _debts); }
-  if (data.challenges)   { _challenges = data.challenges; saveBackup(KEYS.challenges, _challenges); }
-  if (data.splitBills)   { _splitBills = data.splitBills; saveBackup(KEYS.splitBills, _splitBills); }
+export async function importAllData(data: any): Promise<void> {
+  // Import data into Supabase — do NOT write to localStorage
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot import data.');
+  }
+
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  if (data.transactions?.length) {
+    const rows = data.transactions.map((t: Transaction) => ({ ...mapTxToDb(t), user_id: uid }));
+    await supabase.from('transactions').upsert(rows);
+  }
+  if (data.budgets?.length) {
+    const rows = data.budgets.map((b: Budget) => ({ ...mapBudgetToDb(b), user_id: uid }));
+    await supabase.from('budgets').upsert(rows);
+  }
+  if (data.goals?.length) {
+    const rows = data.goals.map((g: Goal) => ({ ...mapGoalToDb(g), user_id: uid }));
+    await supabase.from('goals').upsert(rows);
+  }
+  if (data.accounts?.length) {
+    const rows = data.accounts.map((a: Account) => ({ ...mapAccountToDb(a), user_id: uid }));
+    await supabase.from('accounts').upsert(rows);
+  }
+  if (data.recurring?.length) {
+    const rows = data.recurring.map((r: RecurringTransaction) => ({
+      ...mapRecurringToDb(r),
+      user_id: uid,
+    }));
+    await supabase.from('recurring_transactions').upsert(rows);
+  }
+  if (data.debts?.length) {
+    const rows = data.debts.map((d: Debt) => ({ ...mapDebtToDb(d), user_id: uid }));
+    await supabase.from('debts').upsert(rows);
+  }
+  if (data.challenges?.length) {
+    const rows = data.challenges.map((c: Challenge) => ({ ...mapChallengeToDb(c), user_id: uid }));
+    await supabase.from('challenges').upsert(rows);
+  }
+  if (data.splitBills?.length) {
+    const rows = data.splitBills.map((s: SplitBillItem) => ({ ...mapSplitBillToDb(s), user_id: uid }));
+    await supabase.from('split_bills').upsert(rows);
+  }
+
+  // Reload from Supabase to get fresh state
+  await pullAllFromSupabase();
   notifyWrite();
 }
 
 export async function clearAllData(): Promise<void> {
-  // 1. Clear local memory cache variables
+  // 1. Clear in-memory state immediately
   _transactions = [];
   _budgets = [];
   _goals = [];
@@ -1582,29 +1628,15 @@ export async function clearAllData(): Promise<void> {
   _debts = [];
   _challenges = [];
   _splitBills = [];
-
-  // Re-initialize accounts and categories to default templates (non-custom)
   _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
   _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
-  _settings = DEFAULT_SETTINGS;
+  _settings = { ...DEFAULT_SETTINGS };
   _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
 
-  // 2. Clear localStorage (both default and namespaced keys)
-  Object.values(KEYS).forEach(k => {
-    localStorage.removeItem(k);
-    if (_currentUid) {
-      localStorage.removeItem(`${k}_${_currentUid}`);
-    }
-  });
-  localStorage.removeItem('finova_pin_hash');
-  localStorage.removeItem('finova_hidden_accounts');
-  localStorage.removeItem('finova_hidden_categories');
-  localStorage.removeItem('finova_onboarding_dismissed');
-
-  // 3. Clear from Supabase if logged in
+  // 2. Clear from Supabase
   if (isSupabaseConfigured && supabase) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const uid = sessionData?.session?.user?.id;
+    const auth = getAuth(app);
+    const uid = auth.currentUser?.uid;
     if (uid) {
       try {
         await Promise.all([
@@ -1620,12 +1652,19 @@ export async function clearAllData(): Promise<void> {
           supabase.from('settings').delete().eq('user_id', uid),
           supabase.from('streaks').delete().eq('user_id', uid),
         ]);
-        // Re-provision settings, streaks, and default accounts/categories in database
+        // Re-provision defaults in database
         await Promise.all([
-          supabase.from('settings').insert({ ...mapSettingsToDb(DEFAULT_SETTINGS), user_id: uid }),
-          supabase.from('streaks').insert({ ...mapStreakToDb({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' }), user_id: uid }),
+          supabase
+            .from('settings')
+            .insert({ ...mapSettingsToDb(DEFAULT_SETTINGS), user_id: uid }),
+          supabase
+            .from('streaks')
+            .insert({
+              ...mapStreakToDb({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' }),
+              user_id: uid,
+            }),
           autoProvisionAccounts(uid),
-          autoProvisionCategories(uid)
+          autoProvisionCategories(uid),
         ]);
       } catch (err) {
         console.error('Failed to clear Supabase user data:', err);

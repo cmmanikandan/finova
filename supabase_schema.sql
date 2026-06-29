@@ -66,11 +66,12 @@ CREATE TABLE IF NOT EXISTS public.budgets (
     category_id   TEXT REFERENCES public.categories(id) ON DELETE CASCADE,
     limit_amount  NUMERIC(15,2) NOT NULL CHECK (limit_amount > 0),
     spent_amount  NUMERIC(15,2) NOT NULL DEFAULT 0,
-    period        TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly','weekly','custom')),
+    period        TEXT NOT NULL DEFAULT 'monthly' CHECK (period IN ('monthly','weekly','daily','custom')),
     start_date    DATE NOT NULL,
     end_date      DATE,
     color         TEXT NOT NULL DEFAULT '#2563EB',
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ─── 6. GOALS ────────────────────────────────────────────────
@@ -116,6 +117,30 @@ ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_limit             NUM
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit_enabled    BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit            NUMERIC(15,2) NOT NULL DEFAULT 0;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS savings_goal_percent    NUMERIC(5,2) NOT NULL DEFAULT 20.00;
+
+-- Migration: update budget period constraint to include 'daily' (idempotent)
+DO $$
+BEGIN
+  -- Drop old constraint if it exists and doesn't include 'daily'
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'budgets_period_check'
+      AND conrelid = 'public.budgets'::regclass
+  ) THEN
+    ALTER TABLE public.budgets DROP CONSTRAINT IF EXISTS budgets_period_check;
+  END IF;
+  -- Re-add with 'daily' included
+  ALTER TABLE public.budgets
+    ADD CONSTRAINT budgets_period_check
+    CHECK (period IN ('monthly','weekly','daily','custom'));
+EXCEPTION WHEN others THEN
+  NULL; -- Ignore if already correct
+END;
+$$;
+
+-- Add updated_at column to budgets if missing
+ALTER TABLE public.budgets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 
 -- ─── 8. STREAKS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.streaks (
