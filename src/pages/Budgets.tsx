@@ -824,6 +824,23 @@ const BudgetsListTab: React.FC = () => {
           onClose={() => { setShowForm(false); setEditBudget(undefined); }}
         />
       )}
+
+      {/* Floating Action Button */}
+      {budgets.length > 0 && (
+        <button
+          className="fab"
+          onClick={() => { setEditBudget(undefined); setShowForm(true); }}
+          style={{
+            position: 'fixed',
+            bottom: '96px',
+            right: '20px',
+            zIndex: 50
+          }}
+          aria-label="Add Budget"
+        >
+          <Plus size={28} />
+        </button>
+      )}
     </div>
   );
 };

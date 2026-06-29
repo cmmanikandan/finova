@@ -436,10 +436,25 @@ const DebtTracker: React.FC = () => {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setDeleteId(null)} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', fontWeight: 700, cursor: 'pointer', color: 'var(--color-text)' }}>Cancel</button>
               <button onClick={() => handleDelete(deleteId)} style={{ flex: 1, padding: '10px', borderRadius: '10px', background: '#EF4444', border: 'none', fontWeight: 700, cursor: 'pointer', color: '#fff' }}>Delete</button>
-            </div>
           </div>
         </div>
+      </div>
       )}
+
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={() => setShowForm(true)}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '20px',
+          zIndex: 50
+        }}
+        aria-label="Add Debt"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 };

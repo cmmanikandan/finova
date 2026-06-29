@@ -1047,7 +1047,7 @@ const DailyPlanner: React.FC = () => {
           right: 0,
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.4)',
-          zIndex: 100,
+          zIndex: 1000,
           display: 'flex',
           alignItems: 'flex-end',
         }}>
@@ -1063,7 +1063,7 @@ const DailyPlanner: React.FC = () => {
             padding: '24px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            zIndex: 101,
+            zIndex: 1001,
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
@@ -1265,6 +1265,21 @@ const DailyPlanner: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={() => openCreateForm()}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '20px',
+          zIndex: 50
+        }}
+        aria-label="Add Habit"
+      >
+        <Plus size={28} />
+      </button>
 
       {/* Global alert toast */}
       {toastMsg && (

@@ -107,6 +107,7 @@ body {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom) + 24px);
 }
 
 /* Typography Classes (Material Design 3 Scale) */

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
   ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle,
-  Handshake, Scale, Download, Trophy, Users, LineChart, Flame, Check
+  Handshake, Scale, Download, Trophy, Users, LineChart, Flame, Check, RefreshCw
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -74,6 +74,19 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
   const [hideBalance, setHideBalance] = useState(() => {
     return localStorage.getItem('finova_hide_balance') === 'true';
   });
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await db.pullAllFromSupabase();
+      refresh();
+    } catch (e) {
+      console.error('Failed to sync on manual trigger:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Daily Planner widget calculations
   const todayWeekday = new Date().getDay();
@@ -302,13 +315,36 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
                 Hey, {user?.name?.split(' ')[0] || 'there'}!
               </h3>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', fontFamily: 'monospace' }}>
-                {currentTimeString}
-              </p>
-              <p style={{ margin: '2px 0 0', fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {currentDateString}
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', fontFamily: 'monospace' }}>
+                  {currentTimeString}
+                </p>
+                <p style={{ margin: '2px 0 0', fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {currentDateString}
+                </p>
+              </div>
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                style={{
+                  border: 'none',
+                  background: 'var(--color-bg)',
+                  borderRadius: '10px',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  transition: 'all 0.2s',
+                  boxShadow: 'var(--shadow-subtle)',
+                }}
+                title="Sync database data"
+              >
+                <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+              </button>
             </div>
           </div>
         </div>

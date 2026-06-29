@@ -740,6 +740,21 @@ const Goals: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <button
+        className="fab"
+        onClick={() => navigate('/goals/new')}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '20px',
+          zIndex: 50
+        }}
+        aria-label="Add Goal"
+      >
+        <Plus size={28} />
+      </button>
     </div>
   );
 };

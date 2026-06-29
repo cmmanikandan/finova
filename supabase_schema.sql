@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ─── 1. PROFILES ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id          TEXT PRIMARY KEY,
     name        TEXT NOT NULL,
     email       TEXT NOT NULL,
     photo_url   TEXT,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- ─── 2. ACCOUNTS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.accounts (
     id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    user_id    UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id    TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name       TEXT NOT NULL,
     type       TEXT NOT NULL CHECK (type IN ('cash','bank','credit_card','debit_card','upi','wallet','custom')),
     balance    NUMERIC(15,2) NOT NULL DEFAULT 0,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.accounts (
 -- ─── 3. CATEGORIES ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.categories (
     id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    user_id    UUID REFERENCES public.profiles(id) ON DELETE CASCADE, -- NULL = global default
+    user_id    TEXT REFERENCES public.profiles(id) ON DELETE CASCADE, -- NULL = global default
     name       TEXT NOT NULL,
     icon       TEXT NOT NULL,
     color      TEXT NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 -- ─── 4. TRANSACTIONS ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.transactions (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id        TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     type           TEXT NOT NULL CHECK (type IN ('expense','income','transfer')),
     amount         NUMERIC(15,2) NOT NULL CHECK (amount > 0),
     category_id    TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 -- ─── 5. BUDGETS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.budgets (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id       TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name          TEXT NOT NULL,
     category_id   TEXT REFERENCES public.categories(id) ON DELETE CASCADE,
     limit_amount  NUMERIC(15,2) NOT NULL CHECK (limit_amount > 0),
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS public.budgets (
 -- ─── 6. GOALS ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.goals (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id        TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name           TEXT NOT NULL,
     target_amount  NUMERIC(15,2) NOT NULL CHECK (target_amount > 0),
     current_amount NUMERIC(15,2) NOT NULL DEFAULT 0,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.goals (
 
 -- ─── 7. SETTINGS ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.settings (
-    user_id                  UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id                  TEXT PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     currency                 TEXT NOT NULL DEFAULT 'INR',
     currency_symbol          TEXT NOT NULL DEFAULT '₹',
     theme                    TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('light','dark','system')),
@@ -144,7 +144,7 @@ ALTER TABLE public.budgets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT N
 
 -- ─── 8. STREAKS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.streaks (
-    user_id                       UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id                       TEXT PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     current_streak                INTEGER NOT NULL DEFAULT 0,
     best_streak                   INTEGER NOT NULL DEFAULT 0,
     last_spent_date               DATE,
@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS public.streaks (
 -- ─── 9. RECURRING TRANSACTIONS ───────────────────────────────
 CREATE TABLE IF NOT EXISTS public.recurring_transactions (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     type                 TEXT NOT NULL CHECK (type IN ('expense','income')),
     amount               NUMERIC(15,2) NOT NULL CHECK (amount > 0),
     category_id          TEXT REFERENCES public.categories(id) ON DELETE SET NULL,
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS public.recurring_transactions (
 -- ─── 10. DEBTS ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.debts (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id       TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     contact_name  TEXT NOT NULL,
     contact_emoji TEXT NOT NULL DEFAULT '👤',
     amount        NUMERIC(15,2) NOT NULL CHECK (amount > 0),
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS public.debts (
 -- ─── 11. CHALLENGES ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.challenges (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id        TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name           TEXT NOT NULL,
     type           TEXT NOT NULL,
     target_category TEXT,
@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS public.challenges (
 -- ─── 12. SPLIT BILLS ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.split_bills (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id        TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name           TEXT NOT NULL,
     amount         NUMERIC(15,2) NOT NULL CHECK (amount > 0),
     description    TEXT,
@@ -419,7 +419,7 @@ ALTER TABLE public.streaks ADD COLUMN IF NOT EXISTS planner_last_active_date DAT
 -- daily_tasks
 CREATE TABLE IF NOT EXISTS public.daily_tasks (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     title                TEXT NOT NULL,
     description          TEXT,
     icon                 TEXT NOT NULL DEFAULT '🎯',
@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS public.daily_tasks (
 -- daily_task_logs
 CREATE TABLE IF NOT EXISTS public.daily_task_logs (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     task_id              UUID NOT NULL REFERENCES public.daily_tasks(id) ON DELETE CASCADE,
     date                 DATE NOT NULL DEFAULT CURRENT_DATE,
     status               TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','skipped','missed')),
@@ -455,7 +455,7 @@ CREATE TABLE IF NOT EXISTS public.daily_task_logs (
 -- planner_schedule
 CREATE TABLE IF NOT EXISTS public.planner_schedule (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     day_of_week          INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
     task_ids             UUID[] DEFAULT '{}',
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -466,7 +466,7 @@ CREATE TABLE IF NOT EXISTS public.planner_schedule (
 -- planner_reminders
 CREATE TABLE IF NOT EXISTS public.planner_reminders (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     title                TEXT NOT NULL,
     time                 TEXT NOT NULL, -- e.g. '08:00 AM'
     days                 INTEGER[] DEFAULT '{}',
@@ -478,7 +478,7 @@ CREATE TABLE IF NOT EXISTS public.planner_reminders (
 -- xp_history
 CREATE TABLE IF NOT EXISTS public.xp_history (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     amount               INTEGER NOT NULL,
     reason               TEXT NOT NULL,
     reference_id         UUID,
@@ -488,7 +488,7 @@ CREATE TABLE IF NOT EXISTS public.xp_history (
 
 -- user_levels
 CREATE TABLE IF NOT EXISTS public.user_levels (
-    user_id              UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
     current_level        INTEGER NOT NULL DEFAULT 1,
     current_xp           INTEGER NOT NULL DEFAULT 0,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -498,7 +498,7 @@ CREATE TABLE IF NOT EXISTS public.user_levels (
 -- user_badges
 CREATE TABLE IF NOT EXISTS public.user_badges (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     badge_name           TEXT NOT NULL,
     unlocked_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -509,7 +509,7 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
 -- planner_statistics
 CREATE TABLE IF NOT EXISTS public.planner_statistics (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id              TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     date                 DATE NOT NULL DEFAULT CURRENT_DATE,
     tasks_completed      INTEGER DEFAULT 0,
     tasks_total          INTEGER DEFAULT 0,
@@ -601,3 +601,79 @@ BEGIN
     END;
   END IF;
 END $$;
+
+-- ============================================================
+-- ─── SYSTEM MIGRATION: RUN THIS TO FIX 400 BAD REQUEST ERRORS ───
+-- ============================================================
+-- COPY AND PASTE THIS ENTIRE SECTION INTO THE SUPABASE SQL EDITOR AND RUN IT
+-- TO CONVERT USER_ID FIELDS FROM UUID TO TEXT TO SUPPORT FIREBASE AUTH UIDS.
+-- ============================================================
+
+-- 1. Drop foreign keys referencing profiles(id)
+ALTER TABLE IF EXISTS public.accounts DROP CONSTRAINT IF EXISTS accounts_user_id_fkey;
+ALTER TABLE IF EXISTS public.categories DROP CONSTRAINT IF EXISTS categories_user_id_fkey;
+ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_user_id_fkey;
+ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_user_id_fkey;
+ALTER TABLE IF EXISTS public.goals DROP CONSTRAINT IF EXISTS goals_user_id_fkey;
+ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_user_id_fkey;
+ALTER TABLE IF EXISTS public.debts DROP CONSTRAINT IF EXISTS debts_user_id_fkey;
+ALTER TABLE IF EXISTS public.challenges DROP CONSTRAINT IF EXISTS challenges_user_id_fkey;
+ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_user_id_fkey;
+ALTER TABLE IF EXISTS public.streaks DROP CONSTRAINT IF EXISTS streaks_user_id_fkey;
+
+ALTER TABLE IF EXISTS public.daily_tasks DROP CONSTRAINT IF EXISTS daily_tasks_user_id_fkey;
+ALTER TABLE IF EXISTS public.daily_task_logs DROP CONSTRAINT IF EXISTS daily_task_logs_user_id_fkey;
+ALTER TABLE IF EXISTS public.planner_schedule DROP CONSTRAINT IF EXISTS planner_schedule_user_id_fkey;
+ALTER TABLE IF EXISTS public.planner_reminders DROP CONSTRAINT IF EXISTS planner_reminders_user_id_fkey;
+ALTER TABLE IF EXISTS public.xp_history DROP CONSTRAINT IF EXISTS xp_history_user_id_fkey;
+ALTER TABLE IF EXISTS public.user_levels DROP CONSTRAINT IF EXISTS user_levels_user_id_fkey;
+ALTER TABLE IF EXISTS public.user_badges DROP CONSTRAINT IF EXISTS user_badges_user_id_fkey;
+ALTER TABLE IF EXISTS public.planner_statistics DROP CONSTRAINT IF EXISTS planner_statistics_user_id_fkey;
+
+-- 2. Alter profiles.id type to TEXT and drop auth.users reference
+ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+ALTER TABLE public.profiles ALTER COLUMN id TYPE TEXT;
+
+-- 3. Alter other tables' user_id type to TEXT
+ALTER TABLE public.accounts ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.categories ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.transactions ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.budgets ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.goals ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.settings ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.streaks ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.recurring_transactions ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.debts ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.challenges ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.split_bills ALTER COLUMN user_id TYPE TEXT;
+
+ALTER TABLE public.daily_tasks ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.daily_task_logs ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.planner_schedule ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.planner_reminders ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.xp_history ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.user_levels ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.user_badges ALTER COLUMN user_id TYPE TEXT;
+ALTER TABLE public.planner_statistics ALTER COLUMN user_id TYPE TEXT;
+
+-- 4. Re-add foreign keys with TEXT reference
+ALTER TABLE public.accounts ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.categories ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.budgets ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.goals ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.settings ADD CONSTRAINT settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.streaks ADD CONSTRAINT streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.debts ADD CONSTRAINT debts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.challenges ADD CONSTRAINT challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE public.daily_tasks ADD CONSTRAINT daily_tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.daily_task_logs ADD CONSTRAINT daily_task_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.planner_schedule ADD CONSTRAINT planner_schedule_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.planner_reminders ADD CONSTRAINT planner_reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.xp_history ADD CONSTRAINT xp_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.user_levels ADD CONSTRAINT user_levels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.user_badges ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
