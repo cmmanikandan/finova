@@ -686,25 +686,19 @@ ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_
 -- TO CONVERT COLUMNS FROM UUID TO TEXT SAFELY BY RESOLVING POLICY DEPENDENCIES.
 -- ============================================================
 
--- 1. Drop RLS policies on profiles, accounts, and categories to allow altering columns
-DROP POLICY IF EXISTS "Allow individual read own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual insert own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual update own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual delete own profile" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
-
-DROP POLICY IF EXISTS "Allow individual read own accounts" ON public.accounts;
-DROP POLICY IF EXISTS "Allow individual insert own accounts" ON public.accounts;
-DROP POLICY IF EXISTS "Allow individual update own accounts" ON public.accounts;
-DROP POLICY IF EXISTS "Allow individual delete own accounts" ON public.accounts;
-DROP POLICY IF EXISTS "accounts_all_own" ON public.accounts;
-
-DROP POLICY IF EXISTS "Allow individual read own categories" ON public.categories;
-DROP POLICY IF EXISTS "Allow individual insert own categories" ON public.categories;
-DROP POLICY IF EXISTS "categories_select_own_or_global" ON public.categories;
-DROP POLICY IF EXISTS "categories_insert_update_delete_own" ON public.categories;
+-- 1. Drop all RLS policies dynamically across the entire public schema
+DO $$
+DECLARE
+    pol RECORD;
+BEGIN
+    FOR pol IN 
+        SELECT policyname, tablename, schemaname 
+        FROM pg_policies 
+        WHERE schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    END LOOP;
+END $$;
 
 -- 2. Drop foreign key constraints referencing profiles(id)
 ALTER TABLE IF EXISTS public.accounts DROP CONSTRAINT IF EXISTS accounts_user_id_fkey;
