@@ -175,6 +175,23 @@ CREATE TABLE IF NOT EXISTS public.challenges (
     checked_days   INTEGER[] DEFAULT '{}'
 );
 
+-- ─── 12. SPLIT BILLS ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.split_bills (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name           TEXT NOT NULL,
+    amount         NUMERIC(15,2) NOT NULL CHECK (amount > 0),
+    description    TEXT,
+    date           DATE NOT NULL DEFAULT CURRENT_DATE,
+    category       TEXT NOT NULL,
+    method         TEXT NOT NULL,
+    members        JSONB NOT NULL DEFAULT '[]'::jsonb,
+    upi_id         TEXT NOT NULL,
+    receiver_name  TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ─── AUTO PROFILE / SETTINGS / STREAK TRIGGER ────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -220,6 +237,7 @@ ALTER TABLE public.streaks                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.recurring_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.debts                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenges             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.split_bills             ENABLE ROW LEVEL SECURITY;
 
 -- ─── RLS POLICIES ────────────────────────────────────────────
 -- Drop all policies first (idempotent), then recreate
@@ -278,6 +296,10 @@ CREATE POLICY "debts_all_own" ON public.debts FOR ALL USING (auth.uid() = user_i
 DROP POLICY IF EXISTS "challenges_all_own" ON public.challenges;
 CREATE POLICY "challenges_all_own" ON public.challenges FOR ALL USING (auth.uid() = user_id);
 
+-- split_bills
+DROP POLICY IF EXISTS "split_bills_all_own" ON public.split_bills;
+CREATE POLICY "split_bills_all_own" ON public.split_bills FOR ALL USING (auth.uid() = user_id);
+
 -- ─── PERFORMANCE INDEXES ─────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_type ON public.transactions(user_id, type);
@@ -289,6 +311,7 @@ CREATE INDEX IF NOT EXISTS idx_streaks_user           ON public.streaks(user_id)
 CREATE INDEX IF NOT EXISTS idx_recurring_user         ON public.recurring_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_debts_user             ON public.debts(user_id);
 CREATE INDEX IF NOT EXISTS idx_challenges_user        ON public.challenges(user_id);
+CREATE INDEX IF NOT EXISTS idx_split_bills_user        ON public.split_bills(user_id);
 
 -- ─── ENABLE REALTIME REPLICATION ─────────────────────────────
 -- We safely add each table to the realtime publication.
@@ -349,6 +372,11 @@ begin
 
     begin
       alter publication supabase_realtime add table public.challenges;
+    exception when others then null;
+    end;
+
+    begin
+      alter publication supabase_realtime add table public.split_bills;
     exception when others then null;
     end;
   end if;

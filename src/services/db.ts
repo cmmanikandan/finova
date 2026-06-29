@@ -1,5 +1,5 @@
 // Database service – Supabase backed with local synchronized cache
-import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt, Challenge } from '../types';
+import type { Transaction, Budget, Goal, Account, Category, AppSettings, LimitStatus, StreakData, RecurringTransaction, Debt, Challenge, SplitBillItem } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
 import { getSupabase, isSupabaseConfigured } from './supabase';
@@ -18,6 +18,7 @@ const KEYS = {
   recurring: 'finova_recurring',
   debts: 'finova_debts',
   challenges: 'finova_challenges',
+  splitBills: 'finova_split_bills',
 };
 
 // ─── Active cache variables in memory ──────────────────────────────────────────
@@ -31,6 +32,7 @@ let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdat
 let _recurring: RecurringTransaction[] = [];
 let _debts: Debt[] = [];
 let _challenges: Challenge[] = [];
+let _splitBills: SplitBillItem[] = [];
 
 let _currentUid: string | null = null;
 
@@ -91,6 +93,7 @@ export function initLocalCache() {
     _recurring = [];
     _debts = [];
     _challenges = [];
+    _splitBills = [];
     return;
   }
 
@@ -105,6 +108,7 @@ export function initLocalCache() {
   _recurring = loadBackup<RecurringTransaction[]>(KEYS.recurring, []);
   _debts = loadBackup<Debt[]>(KEYS.debts, []);
   _challenges = loadBackup<Challenge[]>(KEYS.challenges, []);
+  _splitBills = loadBackup<SplitBillItem[]>(KEYS.splitBills, []);
 }
 
 // Trigger initial load
@@ -399,6 +403,38 @@ function mapChallengeFromDb(row: any): Challenge {
   };
 }
 
+function mapSplitBillToDb(s: SplitBillItem): any {
+  return {
+    id: s.id,
+    name: s.name,
+    amount: s.amount,
+    description: s.description || null,
+    date: s.date,
+    category: s.category,
+    method: s.method,
+    members: s.members,
+    upi_id: s.upiId,
+    receiver_name: s.receiverName,
+    status: s.status,
+  };
+}
+
+function mapSplitBillFromDb(row: any): SplitBillItem {
+  return {
+    id: row.id,
+    name: row.name,
+    amount: Number(row.amount),
+    description: row.description || '',
+    date: typeof row.date === 'string' ? row.date.split('T')[0] : row.date,
+    category: row.category,
+    method: row.method,
+    members: row.members || [],
+    upiId: row.upi_id || '',
+    receiverName: row.receiver_name || '',
+    status: row.status,
+  };
+}
+
 // ─── Sync provisioning on new user ──────────────────────────────────────────
 
 async function autoProvisionAccounts(uid: string) {
@@ -459,7 +495,7 @@ export async function pullAllFromSupabase(): Promise<void> {
     console.error('Failed to ensure profiles record:', e);
   }
 
-  const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes, challengesRes] = await Promise.all([
+  const [txnsRes, budgetsRes, goalsRes, accountsRes, catsRes, settingsRes, streaksRes, recRes, debtsRes, challengesRes, splitBillsRes] = await Promise.all([
     supabase.from('transactions').select('*').eq('user_id', uid),
     supabase.from('budgets').select('*').eq('user_id', uid),
     supabase.from('goals').select('*').eq('user_id', uid),
@@ -470,6 +506,7 @@ export async function pullAllFromSupabase(): Promise<void> {
     supabase.from('recurring_transactions').select('*').eq('user_id', uid),
     supabase.from('debts').select('*').eq('user_id', uid),
     supabase.from('challenges').select('*').eq('user_id', uid),
+    supabase.from('split_bills').select('*').eq('user_id', uid),
   ]);
 
   if (txnsRes.data) {
@@ -526,6 +563,10 @@ export async function pullAllFromSupabase(): Promise<void> {
   if (challengesRes.data) {
     _challenges = challengesRes.data.map(mapChallengeFromDb);
     saveBackup(KEYS.challenges, _challenges);
+  }
+  if (splitBillsRes.data) {
+    _splitBills = splitBillsRes.data.map(mapSplitBillFromDb);
+    saveBackup(KEYS.splitBills, _splitBills);
   }
 }
 
@@ -1450,6 +1491,53 @@ export async function deleteChallenge(id: string): Promise<void> {
   }
 }
 
+// ─── Split Bill Operations ────────────────────────────────────────────────────
+
+export function getSplitBills(): SplitBillItem[] {
+  return _splitBills;
+}
+
+export async function addSplitBill(data: Omit<SplitBillItem, 'id'>): Promise<SplitBillItem> {
+  const s: SplitBillItem = { ...data, id: uuidv4() };
+
+  if (isSupabaseConfigured && supabase) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const uid = sessionData?.session?.user?.id;
+    if (uid) {
+      const row = { ...mapSplitBillToDb(s), user_id: uid };
+      const { error } = await supabase.from('split_bills').insert(row);
+      if (error) throw error;
+    }
+  }
+
+  _splitBills.unshift(s);
+  saveBackup(KEYS.splitBills, _splitBills);
+  notifyWrite();
+  return s;
+}
+
+export async function updateSplitBill(id: string, data: Partial<SplitBillItem>): Promise<void> {
+  const idx = _splitBills.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  _splitBills[idx] = { ..._splitBills[idx], ...data };
+  saveBackup(KEYS.splitBills, _splitBills);
+  notifyWrite();
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from('split_bills').update(mapSplitBillToDb(_splitBills[idx])).eq('id', id);
+    if (error) console.error('Failed to update split bill in Supabase:', error);
+  }
+}
+
+export async function deleteSplitBill(id: string): Promise<void> {
+  _splitBills = _splitBills.filter(s => s.id !== id);
+  saveBackup(KEYS.splitBills, _splitBills);
+  notifyWrite();
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase.from('split_bills').delete().eq('id', id);
+    if (error) console.error('Failed to delete split bill in Supabase:', error);
+  }
+}
+
 // ─── Backup All Data ─────────────────────────────────────────────────────────
 
 export function exportAllData(): object {
@@ -1466,6 +1554,7 @@ export function exportAllData(): object {
     recurring: _recurring,
     debts: _debts,
     challenges: _challenges,
+    splitBills: _splitBills,
   };
 }
 
@@ -1480,6 +1569,7 @@ export function importAllData(data: any): void {
   if (data.recurring)    { _recurring = data.recurring; saveBackup(KEYS.recurring, _recurring); }
   if (data.debts)        { _debts = data.debts; saveBackup(KEYS.debts, _debts); }
   if (data.challenges)   { _challenges = data.challenges; saveBackup(KEYS.challenges, _challenges); }
+  if (data.splitBills)   { _splitBills = data.splitBills; saveBackup(KEYS.splitBills, _splitBills); }
   notifyWrite();
 }
 
@@ -1491,7 +1581,8 @@ export async function clearAllData(): Promise<void> {
   _recurring = [];
   _debts = [];
   _challenges = [];
-  
+  _splitBills = [];
+
   // Re-initialize accounts and categories to default templates (non-custom)
   _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, isCustom: false }));
   _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, isCustom: false }));
@@ -1523,6 +1614,7 @@ export async function clearAllData(): Promise<void> {
           supabase.from('recurring_transactions').delete().eq('user_id', uid),
           supabase.from('debts').delete().eq('user_id', uid),
           supabase.from('challenges').delete().eq('user_id', uid),
+          supabase.from('split_bills').delete().eq('user_id', uid),
           supabase.from('accounts').delete().eq('user_id', uid),
           supabase.from('categories').delete().eq('user_id', uid),
           supabase.from('settings').delete().eq('user_id', uid),

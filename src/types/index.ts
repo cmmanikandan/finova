@@ -146,3 +146,29 @@ export interface Challenge {
   status: 'active' | 'completed' | 'failed';
   checkedDays: number[];
 }
+
+export interface Member {
+  id: string;
+  name: string;
+  avatar: string;
+  upi?: string;
+  email?: string;
+  share: number;
+  percentage?: number;
+  sharesCount?: number;
+  status: 'pending' | 'paid' | 'settled';
+}
+
+export interface SplitBillItem {
+  id: string;
+  name: string;
+  amount: number;
+  description: string;
+  date: string;
+  category: string;
+  method: 'equal' | 'custom' | 'percentage' | 'shares';
+  members: Member[];
+  upiId: string;
+  receiverName: string;
+  status: 'pending' | 'completed';
+}

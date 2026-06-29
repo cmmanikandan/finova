@@ -6,6 +6,7 @@ import {
   Search, BarChart2
 } from 'lucide-react';
 import { useScrollFAB } from '../hooks/useScrollFAB';
+import * as db from '../services/db';
 
 interface Member {
   id: string;
@@ -106,23 +107,22 @@ const SplitBill: React.FC = () => {
   const { fabVisible, handleScroll } = useScrollFAB();
 
   useEffect(() => {
-    const cached = localStorage.getItem('finova_saved_splits');
-    if (cached) {
-      try {
-        setSplits(JSON.parse(cached));
-      } catch {
-        setSplits(DEFAULT_SPLITS);
-      }
+    // Load from db cache (populated from Supabase)
+    const loaded = db.getSplitBills();
+    if (loaded.length > 0) {
+      setSplits(loaded);
     } else {
+      // Show default example splits for first-time users (not saved to db)
       setSplits(DEFAULT_SPLITS);
-      localStorage.setItem('finova_saved_splits', JSON.stringify(DEFAULT_SPLITS));
     }
+
+    // Re-read when db writes occur (e.g., after Supabase pull)
+    const unsub = () => setSplits([...db.getSplitBills()]);
+    db.registerWriteListener(unsub);
+    return () => db.registerWriteListener(() => {});
   }, []);
 
-  const saveSplits = (updated: SplitBillItem[]) => {
-    setSplits(updated);
-    localStorage.setItem('finova_saved_splits', JSON.stringify(updated));
-  };
+
 
   // OCR Receipt Scanner Mock
   const triggerOCR = () => {
@@ -210,12 +210,11 @@ const SplitBill: React.FC = () => {
     setSelectedContacts(prev => prev.filter(c => c.id !== id));
   };
 
-  const handleCreateSplit = (e: React.FormEvent) => {
+  const handleCreateSplit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!billName.trim() || totalAmountNum <= 0) return;
 
-    const newSplit: SplitBillItem = {
-      id: `split-${Date.now()}`,
+    const payload = {
       name: billName.trim(),
       amount: totalAmountNum,
       description,
@@ -225,11 +224,11 @@ const SplitBill: React.FC = () => {
       members: calculatedMembers,
       upiId,
       receiverName,
-      status: 'pending'
+      status: 'pending' as const,
     };
 
-    const updated = [newSplit, ...splits];
-    saveSplits(updated);
+    const saved = await db.addSplitBill(payload);
+    setSplits(prev => [saved, ...prev.filter(s => !DEFAULT_SPLITS.some(d => d.id === s.id))]);
     
     // Clear state
     setBillName('');
@@ -253,20 +252,17 @@ const SplitBill: React.FC = () => {
     setSelectedSplit(item);
   };
 
-  const markAsSettled = (splitId: string, memberId: string) => {
-    const updated = splits.map(s => {
-      if (s.id === splitId) {
-        const nextMembers = s.members.map(m => m.id === memberId ? { ...m, status: 'settled' as const } : m);
-        const allSettled = nextMembers.every(m => m.status === 'settled');
-        return {
-          ...s,
-          members: nextMembers,
-          status: (allSettled ? 'completed' : 'pending') as 'pending' | 'completed'
-        };
-      }
-      return s;
-    });
-    saveSplits(updated);
+  const markAsSettled = async (splitId: string, memberId: string) => {
+    const split = splits.find(s => s.id === splitId);
+    if (!split) return;
+    const nextMembers = split.members.map(m => m.id === memberId ? { ...m, status: 'settled' as const } : m);
+    const allSettled = nextMembers.every(m => m.status === 'settled');
+    const nextStatus = (allSettled ? 'completed' : 'pending') as 'pending' | 'completed';
+    setSplits(prev => prev.map(s => s.id === splitId ? { ...s, members: nextMembers, status: nextStatus } : s));
+    // Skip Supabase write for default example splits
+    if (!DEFAULT_SPLITS.some(d => d.id === splitId)) {
+      await db.updateSplitBill(splitId, { members: nextMembers, status: nextStatus });
+    }
   };
 
   const handleCopyLink = () => {
