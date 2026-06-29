@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithGoogle } from '../services/auth';
+import { signInWithGoogle, signInWithEmailAndPassword } from '../services/auth';
 import logoUrl from '../assets/logo.jpeg';
 import { 
   TrendingUp, Target, BarChart3, ArrowRight, ArrowLeft, 
@@ -17,6 +17,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms' | null>(null);
+
+  // Email/Password state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -65,6 +69,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
     } catch (err) {
       console.error('Google login error:', err);
       setError('Google sign-in failed. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const user = await signInWithEmailAndPassword(email, password);
+      if (user) onLogin();
+    } catch (err: any) {
+      console.error('Email login error:', err);
+      setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -607,6 +626,85 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               )}
               {loading ? 'Signing in...' : 'Continue with Google'}
             </button>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', margin: '20px 0', color: '#94A3B8', fontSize: '0.75rem', fontWeight: 600 }}>
+              <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
+              <span style={{ padding: '0 10px' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
+            </div>
+
+            {/* Email & Password Form */}
+            <form onSubmit={handleEmailLogin} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700, alignSelf: 'flex-start' }}>Email Address</label>
+                <input 
+                  type="email" 
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0',
+                    background: '#FFFFFF',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    fontWeight: 500,
+                    outline: 'none',
+                  }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 700, alignSelf: 'flex-start' }}>Password</label>
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    border: '1.5px solid #E2E8F0',
+                    background: '#FFFFFF',
+                    fontSize: '0.875rem',
+                    color: '#1E293B',
+                    fontWeight: 500,
+                    outline: 'none',
+                  }}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-tap-effect"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.875rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.15)',
+                  marginTop: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                {loading ? 'Processing...' : 'Sign In / Sign Up 🚀'}
+              </button>
+            </form>
 
             {/* Below-button security checks */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '24px', borderTop: '1px solid #F1F5F9', paddingTop: '20px' }}>
