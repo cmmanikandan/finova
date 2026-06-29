@@ -567,4 +567,138 @@ select.input-field {
   bottom: 4px;
 }
 
+/* ─── Antigravity Layout & Visual Utilities ────────────────────────────── */
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Glassmorphism Card Style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+[data-theme="dark"] .glass-card {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Modern Form Input Styling */
+.form-input {
+  width: 100%;
+  height: 42px;
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.form-input:focus {
+  border-color: var(--color-primary);
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="dark"] .form-input {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #F1F5F9;
+}
+[data-theme="dark"] .form-input:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* List Item Card Transitions */
+.list-item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.list-item-card.clickable:active {
+  transform: scale(0.98);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+[data-theme="dark"] .list-item-card.clickable:active {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Application Custom Header & Title */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: calc(64px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+  text-align: center;
+  flex: 1;
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.icon-button:active {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="dark"] .icon-button:active {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Animation utilities */
+.animate-slide-in {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 

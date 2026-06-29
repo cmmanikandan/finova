@@ -291,7 +291,7 @@ const SplitBill: React.FC = () => {
                         value={person.name} 
                         onChange={e => updatePersonName(person.id, e.target.value)}
                         className="form-input"
-                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.85rem', fontWeight: 600, borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                        style={{ border: 'none', background: 'transparent', padding: 0, fontSize: '0.85rem', fontWeight: 600, borderBottom: '1px solid var(--color-border)' }}
                       />
                     )}
                   </div>
