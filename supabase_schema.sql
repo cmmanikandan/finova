@@ -682,16 +682,16 @@ ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_
 -- ============================================================
 -- ─── SYSTEM MIGRATION: CONVERT ID & REFERENCE COLUMNS TO TEXT ───
 -- ============================================================
--- RUN THIS MIGRATION IN TWO SEPARATE STEPS IN THE SUPABASE SQL EDITOR.
+-- COPY AND PASTE THIS ENTIRE PL/PGSQL BLOCK INTO THE SUPABASE SQL EDITOR AND RUN IT.
+-- IT WILL PERFORM THE ENTIRE MIGRATION SAFELY IN A SINGLE TRANSACTION.
 -- ============================================================
-
--- ─── STEP 1: DROP ALL POLICIES AND FOREIGN KEYS DYNAMICALLY ───
--- Copy and run ONLY this block first:
 
 DO $$
 DECLARE
     pol RECORD;
+    fk RECORD;
 BEGIN
+    -- 1. Drop all RLS policies dynamically across the entire public schema
     FOR pol IN 
         SELECT policyname, tablename, schemaname 
         FROM pg_policies 
@@ -699,12 +699,8 @@ BEGIN
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
     END LOOP;
-END $$;
 
-DO $$
-DECLARE
-    fk RECORD;
-BEGIN
+    -- 2. Drop all foreign key constraints dynamically across the entire public schema
     FOR fk IN 
         SELECT tc.constraint_name, tc.table_name 
         FROM information_schema.table_constraints tc 
@@ -713,88 +709,84 @@ BEGIN
     LOOP
         EXECUTE format('ALTER TABLE public.%I DROP CONSTRAINT IF EXISTS %I', fk.table_name, fk.constraint_name);
     END LOOP;
+
+    -- 3. Alter profiles.id type to TEXT
+    EXECUTE 'ALTER TABLE public.profiles ALTER COLUMN id TYPE TEXT';
+
+    -- Alter other tables' user_id type to TEXT
+    EXECUTE 'ALTER TABLE public.accounts ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.categories ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.transactions ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.budgets ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.goals ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.settings ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.streaks ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.debts ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.challenges ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.split_bills ALTER COLUMN user_id TYPE TEXT';
+
+    EXECUTE 'ALTER TABLE public.daily_tasks ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.daily_task_logs ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.planner_schedule ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.planner_reminders ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.xp_history ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.user_levels ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.user_badges ALTER COLUMN user_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.planner_statistics ALTER COLUMN user_id TYPE TEXT';
+
+    -- Convert accounts.id, categories.id and reference columns to TEXT
+    EXECUTE 'ALTER TABLE public.accounts ALTER COLUMN id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.categories ALTER COLUMN id TYPE TEXT';
+
+    EXECUTE 'ALTER TABLE public.transactions ALTER COLUMN account_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.transactions ALTER COLUMN to_account_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.transactions ALTER COLUMN category_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.budgets ALTER COLUMN category_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ALTER COLUMN category_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ALTER COLUMN account_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.split_bills ALTER COLUMN category_id TYPE TEXT';
+    EXECUTE 'ALTER TABLE public.split_bills ALTER COLUMN account_id TYPE TEXT';
+
+    -- 4. Re-add foreign key constraints referencing profiles(id)
+    EXECUTE 'ALTER TABLE public.accounts ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.categories ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.transactions ADD CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.budgets ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.goals ADD CONSTRAINT goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.settings ADD CONSTRAINT settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.streaks ADD CONSTRAINT streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.debts ADD CONSTRAINT debts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.challenges ADD CONSTRAINT challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+
+    EXECUTE 'ALTER TABLE public.daily_tasks ADD CONSTRAINT daily_tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.daily_task_logs ADD CONSTRAINT daily_task_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.planner_schedule ADD CONSTRAINT planner_schedule_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.planner_reminders ADD CONSTRAINT planner_reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.xp_history ADD CONSTRAINT xp_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.user_levels ADD CONSTRAINT user_levels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.user_badges ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE';
+
+    -- Re-add foreign key constraints referencing accounts(id) or categories(id)
+    EXECUTE 'ALTER TABLE public.transactions ADD CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.transactions ADD CONSTRAINT transactions_to_account_id_fkey FOREIGN KEY (to_account_id) REFERENCES public.accounts(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.transactions ADD CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL';
+    EXECUTE 'ALTER TABLE public.budgets ADD CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE';
+    EXECUTE 'ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL';
+    EXECUTE 'ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE';
+
+    -- 5. Re-create RLS policies on profiles, accounts, and categories
+    EXECUTE 'CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id)';
+    EXECUTE 'CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id)';
+    EXECUTE 'CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id)';
+
+    EXECUTE 'CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid() = user_id)';
+
+    EXECUTE 'CREATE POLICY "categories_select_own_or_global" ON public.categories FOR SELECT USING (user_id IS NULL OR auth.uid() = user_id)';
+    EXECUTE 'CREATE POLICY "categories_insert_update_delete_own" ON public.categories FOR ALL USING (auth.uid() = user_id)';
 END $$;
-
-
--- ─── STEP 2: CONVERT COLUMN TYPES AND RECREATE EVERYTHING ───
--- Copy and run ONLY this block next (once Step 1 succeeds):
-
--- 1. Alter profiles.id type to TEXT
-ALTER TABLE public.profiles ALTER COLUMN id TYPE TEXT;
-
--- Alter other tables' user_id type to TEXT
-ALTER TABLE public.accounts ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.categories ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.transactions ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.budgets ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.goals ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.settings ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.streaks ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.recurring_transactions ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.debts ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.challenges ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.split_bills ALTER COLUMN user_id TYPE TEXT;
-
-ALTER TABLE public.daily_tasks ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.daily_task_logs ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.planner_schedule ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.planner_reminders ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.xp_history ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.user_levels ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.user_badges ALTER COLUMN user_id TYPE TEXT;
-ALTER TABLE public.planner_statistics ALTER COLUMN user_id TYPE TEXT;
-
--- Convert accounts.id, categories.id and reference columns to TEXT
-ALTER TABLE public.accounts ALTER COLUMN id TYPE TEXT;
-ALTER TABLE public.categories ALTER COLUMN id TYPE TEXT;
-
-ALTER TABLE public.transactions ALTER COLUMN account_id TYPE TEXT;
-ALTER TABLE public.transactions ALTER COLUMN to_account_id TYPE TEXT;
-ALTER TABLE public.transactions ALTER COLUMN category_id TYPE TEXT;
-ALTER TABLE public.budgets ALTER COLUMN category_id TYPE TEXT;
-ALTER TABLE public.recurring_transactions ALTER COLUMN category_id TYPE TEXT;
-ALTER TABLE public.recurring_transactions ALTER COLUMN account_id TYPE TEXT;
-ALTER TABLE public.split_bills ALTER COLUMN category_id TYPE TEXT;
-ALTER TABLE public.split_bills ALTER COLUMN account_id TYPE TEXT;
-
--- 2. Re-add foreign key constraints referencing profiles(id)
-ALTER TABLE public.accounts ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.categories ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.budgets ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.goals ADD CONSTRAINT goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.settings ADD CONSTRAINT settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.streaks ADD CONSTRAINT streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.debts ADD CONSTRAINT debts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.challenges ADD CONSTRAINT challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
-ALTER TABLE public.daily_tasks ADD CONSTRAINT daily_tasks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.daily_task_logs ADD CONSTRAINT daily_task_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.planner_schedule ADD CONSTRAINT planner_schedule_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.planner_reminders ADD CONSTRAINT planner_reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.xp_history ADD CONSTRAINT xp_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.user_levels ADD CONSTRAINT user_levels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.user_badges ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
--- Re-add foreign key constraints referencing accounts(id) or categories(id)
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_to_account_id_fkey FOREIGN KEY (to_account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
-ALTER TABLE public.budgets ADD CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
-ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
-ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
-ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
-ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
-
--- 3. Re-create RLS policies on profiles, accounts, and categories
-CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (auth.uid() = user_id);
-
-CREATE POLICY "categories_select_own_or_global" ON public.categories FOR SELECT USING (user_id IS NULL OR auth.uid() = user_id);
-CREATE POLICY "categories_insert_update_delete_own" ON public.categories FOR ALL USING (auth.uid() = user_id);
