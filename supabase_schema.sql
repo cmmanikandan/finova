@@ -682,11 +682,12 @@ ALTER TABLE public.planner_statistics ADD CONSTRAINT planner_statistics_user_id_
 -- ============================================================
 -- ─── SYSTEM MIGRATION: CONVERT ID & REFERENCE COLUMNS TO TEXT ───
 -- ============================================================
--- COPY AND PASTE THIS ENTIRE SECTION INTO THE SUPABASE SQL EDITOR AND RUN IT
--- TO CONVERT COLUMNS FROM UUID TO TEXT SAFELY BY RESOLVING POLICY DEPENDENCIES.
+-- RUN THIS MIGRATION IN TWO SEPARATE STEPS IN THE SUPABASE SQL EDITOR.
 -- ============================================================
 
--- 1. Drop all RLS policies dynamically across the entire public schema
+-- ─── STEP 1: DROP ALL POLICIES AND FOREIGN KEYS DYNAMICALLY ───
+-- Copy and run ONLY this block first:
+
 DO $$
 DECLARE
     pol RECORD;
@@ -700,40 +701,25 @@ BEGIN
     END LOOP;
 END $$;
 
--- 2. Drop foreign key constraints referencing profiles(id)
-ALTER TABLE IF EXISTS public.accounts DROP CONSTRAINT IF EXISTS accounts_user_id_fkey;
-ALTER TABLE IF EXISTS public.categories DROP CONSTRAINT IF EXISTS categories_user_id_fkey;
-ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_user_id_fkey;
-ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_user_id_fkey;
-ALTER TABLE IF EXISTS public.goals DROP CONSTRAINT IF EXISTS goals_user_id_fkey;
-ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_user_id_fkey;
-ALTER TABLE IF EXISTS public.debts DROP CONSTRAINT IF EXISTS debts_user_id_fkey;
-ALTER TABLE IF EXISTS public.challenges DROP CONSTRAINT IF EXISTS challenges_user_id_fkey;
-ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_user_id_fkey;
-ALTER TABLE IF EXISTS public.streaks DROP CONSTRAINT IF EXISTS streaks_user_id_fkey;
-ALTER TABLE IF EXISTS public.settings DROP CONSTRAINT IF EXISTS settings_user_id_fkey;
+DO $$
+DECLARE
+    fk RECORD;
+BEGIN
+    FOR fk IN 
+        SELECT tc.constraint_name, tc.table_name 
+        FROM information_schema.table_constraints tc 
+        WHERE tc.constraint_type = 'FOREIGN KEY' 
+          AND tc.table_schema = 'public'
+    LOOP
+        EXECUTE format('ALTER TABLE public.%I DROP CONSTRAINT IF EXISTS %I', fk.table_name, fk.constraint_name);
+    END LOOP;
+END $$;
 
-ALTER TABLE IF EXISTS public.daily_tasks DROP CONSTRAINT IF EXISTS daily_tasks_user_id_fkey;
-ALTER TABLE IF EXISTS public.daily_task_logs DROP CONSTRAINT IF EXISTS daily_task_logs_user_id_fkey;
-ALTER TABLE IF EXISTS public.planner_schedule DROP CONSTRAINT IF EXISTS planner_schedule_user_id_fkey;
-ALTER TABLE IF EXISTS public.planner_reminders DROP CONSTRAINT IF EXISTS planner_reminders_user_id_fkey;
-ALTER TABLE IF EXISTS public.xp_history DROP CONSTRAINT IF EXISTS xp_history_user_id_fkey;
-ALTER TABLE IF EXISTS public.user_levels DROP CONSTRAINT IF EXISTS user_levels_user_id_fkey;
-ALTER TABLE IF EXISTS public.user_badges DROP CONSTRAINT IF EXISTS user_badges_user_id_fkey;
-ALTER TABLE IF EXISTS public.planner_statistics DROP CONSTRAINT IF EXISTS planner_statistics_user_id_fkey;
 
--- Drop foreign key constraints referencing accounts(id) or categories(id)
-ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_account_id_fkey;
-ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_to_account_id_fkey;
-ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_category_id_fkey;
-ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_category_id_fkey;
-ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_category_id_fkey;
-ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_account_id_fkey;
-ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_category_id_fkey;
-ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_account_id_fkey;
+-- ─── STEP 2: CONVERT COLUMN TYPES AND RECREATE EVERYTHING ───
+-- Copy and run ONLY this block next (once Step 1 succeeds):
 
--- 3. Alter profiles.id type to TEXT
-ALTER TABLE IF EXISTS public.profiles DROP CONSTRAINT IF EXISTS profiles_id_fkey;
+-- 1. Alter profiles.id type to TEXT
 ALTER TABLE public.profiles ALTER COLUMN id TYPE TEXT;
 
 -- Alter other tables' user_id type to TEXT
@@ -771,7 +757,7 @@ ALTER TABLE public.recurring_transactions ALTER COLUMN account_id TYPE TEXT;
 ALTER TABLE public.split_bills ALTER COLUMN category_id TYPE TEXT;
 ALTER TABLE public.split_bills ALTER COLUMN account_id TYPE TEXT;
 
--- 4. Re-add foreign key constraints referencing profiles(id)
+-- 2. Re-add foreign key constraints referencing profiles(id)
 ALTER TABLE public.accounts ADD CONSTRAINT accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.categories ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
@@ -803,7 +789,7 @@ ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_
 ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
 ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
--- 5. Re-create RLS policies on profiles, accounts, and categories
+-- 3. Re-create RLS policies on profiles, accounts, and categories
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
