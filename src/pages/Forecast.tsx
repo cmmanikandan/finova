@@ -291,7 +291,7 @@ const Forecast: React.FC = () => {
             <AlertTriangle size={24} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <h4 style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 700 }}>Projected Cash Deficit!</h4>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
                 At your current daily spending velocity of <strong>₹{Math.round(velocity).toLocaleString()}/day</strong> and upcoming recurring bills, you are projected to run out of money on <strong>{deficitDate}</strong>.
               </p>
             </div>
@@ -314,7 +314,7 @@ const Forecast: React.FC = () => {
             <ShieldCheck size={24} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <h4 style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 700 }}>Cashflow is Healthy</h4>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
                 Great! Based on your current habits, your account balance is projected to remain positive over the next 90 days.
               </p>
             </div>

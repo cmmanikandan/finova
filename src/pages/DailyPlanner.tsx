@@ -288,6 +288,241 @@ const DailyPlanner: React.FC = () => {
     { name: '30 Day Streak', desc: 'Hold a 30 day completion streak', icon: '👑', goal: 30 },
   ];
 
+  if (isFormOpen) {
+    return (
+      <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        {/* Sticky Header */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          background: 'var(--color-card)',
+          borderBottom: '1px solid var(--color-border)',
+          padding: '16px',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          paddingTop: 'calc(16px + env(safe-area-inset-top))',
+        }}>
+          <button
+            onClick={() => setIsFormOpen(false)}
+            style={{
+              background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '12px',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <h2 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.2px' }}>
+            {editingTask ? 'Modify Routine' : 'Add Routine Habit'}
+          </h2>
+        </div>
+
+        {/* Scrollable Form Container */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 120px' }}>
+          <form onSubmit={handleSaveTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
+            {/* Title field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Habit Routine Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Morning Tea & Snacks"
+                value={formTitle}
+                onChange={e => setFormTitle(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600
+                }}
+              />
+            </div>
+
+            {/* Row Icon + Category select */}
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Emoji Icon</label>
+                <input
+                  type="text"
+                  maxLength={2}
+                  value={formIcon}
+                  onChange={e => setFormIcon(e.target.value)}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-card)',
+                    color: 'var(--color-text)',
+                    fontSize: '1rem',
+                    textAlign: 'center',
+                    fontWeight: 600
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Link spending Category</label>
+                <select
+                  value={formCategory}
+                  onChange={e => setFormCategory(e.target.value)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-card)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="custom">No category (General activity)</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id.split('_')[0]}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Budget limit field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Optional budget limit (₹)</label>
+              <input
+                type="number"
+                value={formBudgetLimit}
+                onChange={e => setFormBudgetLimit(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600
+                }}
+              />
+            </div>
+
+            {/* Row Priority + Schedule select */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Routine Priority</label>
+                <select
+                  value={formPriority}
+                  onChange={e => setFormPriority(e.target.value as any)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-card)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="low">Low (General)</option>
+                  <option value="medium">Medium (Standard)</option>
+                  <option value="high">High (Critical)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Repeats</label>
+                <select
+                  value={formSchedule}
+                  onChange={e => setFormSchedule(e.target.value as any)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-card)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekends">Weekends</option>
+                  <option value="custom">Custom weekday</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Reminder time input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Reminder Alert Time</label>
+              <input
+                type="text"
+                placeholder="e.g. 08:30 AM"
+                value={formReminder}
+                onChange={e => setFormReminder(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600
+                }}
+              />
+            </div>
+
+            {/* Notes field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Coaching Notes</label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Keep expenses under ₹40 to secure budget bonuses!"
+                value={formNotes}
+                onChange={e => setFormNotes(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-card)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  resize: 'none',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                padding: '14px',
+                borderRadius: '14px',
+                border: 'none',
+                fontSize: '0.9375rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-elevated)',
+                marginTop: '10px'
+              }}
+            >
+              Confirm and Save Routine
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
       {/* Sticky header */}
@@ -1038,233 +1273,7 @@ const DailyPlanner: React.FC = () => {
 
       </div>
 
-      {/* CREATE/EDIT DIALOG SHEET */}
-      {isFormOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.4)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'flex-end',
-        }}>
-          {/* backdrop click */}
-          <div onClick={() => setIsFormOpen(false)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
 
-          <form onSubmit={handleSaveTask} className="slide-up" style={{
-            position: 'relative',
-            background: 'var(--color-card)',
-            borderTopLeftRadius: '28px',
-            borderTopRightRadius: '28px',
-            width: '100%',
-            padding: '24px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            zIndex: 1001,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            borderTop: '1px solid var(--color-border)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                {editingTask ? 'Modify Routine' : 'Add Routine Habit'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.25rem', fontWeight: 700, cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Title field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Habit Routine Title</label>
-              <input
-                type="text"
-                placeholder="e.g. Morning Tea & Snacks"
-                value={formTitle}
-                onChange={e => setFormTitle(e.target.value)}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg)',
-                  color: 'var(--color-text)',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
-
-            {/* Row Icon + Category select */}
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Emoji Icon</label>
-                <input
-                  type="text"
-                  maxLength={2}
-                  value={formIcon}
-                  onChange={e => setFormIcon(e.target.value)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontSize: '1rem',
-                    textAlign: 'center',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Link spending Category</label>
-                <select
-                  value={formCategory}
-                  onChange={e => setFormCategory(e.target.value)}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.8125rem',
-                  }}
-                >
-                  <option value="custom">No category (General activity)</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id.split('_')[0]}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Budget limit field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Optional budget limit (₹)</label>
-              <input
-                type="number"
-                value={formBudgetLimit}
-                onChange={e => setFormBudgetLimit(e.target.value)}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg)',
-                  color: 'var(--color-text)',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
-
-            {/* Row Priority + Schedule select */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Routine Priority</label>
-                <select
-                  value={formPriority}
-                  onChange={e => setFormPriority(e.target.value as any)}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.8125rem',
-                  }}
-                >
-                  <option value="low">Low (General)</option>
-                  <option value="medium">Medium (Standard)</option>
-                  <option value="high">High (Critical)</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Repeats</label>
-                <select
-                  value={formSchedule}
-                  onChange={e => setFormSchedule(e.target.value as any)}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.8125rem',
-                  }}
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekdays">Weekdays</option>
-                  <option value="weekends">Weekends</option>
-                  <option value="custom">Custom weekday</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Reminder time input */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Reminder Alert Time</label>
-              <input
-                type="text"
-                placeholder="e.g. 08:30 AM"
-                value={formReminder}
-                onChange={e => setFormReminder(e.target.value)}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg)',
-                  color: 'var(--color-text)',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
-
-            {/* Notes field */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Coaching Notes</label>
-              <textarea
-                rows={2}
-                placeholder="e.g. Keep expenses under ₹40 to secure budget bonuses!"
-                value={formNotes}
-                onChange={e => setFormNotes(e.target.value)}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--color-border)',
-                  background: 'var(--color-bg)',
-                  color: 'var(--color-text)',
-                  fontSize: '0.875rem',
-                  resize: 'none',
-                }}
-              />
-            </div>
-
-            <button
-              type="submit"
-              style={{
-                background: 'var(--color-primary)',
-                color: '#fff',
-                padding: '14px',
-                borderRadius: '14px',
-                border: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-elevated)',
-                marginTop: '10px'
-              }}
-            >
-              Confirm and Save Routine
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* Floating Action Button */}
       <button

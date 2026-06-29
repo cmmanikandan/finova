@@ -1433,11 +1433,10 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
 
       </div>
 
-      {recurringList.length > 0 && (
-        <button className="fab" onClick={startAdd} aria-label="Add Recurring" style={{ bottom: '24px' }}>
-          <Plus size={28} strokeWidth={2.5} />
-        </button>
-      )}
+      {/* FAB to Add Custom Recurring Bill */}
+      <button className="fab" onClick={startAdd} aria-label="Add Recurring" style={{ bottom: '24px' }}>
+        <Plus size={28} strokeWidth={2.5} />
+      </button>
     </div>
   );
 };
