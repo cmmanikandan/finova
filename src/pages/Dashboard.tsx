@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import {
   Plus, ArrowUpRight, ArrowDownLeft, ArrowLeftRight, Target,
   ChevronRight, TrendingUp, TrendingDown, Eye, EyeOff, Zap, AlertTriangle,
-  Handshake, Scale, Download, Trophy, Users, LineChart
+  Handshake, Scale, Download, Trophy, Users, LineChart, Flame, Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -66,11 +66,63 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onInstallPWA }) => {
-  const { user, categories, settings, refresh } = useApp();
+  const {
+    user, categories, settings, refresh,
+    dailyTasks, dailyTaskLogs, plannerSchedules, userLevel, streakData
+  } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(() => {
     return localStorage.getItem('finova_hide_balance') === 'true';
   });
+
+  // Daily Planner widget calculations
+  const todayWeekday = new Date().getDay();
+  const todaySchedule = useMemo(() => {
+    return plannerSchedules.find(s => s.dayOfWeek === todayWeekday);
+  }, [plannerSchedules, todayWeekday]);
+
+  const todayTasks = useMemo(() => {
+    if (!todaySchedule) return [];
+    return dailyTasks.filter(t => todaySchedule.taskIds.includes(t.id));
+  }, [dailyTasks, todaySchedule]);
+
+  const todayLogsMap = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const logs = dailyTaskLogs.filter(l => l.date === todayStr);
+    const map: Record<string, any> = {};
+    logs.forEach(l => {
+      map[l.taskId] = l;
+    });
+    return map;
+  }, [dailyTaskLogs]);
+
+  const plannerCompletionPct = useMemo(() => {
+    if (todayTasks.length === 0) return 0;
+    let completedCount = 0;
+    todayTasks.forEach(t => {
+      const log = todayLogsMap[t.id];
+      if (log && log.status === 'completed') completedCount++;
+    });
+    return Math.round((completedCount / todayTasks.length) * 100);
+  }, [todayTasks, todayLogsMap]);
+
+  const nextPendingTask = useMemo(() => {
+    return todayTasks.find(t => {
+      const log = todayLogsMap[t.id];
+      return !log || log.status === 'pending';
+    });
+  }, [todayTasks, todayLogsMap]);
+
+  const handleQuickComplete = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      await db.setTaskStatus(taskId, todayStr, 'completed', 0);
+      refresh();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const toggleHideBalance = () => {
     setHideBalance(prev => {
@@ -541,6 +593,122 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
             </button>
           </div>
         )}
+
+        {/* Daily Planner Home Widget */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <div
+            onClick={() => navigate('/planner')}
+            className="card-elevated"
+            style={{
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '20px',
+              padding: '16px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: 'rgba(37,99,235,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-primary)'
+                }}>
+                  <Target size={16} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>Today's Planner Progress</div>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Lvl {userLevel.currentLevel} • {userLevel.currentXP} XP</div>
+                </div>
+              </div>
+
+              {streakData.plannerCurrentStreak ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(234,88,12,0.1)', padding: '4px 8px', borderRadius: '10px', color: '#EA580C', fontSize: '0.6875rem', fontWeight: 800 }}>
+                  <Flame size={12} fill="#EA580C" stroke="none" />
+                  <span>{streakData.plannerCurrentStreak}d Streak</span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Completion Rate indicator row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+                  <span>Routines completion</span>
+                  <span>{plannerCompletionPct}%</span>
+                </div>
+                <div style={{ height: '6px', background: 'var(--color-border)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    background: 'linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%)',
+                    width: `${plannerCompletionPct}%`,
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Next task shortcut */}
+            {nextPendingTask ? (
+              <div style={{
+                background: 'var(--color-card)',
+                borderRadius: '12px',
+                border: '1px solid var(--color-border)',
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.125rem' }}>{nextPendingTask.icon}</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text)' }}>Next Up: {nextPendingTask.title}</div>
+                    {nextPendingTask.reminderTime && (
+                      <div style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>⏰ {nextPendingTask.reminderTime}</div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={(e) => handleQuickComplete(e, nextPendingTask.id)}
+                  style={{
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '4px 8px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Check size={12} /> Complete
+                </button>
+              </div>
+            ) : todayTasks.length > 0 ? (
+              <div style={{ fontSize: '0.75rem', color: '#22C55E', fontWeight: 800, textAlign: 'center', padding: '4px' }}>
+                🎉 Great job! You have checked off all routines for today!
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 650, textAlign: 'center', padding: '4px' }}>
+                💡 Click to build your schedule and earn bonus XP!
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* 3. Quick Actions */}
         <p className="section-header">Quick Actions</p>

@@ -105,6 +105,9 @@ export interface StreakData {
   lastFailedDay?: string;        // YYYY-MM-DD
   lastMilestoneClaimed?: number; // e.g. 3, 7, 15, 30, 50, 100, 365
   lastNotificationShownDate?: string; // YYYY-MM-DD
+  plannerCurrentStreak?: number;
+  plannerBestStreak?: number;
+  plannerLastActiveDate?: string; // YYYY-MM-DD
 }
 
 export interface RecurringTransaction {
@@ -171,4 +174,79 @@ export interface SplitBillItem {
   upiId: string;
   receiverName: string;
   status: 'pending' | 'completed';
+}
+
+export interface DailyTask {
+  id: string;
+  title: string;
+  description?: string;
+  icon: string;
+  color: string;
+  category: string;
+  budgetLimit: number;
+  reminderTime?: string; // '08:00 AM'
+  repeatSchedule: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'weekdays' | 'weekends' | 'custom';
+  priority: 'low' | 'medium' | 'high';
+  estimatedDuration?: number; // in minutes
+  notes?: string;
+  location?: string;
+  notificationsEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DailyTaskLog {
+  id: string;
+  taskId: string;
+  date: string; // YYYY-MM-DD
+  status: 'pending' | 'completed' | 'skipped' | 'missed';
+  completedAt?: string; // ISO string
+  spentAmount: number;
+  xpEarned: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PlannerSchedule {
+  id: string;
+  dayOfWeek: number; // 0 (Sun) - 6 (Sat)
+  taskIds: string[];
+}
+
+export interface PlannerReminder {
+  id: string;
+  title: string;
+  time: string; // '08:00 AM'
+  days: number[]; // [0, 1, 2...]
+  isEnabled: boolean;
+}
+
+export interface XPHistory {
+  id: string;
+  amount: number;
+  reason: string;
+  referenceId?: string;
+  createdAt: string;
+}
+
+export interface UserLevel {
+  currentLevel: number;
+  currentXP: number;
+  updatedAt?: string;
+}
+
+export interface UserBadge {
+  id: string;
+  badgeName: string;
+  unlockedAt: string;
+}
+
+export interface PlannerStatistics {
+  id: string;
+  date: string; // YYYY-MM-DD
+  tasksCompleted: number;
+  tasksTotal: number;
+  budgetLimit: number;
+  budgetSpent: number;
+  xpEarned: number;
 }

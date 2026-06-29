@@ -5,6 +5,8 @@ import type {
   Transaction, Budget, Goal, Account, Category,
   AppSettings, LimitStatus, StreakData, RecurringTransaction,
   Debt, Challenge, SplitBillItem,
+  DailyTask, DailyTaskLog, PlannerSchedule, PlannerReminder,
+  XPHistory, UserLevel, UserBadge, PlannerStatistics
 } from '../types';
 import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_SETTINGS } from '../data/defaults';
 import { v4 as uuidv4 } from '../utils/uuid';
@@ -22,12 +24,20 @@ let _goals: Goal[] = [];
 let _accounts: Account[] = [];
 let _categories: Category[] = [];
 let _settings: AppSettings = { ...DEFAULT_SETTINGS };
-let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+let _streakData: StreakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' };
 let _recurring: RecurringTransaction[] = [];
 let _debts: Debt[] = [];
 let _challenges: Challenge[] = [];
 let _splitBills: SplitBillItem[] = [];
 
+let _dailyTasks: DailyTask[] = [];
+let _dailyTaskLogs: DailyTaskLog[] = [];
+let _plannerSchedules: PlannerSchedule[] = [];
+let _plannerReminders: PlannerReminder[] = [];
+let _xpHistory: XPHistory[] = [];
+let _userLevels: UserLevel = { currentLevel: 1, currentXP: 0 };
+let _userBadges: UserBadge[] = [];
+let _plannerStatistics: PlannerStatistics[] = [];
 
 // Clear all in-memory state when user changes (never reads from localStorage)
 export function setUserIdForCache(_uid: string | null) {
@@ -37,11 +47,19 @@ export function setUserIdForCache(_uid: string | null) {
   _accounts = [];
   _categories = [];
   _settings = { ...DEFAULT_SETTINGS };
-  _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' };
+  _streakData = { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' };
   _recurring = [];
   _debts = [];
   _challenges = [];
   _splitBills = [];
+  _dailyTasks = [];
+  _dailyTaskLogs = [];
+  _plannerSchedules = [];
+  _plannerReminders = [];
+  _xpHistory = [];
+  _userLevels = { currentLevel: 1, currentXP: 0 };
+  _userBadges = [];
+  _plannerStatistics = [];
 }
 
 // ─── Write listener registration ──────────────────────────────────────────────
@@ -238,6 +256,9 @@ function mapStreakToDb(s: StreakData): any {
     last_failed_day: s.lastFailedDay || null,
     last_milestone_claimed: s.lastMilestoneClaimed || null,
     last_notification_shown_date: s.lastNotificationShownDate || null,
+    planner_current_streak: s.plannerCurrentStreak || 0,
+    planner_best_streak: s.plannerBestStreak || 0,
+    planner_last_active_date: s.plannerLastActiveDate || null,
   };
 }
 
@@ -250,6 +271,9 @@ function mapStreakFromDb(row: any): StreakData {
     lastFailedDay: row.last_failed_day || undefined,
     lastMilestoneClaimed: row.last_milestone_claimed || undefined,
     lastNotificationShownDate: row.last_notification_shown_date || undefined,
+    plannerCurrentStreak: row.planner_current_streak || 0,
+    plannerBestStreak: row.planner_best_streak || 0,
+    plannerLastActiveDate: row.planner_last_active_date || undefined,
   };
 }
 
@@ -376,6 +400,178 @@ function mapSplitBillFromDb(row: any): SplitBillItem {
   };
 }
 
+function mapDailyTaskToDb(t: DailyTask): any {
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description || null,
+    icon: t.icon,
+    color: t.color,
+    category: t.category,
+    budget_limit: t.budgetLimit,
+    reminder_time: t.reminderTime || null,
+    repeat_schedule: t.repeatSchedule,
+    priority: t.priority,
+    estimated_duration: t.estimatedDuration || null,
+    notes: t.notes || null,
+    location: t.location || null,
+    notifications_enabled: t.notificationsEnabled,
+  };
+}
+
+function mapDailyTaskFromDb(row: any): DailyTask {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description || undefined,
+    icon: row.icon,
+    color: row.color,
+    category: row.category,
+    budgetLimit: Number(row.budget_limit || 0),
+    reminderTime: row.reminder_time || undefined,
+    repeatSchedule: row.repeat_schedule,
+    priority: row.priority,
+    estimatedDuration: row.estimated_duration ? Number(row.estimated_duration) : undefined,
+    notes: row.notes || undefined,
+    location: row.location || undefined,
+    notificationsEnabled: row.notifications_enabled,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapDailyTaskLogToDb(l: DailyTaskLog): any {
+  return {
+    id: l.id,
+    task_id: l.taskId,
+    date: l.date,
+    status: l.status,
+    completed_at: l.completedAt || null,
+    spent_amount: l.spentAmount,
+    xp_earned: l.xpEarned,
+  };
+}
+
+function mapDailyTaskLogFromDb(row: any): DailyTaskLog {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    date: row.date,
+    status: row.status,
+    completedAt: row.completed_at || undefined,
+    spentAmount: Number(row.spent_amount || 0),
+    xpEarned: Number(row.xp_earned || 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapPlannerScheduleToDb(s: PlannerSchedule): any {
+  return {
+    id: s.id,
+    day_of_week: s.dayOfWeek,
+    task_ids: s.taskIds,
+  };
+}
+
+function mapPlannerScheduleFromDb(row: any): PlannerSchedule {
+  return {
+    id: row.id,
+    dayOfWeek: Number(row.day_of_week),
+    taskIds: row.task_ids || [],
+  };
+}
+
+function mapPlannerReminderToDb(r: PlannerReminder): any {
+  return {
+    id: r.id,
+    title: r.title,
+    time: r.time,
+    days: r.days,
+    is_enabled: r.isEnabled,
+  };
+}
+
+function mapPlannerReminderFromDb(row: any): PlannerReminder {
+  return {
+    id: row.id,
+    title: row.title,
+    time: row.time,
+    days: row.days || [],
+    isEnabled: row.is_enabled,
+  };
+}
+
+function mapXPHistoryToDb(x: XPHistory): any {
+  return {
+    id: x.id,
+    amount: x.amount,
+    reason: x.reason,
+    reference_id: x.referenceId || null,
+  };
+}
+
+function mapXPHistoryFromDb(row: any): XPHistory {
+  return {
+    id: row.id,
+    amount: Number(row.amount),
+    reason: row.reason,
+    referenceId: row.reference_id || undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function mapUserLevelToDb(l: UserLevel): any {
+  return {
+    current_level: l.currentLevel,
+    current_xp: l.currentXP,
+  };
+}
+
+function mapUserLevelFromDb(row: any): UserLevel {
+  return {
+    currentLevel: Number(row.current_level || 1),
+    currentXP: Number(row.current_xp || 0),
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapUserBadgeToDb(b: UserBadge): any {
+  return {
+    id: b.id,
+    badge_name: b.badgeName,
+    unlocked_at: b.unlockedAt,
+  };
+}
+
+function mapUserBadgeFromDb(row: any): UserBadge {
+  return {
+    id: row.id,
+    badgeName: row.badge_name,
+    unlockedAt: row.unlocked_at,
+  };
+}
+
+function mapPlannerStatisticsFromDb(row: any): PlannerStatistics {
+  return {
+    id: row.id,
+    date: row.date,
+    tasksCompleted: Number(row.tasks_completed || 0),
+    tasksTotal: Number(row.tasks_total || 0),
+    budgetLimit: Number(row.budget_limit || 0),
+    budgetSpent: Number(row.budget_spent || 0),
+    xpEarned: Number(row.xp_earned || 0),
+  };
+}
+
+async function autoProvisionUserLevel(uid: string) {
+  if (!isSupabaseConfigured || !supabase) return;
+  const { error } = await supabase
+    .from('user_levels')
+    .insert({ user_id: uid, current_level: 1, current_xp: 0 });
+  if (error) console.error('Failed to auto-provision user level:', error);
+}
+
 // ─── Sync provisioning on new user ──────────────────────────────────────────
 // Creates default accounts/categories/settings/streak in Supabase on first login.
 
@@ -447,6 +643,7 @@ export async function pullAllFromSupabase(): Promise<void> {
   const [
     txnsRes, budgetsRes, goalsRes, accountsRes, catsRes,
     settingsRes, streaksRes, recRes, debtsRes, challengesRes, splitBillsRes,
+    tasksRes, logsRes, schedulesRes, remindersRes, xpRes, levelsRes, badgesRes, statsRes
   ] = await Promise.all([
     supabase.from('transactions').select('*').eq('user_id', uid).order('date', { ascending: false }),
     supabase.from('budgets').select('*').eq('user_id', uid),
@@ -459,6 +656,14 @@ export async function pullAllFromSupabase(): Promise<void> {
     supabase.from('debts').select('*').eq('user_id', uid),
     supabase.from('challenges').select('*').eq('user_id', uid),
     supabase.from('split_bills').select('*').eq('user_id', uid),
+    supabase.from('daily_tasks').select('*').eq('user_id', uid),
+    supabase.from('daily_task_logs').select('*').eq('user_id', uid),
+    supabase.from('planner_schedule').select('*').eq('user_id', uid),
+    supabase.from('planner_reminders').select('*').eq('user_id', uid),
+    supabase.from('xp_history').select('*').eq('user_id', uid).order('created_at', { ascending: false }),
+    supabase.from('user_levels').select('*').eq('user_id', uid).maybeSingle(),
+    supabase.from('user_badges').select('*').eq('user_id', uid),
+    supabase.from('planner_statistics').select('*').eq('user_id', uid),
   ]);
 
   // Populate in-memory state from Supabase responses only
@@ -507,6 +712,33 @@ export async function pullAllFromSupabase(): Promise<void> {
   }
   if (splitBillsRes.data) {
     _splitBills = splitBillsRes.data.map(mapSplitBillFromDb);
+  }
+
+  if (tasksRes.data) {
+    _dailyTasks = tasksRes.data.map(mapDailyTaskFromDb);
+  }
+  if (logsRes.data) {
+    _dailyTaskLogs = logsRes.data.map(mapDailyTaskLogFromDb);
+  }
+  if (schedulesRes.data) {
+    _plannerSchedules = schedulesRes.data.map(mapPlannerScheduleFromDb);
+  }
+  if (remindersRes.data) {
+    _plannerReminders = remindersRes.data.map(mapPlannerReminderFromDb);
+  }
+  if (xpRes.data) {
+    _xpHistory = xpRes.data.map(mapXPHistoryFromDb);
+  }
+  if (levelsRes.data) {
+    _userLevels = mapUserLevelFromDb(levelsRes.data);
+  } else {
+    await autoProvisionUserLevel(uid);
+  }
+  if (badgesRes.data) {
+    _userBadges = badgesRes.data.map(mapUserBadgeFromDb);
+  }
+  if (statsRes.data) {
+    _plannerStatistics = statsRes.data.map(mapPlannerStatisticsFromDb);
   }
 }
 
@@ -604,6 +836,8 @@ export async function addTransaction(data: Omit<Transaction, 'id' | 'createdAt'>
   // 3. Update budget spent if it's an expense
   if (data.type === 'expense') {
     await updateBudgetSpent(data.category, data.amount, data.date);
+    const dateStr = data.date.split('T')[0];
+    await recalculateTaskBudgetSpent(data.category, dateStr);
   }
 
   // 4. Update in-memory state only after all Supabase writes succeed
@@ -646,6 +880,8 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
 
   if (old.type === 'expense') {
     await reverseBudgetSpent(old.category, old.amount, old.date);
+    const oldDateStr = old.date.split('T')[0];
+    await recalculateTaskBudgetSpent(old.category, oldDateStr);
   }
 
   const updated: Transaction = { ...old, ...data };
@@ -679,6 +915,8 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
 
   if (updated.type === 'expense') {
     await updateBudgetSpent(updated.category, updated.amount, updated.date);
+    const newDateStr = updated.date.split('T')[0];
+    await recalculateTaskBudgetSpent(updated.category, newDateStr);
   }
 
   notifyWrite();
@@ -719,6 +957,8 @@ export async function deleteTransaction(id: string): Promise<void> {
 
   if (txn.type === 'expense') {
     await reverseBudgetSpent(txn.category, txn.amount, txn.date);
+    const dateStr = txn.date.split('T')[0];
+    await recalculateTaskBudgetSpent(txn.category, dateStr);
   }
 
   // Update memory only after successful Supabase delete
@@ -1651,6 +1891,14 @@ export async function clearAllData(): Promise<void> {
           supabase.from('categories').delete().eq('user_id', uid),
           supabase.from('settings').delete().eq('user_id', uid),
           supabase.from('streaks').delete().eq('user_id', uid),
+          supabase.from('daily_tasks').delete().eq('user_id', uid),
+          supabase.from('daily_task_logs').delete().eq('user_id', uid),
+          supabase.from('planner_schedule').delete().eq('user_id', uid),
+          supabase.from('planner_reminders').delete().eq('user_id', uid),
+          supabase.from('xp_history').delete().eq('user_id', uid),
+          supabase.from('user_levels').delete().eq('user_id', uid),
+          supabase.from('user_badges').delete().eq('user_id', uid),
+          supabase.from('planner_statistics').delete().eq('user_id', uid),
         ]);
         // Re-provision defaults in database
         await Promise.all([
@@ -1660,11 +1908,12 @@ export async function clearAllData(): Promise<void> {
           supabase
             .from('streaks')
             .insert({
-              ...mapStreakToDb({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' }),
+              ...mapStreakToDb({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' }),
               user_id: uid,
             }),
           autoProvisionAccounts(uid),
           autoProvisionCategories(uid),
+          autoProvisionUserLevel(uid),
         ]);
       } catch (err) {
         console.error('Failed to clear Supabase user data:', err);
@@ -1674,3 +1923,638 @@ export async function clearAllData(): Promise<void> {
 
   notifyWrite();
 }
+
+// ─── Daily Planner & Habit Tracker V2 CRUD and Engine ───────────────────────
+
+export function getDailyTasks(): DailyTask[] {
+  return _dailyTasks;
+}
+
+export async function addDailyTask(data: Omit<DailyTask, 'id'>): Promise<DailyTask> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add daily task.');
+  }
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const task: DailyTask = {
+    ...data,
+    id: uuidv4(),
+  };
+
+  const { error } = await supabase
+    .from('daily_tasks')
+    .insert({ ...mapDailyTaskToDb(task), user_id: uid });
+  if (error) throw error;
+
+  _dailyTasks.push(task);
+  notifyWrite();
+  return task;
+}
+
+export async function updateDailyTask(id: string, data: Partial<DailyTask>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update daily task.');
+  }
+
+  const idx = _dailyTasks.findIndex(t => t.id === id);
+  if (idx === -1) return;
+
+  const nextTask = { ..._dailyTasks[idx], ...data };
+  const { error } = await supabase
+    .from('daily_tasks')
+    .update(mapDailyTaskToDb(nextTask))
+    .eq('id', id);
+  if (error) throw error;
+
+  _dailyTasks[idx] = nextTask;
+  notifyWrite();
+}
+
+export async function deleteDailyTask(id: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete daily task.');
+  }
+
+  const { error } = await supabase.from('daily_tasks').delete().eq('id', id);
+  if (error) throw error;
+
+  _dailyTasks = _dailyTasks.filter(t => t.id !== id);
+  _dailyTaskLogs = _dailyTaskLogs.filter(l => l.taskId !== id);
+  
+  _plannerSchedules = _plannerSchedules.map(sch => ({
+    ...sch,
+    taskIds: sch.taskIds.filter(tid => tid !== id),
+  }));
+
+  notifyWrite();
+}
+
+// ─── Daily Task Logs (Execution Checks) ──────────────────────────────────────
+
+export function getDailyTaskLogs(dateStr: string): DailyTaskLog[] {
+  return _dailyTaskLogs.filter(l => l.date === dateStr);
+}
+
+export function getOrCreateDailyTaskLog(taskId: string, dateStr: string): DailyTaskLog {
+  const existing = _dailyTaskLogs.find(l => l.taskId === taskId && l.date === dateStr);
+  if (existing) return existing;
+
+  const newLog: DailyTaskLog = {
+    id: uuidv4(),
+    taskId,
+    date: dateStr,
+    status: 'pending',
+    spentAmount: 0,
+    xpEarned: 0,
+  };
+  return newLog;
+}
+
+export async function setTaskStatus(taskId: string, dateStr: string, status: 'pending' | 'completed' | 'skipped' | 'missed', bonusXp = 0): Promise<DailyTaskLog> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update task status.');
+  }
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const task = _dailyTasks.find(t => t.id === taskId);
+  if (!task) throw new Error('Daily task not found.');
+
+  let logIdx = _dailyTaskLogs.findIndex(l => l.taskId === taskId && l.date === dateStr);
+  let log: DailyTaskLog;
+  let isNew = false;
+
+  if (logIdx !== -1) {
+    log = { ..._dailyTaskLogs[logIdx], status, completedAt: status === 'completed' ? new Date().toISOString() : undefined };
+  } else {
+    log = {
+      id: uuidv4(),
+      taskId,
+      date: dateStr,
+      status,
+      spentAmount: 0,
+      xpEarned: 0,
+      completedAt: status === 'completed' ? new Date().toISOString() : undefined
+    };
+    isNew = true;
+  }
+
+  let xpGain = 0;
+  if (status === 'completed') {
+    xpGain += 10;
+    if (bonusXp > 0) xpGain += bonusXp;
+    if (task.budgetLimit > 0 && log.spentAmount <= task.budgetLimit) {
+      xpGain += 25;
+    }
+    log.xpEarned = xpGain;
+  } else {
+    log.xpEarned = 0;
+  }
+
+  if (isNew) {
+    const { error } = await supabase
+      .from('daily_task_logs')
+      .insert({ ...mapDailyTaskLogToDb(log), user_id: uid });
+    if (error) throw error;
+    _dailyTaskLogs.push(log);
+  } else {
+    const { error } = await supabase
+      .from('daily_task_logs')
+      .update(mapDailyTaskLogToDb(log))
+      .eq('id', log.id);
+    if (error) throw error;
+    _dailyTaskLogs[logIdx] = log;
+  }
+
+  if (xpGain > 0) {
+    await addXP(xpGain, `Completed "${task.title}"`);
+  }
+
+  await checkPlannerDailyCompletion(dateStr);
+
+  notifyWrite();
+  return log;
+}
+
+export async function recalculateTaskBudgetSpent(category: string, dateStr: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const tasksWithCategory = _dailyTasks.filter(t => t.category === category);
+  if (tasksWithCategory.length === 0) return;
+
+  const dayTxns = _transactions.filter(t => {
+    const tDateStr = t.date.split('T')[0];
+    return tDateStr === dateStr && t.type === 'expense' && t.category === category;
+  });
+  const totalSpent = dayTxns.reduce((sum, t) => sum + t.amount, 0);
+
+  for (const t of tasksWithCategory) {
+    let logIdx = _dailyTaskLogs.findIndex(l => l.taskId === t.id && l.date === dateStr);
+    if (logIdx !== -1) {
+      const updatedLog = { ..._dailyTaskLogs[logIdx], spentAmount: totalSpent };
+      await supabase.from('daily_task_logs').update({ spent_amount: totalSpent }).eq('id', updatedLog.id);
+      _dailyTaskLogs[logIdx] = updatedLog;
+    } else {
+      const newLog: DailyTaskLog = {
+        id: uuidv4(),
+        taskId: t.id,
+        date: dateStr,
+        status: 'pending',
+        spentAmount: totalSpent,
+        xpEarned: 0,
+      };
+      await supabase.from('daily_task_logs').insert({ ...mapDailyTaskLogToDb(newLog), user_id: uid });
+      _dailyTaskLogs.push(newLog);
+    }
+  }
+  notifyWrite();
+}
+
+// ─── Streak engine ───────────────────────────────────────────────────────────
+
+export async function checkPlannerDailyCompletion(dateStr: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const d = new Date(dateStr);
+  const dayOfWeek = d.getDay();
+  const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+  if (!schedule || schedule.taskIds.length === 0) return;
+
+  const scheduledTasks = _dailyTasks.filter(t => schedule.taskIds.includes(t.id));
+  if (scheduledTasks.length === 0) return;
+
+  const todayLogs = _dailyTaskLogs.filter(l => l.date === dateStr && schedule.taskIds.includes(l.taskId));
+  const completedCount = todayLogs.filter(l => l.status === 'completed').length;
+  
+  if (completedCount === scheduledTasks.length) {
+    const alreadyAwarded = _xpHistory.some(x => x.reason === `Daily Planner Completed` && x.createdAt.split('T')[0] === dateStr);
+    if (!alreadyAwarded) {
+      await addXP(50, `Daily Planner Completed`);
+      
+      let current = _streakData.plannerCurrentStreak || 0;
+      let best = _streakData.plannerBestStreak || 0;
+      const lastActive = _streakData.plannerLastActiveDate;
+      const yesterdayStr = new Date(d.setDate(d.getDate() - 1)).toISOString().split('T')[0];
+
+      if (lastActive === yesterdayStr) {
+        current += 1;
+      } else if (lastActive !== dateStr) {
+        current = 1;
+      }
+
+      if (current > best) {
+        best = current;
+      }
+
+      const nextStreak: StreakData = {
+        ..._streakData,
+        plannerCurrentStreak: current,
+        plannerBestStreak: best,
+        plannerLastActiveDate: dateStr,
+      };
+
+      await supabase.from('streaks').update(mapStreakToDb(nextStreak)).eq('user_id', uid);
+      _streakData = nextStreak;
+
+      if (current === 7) {
+        await addXP(100, `7-Day Streak Milestone`);
+        await unlockBadge('7 Day Streak');
+      } else if (current === 30) {
+        await addXP(500, `30-Day Streak Milestone`);
+        await unlockBadge('30 Day Streak');
+      } else if (current === 100) {
+        await unlockBadge('100 Day Streak');
+      } else if (current === 365) {
+        await addXP(5000, `365-Day Streak Milestone`);
+        await unlockBadge('365 Day Hero');
+      }
+
+      await unlockBadge('Planner Pro');
+    }
+  }
+}
+
+export async function auditStreaksLaunch(): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+  const lastActive = _streakData.plannerLastActiveDate;
+  if (lastActive && lastActive !== todayStr && lastActive !== yesterdayStr) {
+    const nextStreak = {
+      ..._streakData,
+      plannerCurrentStreak: 0,
+    };
+    await supabase.from('streaks').update(mapStreakToDb(nextStreak)).eq('user_id', uid);
+    _streakData = nextStreak;
+    notifyWrite();
+  }
+}
+
+// ─── Weekly Planner Schedule ──────────────────────────────────────────────────
+
+export function getPlannerSchedule(): PlannerSchedule[] {
+  return _plannerSchedules;
+}
+
+export async function savePlannerSchedule(dayOfWeek: number, taskIds: string[]): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot save planner schedule.');
+  }
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const existingIdx = _plannerSchedules.findIndex(s => s.dayOfWeek === dayOfWeek);
+  const payload = {
+    id: existingIdx !== -1 ? _plannerSchedules[existingIdx].id : uuidv4(),
+    dayOfWeek,
+    taskIds,
+  };
+
+  const { error } = await supabase
+    .from('planner_schedule')
+    .upsert({ ...mapPlannerScheduleToDb(payload), user_id: uid });
+  if (error) throw error;
+
+  if (existingIdx !== -1) {
+    _plannerSchedules[existingIdx] = payload;
+  } else {
+    _plannerSchedules.push(payload);
+  }
+  notifyWrite();
+}
+
+export async function copyPlannerSchedule(fromDay: number, toDay: number): Promise<void> {
+  const source = _plannerSchedules.find(s => s.dayOfWeek === fromDay);
+  const taskIds = source ? source.taskIds : [];
+  await savePlannerSchedule(toDay, taskIds);
+}
+
+// ─── Planner Reminders ────────────────────────────────────────────────────────
+
+export function getPlannerReminders(): PlannerReminder[] {
+  return _plannerReminders;
+}
+
+export async function addPlannerReminder(data: Omit<PlannerReminder, 'id'>): Promise<PlannerReminder> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot add planner reminder.');
+  }
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('User is not authenticated.');
+
+  const rem: PlannerReminder = {
+    ...data,
+    id: uuidv4(),
+  };
+
+  const { error } = await supabase
+    .from('planner_reminders')
+    .insert({ ...mapPlannerReminderToDb(rem), user_id: uid });
+  if (error) throw error;
+
+  _plannerReminders.push(rem);
+  notifyWrite();
+  return rem;
+}
+
+export async function updatePlannerReminder(id: string, data: Partial<PlannerReminder>): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot update planner reminder.');
+  }
+
+  const idx = _plannerReminders.findIndex(r => r.id === id);
+  if (idx === -1) return;
+
+  const nextRem = { ..._plannerReminders[idx], ...data };
+  const { error } = await supabase
+    .from('planner_reminders')
+    .update(mapPlannerReminderToDb(nextRem))
+    .eq('id', id);
+  if (error) throw error;
+
+  _plannerReminders[idx] = nextRem;
+  notifyWrite();
+}
+
+export async function deletePlannerReminder(id: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot delete planner reminder.');
+  }
+
+  const { error } = await supabase.from('planner_reminders').delete().eq('id', id);
+  if (error) throw error;
+
+  _plannerReminders = _plannerReminders.filter(r => r.id !== id);
+  notifyWrite();
+}
+
+// ─── XP / Levels System ───────────────────────────────────────────────────────
+
+export function xpToLevel(xp: number): number {
+  if (xp < 250) return 1;
+  if (xp < 600) return 2;
+  if (xp < 1200) return 3;
+  if (xp < 2500) return 4;
+  return 5 + Math.floor((xp - 2500) / 2000);
+}
+
+export function getUserLevel(): UserLevel {
+  return _userLevels;
+}
+
+export function getXPHistory(): XPHistory[] {
+  return _xpHistory;
+}
+
+export async function addXP(amount: number, reason: string, referenceId?: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const xpItem: XPHistory = {
+    id: uuidv4(),
+    amount,
+    reason,
+    referenceId,
+    createdAt: new Date().toISOString(),
+  };
+
+  const { error: xpErr } = await supabase
+    .from('xp_history')
+    .insert({ ...mapXPHistoryToDb(xpItem), user_id: uid });
+  if (xpErr) {
+    console.error('Failed to log XP history:', xpErr);
+    return;
+  }
+
+  _xpHistory.unshift(xpItem);
+
+  const nextXP = _userLevels.currentXP + amount;
+  const nextLevel = xpToLevel(nextXP);
+  
+  const updatedLevelObj: UserLevel = {
+    currentLevel: nextLevel,
+    currentXP: nextXP,
+  };
+
+  const { error: lvlErr } = await supabase
+    .from('user_levels')
+    .update(mapUserLevelToDb(updatedLevelObj))
+    .eq('user_id', uid);
+  
+  if (!lvlErr) {
+    _userLevels = updatedLevelObj;
+  }
+
+  triggerFloatingXPNotification(amount);
+
+  notifyWrite();
+}
+
+function triggerFloatingXPNotification(amount: number) {
+  const event = new CustomEvent('finova_xp_earned', { detail: { amount } });
+  window.dispatchEvent(event);
+}
+
+// ─── Badges Engine ────────────────────────────────────────────────────────────
+
+export function getUserBadges(): UserBadge[] {
+  return _userBadges;
+}
+
+export async function unlockBadge(badgeName: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  const alreadyUnlocked = _userBadges.some(b => b.badgeName === badgeName);
+  if (alreadyUnlocked) return;
+
+  const newBadge: UserBadge = {
+    id: uuidv4(),
+    badgeName,
+    unlockedAt: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('user_badges')
+    .insert({ ...mapUserBadgeToDb(newBadge), user_id: uid });
+  if (error) {
+    console.error('Failed to unlock badge:', error);
+    return;
+  }
+
+  _userBadges.push(newBadge);
+  await addXP(150, `Badge Unlocked: ${badgeName}`);
+
+  const event = new CustomEvent('finova_badge_unlocked', { detail: { badgeName } });
+  window.dispatchEvent(event);
+
+  notifyWrite();
+}
+
+// ─── AI Insights behavioral generator ─────────────────────────────────────────
+
+export function getAISuggestions(): string[] {
+  const suggestions: string[] = [];
+  const txns = _transactions;
+  if (txns.length < 5) {
+    return [
+      "💡 AI Insight: Welcome! Add 5 or more transactions so our smart AI engine can analyze your habits.",
+      "💡 AI Insight: Try setting up a daily limit budget to lock in early streak points."
+    ];
+  }
+
+  const today = new Date();
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(today.getDate() - 7);
+
+  const weekendExpenses = txns.filter(t => {
+    const d = new Date(t.date);
+    const day = d.getDay();
+    return (day === 0 || day === 6) && t.type === 'expense';
+  });
+  const weekdayExpenses = txns.filter(t => {
+    const d = new Date(t.date);
+    const day = d.getDay();
+    return (day >= 1 && day <= 5) && t.type === 'expense';
+  });
+  
+  const avgWeekend = weekendExpenses.reduce((sum, t) => sum + t.amount, 0) / Math.max(1, weekendExpenses.length);
+  const avgWeekday = weekdayExpenses.reduce((sum, t) => sum + t.amount, 0) / Math.max(1, weekdayExpenses.length);
+
+  if (avgWeekend > avgWeekday * 1.4) {
+    suggestions.push(`⚠️ Weekend Overspending: Your average weekend expense (₹${Math.round(avgWeekend)}) is 40%+ higher than weekdays. Consider locking weekend budgets.`);
+  }
+
+  const foodTxns = txns.filter(t => t.category?.toLowerCase().includes('food') || t.category?.toLowerCase().includes('canteen'));
+  const totalFood = foodTxns.reduce((sum, t) => sum + t.amount, 0);
+  if (totalFood > 3000) {
+    const weeklyAvg = Math.round(totalFood / 4);
+    suggestions.push(`🍔 Food & Dining Insight: You spend roughly ₹${weeklyAvg} weekly on dining. Packing lunch twice a week could save you up to ₹1,200/month!`);
+  }
+
+  const currentStreak = _streakData.plannerCurrentStreak || 0;
+  if (currentStreak > 0) {
+    suggestions.push(`🔥 Keep it up! You're on a ${currentStreak} day Daily Planner streak. Finish today's schedule for a level boost!`);
+  } else {
+    suggestions.push(`💡 Planner recommendation: Completing daily routines rewards you with streaks, badges, and up to +50 XP bonuses daily.`);
+  }
+
+  const { income, expense } = getMonthlyStats(today.getFullYear(), today.getMonth());
+  if (income > 0) {
+    const savings = income - expense;
+    const rate = Math.round((savings / income) * 100);
+    if (rate >= 20) {
+      suggestions.push(`📈 Smart Savings Forecast: Great job! Your savings rate is ${rate}%. You are fully on track to achieve your target goals ahead of schedule.`);
+    } else {
+      suggestions.push(`📉 Savings alert: Your savings rate is currently ${rate}%. Trimming subscription services could help push you toward the recommended 20% mark.`);
+    }
+  }
+
+  const subs = _recurring.filter(r => r.active && r.type === 'expense');
+  if (subs.length > 3) {
+    suggestions.push(`⚠️ Recurring Expenses: You have ${subs.length} active subscriptions. Reviewing unused recharges could easily reclaim ₹500/month.`);
+  }
+
+  return suggestions;
+}
+
+// ─── Analytics Aggregator ─────────────────────────────────────────────────────
+
+export interface PlannerAnalytics {
+  completionRates: { name: string; pct: number }[];
+  budgetUsage: { name: string; limit: number; spent: number }[];
+  xpGains: { date: string; xp: number }[];
+}
+
+export function getPlannerAnalytics(): PlannerAnalytics {
+  const dates = Array.from({ length: 7 }).map((_, idx) => {
+    const d = new Date();
+    d.setDate(d.getDate() - idx);
+    return d.toISOString().split('T')[0];
+  }).reverse();
+
+  const completionRates = dates.map(dateStr => {
+    const d = new Date(dateStr);
+    const dayOfWeek = d.getDay();
+    const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+    const scheduledTaskCount = schedule ? schedule.taskIds.length : 0;
+    
+    if (scheduledTaskCount === 0) return { name: d.toLocaleDateString(undefined, { weekday: 'short' }), pct: 0 };
+    
+    const logs = _dailyTaskLogs.filter(l => l.date === dateStr && schedule?.taskIds.includes(l.taskId));
+    const completed = logs.filter(l => l.status === 'completed').length;
+    const pct = Math.round((completed / scheduledTaskCount) * 100);
+    
+    return { name: d.toLocaleDateString(undefined, { weekday: 'short' }), pct };
+  });
+
+  const categoryBudgets: Record<string, { limit: number; spent: number }> = {};
+  _dailyTasks.forEach(task => {
+    if (task.budgetLimit > 0) {
+      if (!categoryBudgets[task.category]) {
+        categoryBudgets[task.category] = { limit: 0, spent: 0 };
+      }
+      categoryBudgets[task.category].limit += task.budgetLimit;
+    }
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  _dailyTaskLogs.filter(l => l.date === todayStr).forEach(log => {
+    const task = _dailyTasks.find(t => t.id === log.taskId);
+    if (task && task.budgetLimit > 0) {
+      if (categoryBudgets[task.category]) {
+        categoryBudgets[task.category].spent += log.spentAmount;
+      }
+    }
+  });
+
+  const budgetUsage = Object.keys(categoryBudgets).map(cat => ({
+    name: cat.charAt(0).toUpperCase() + cat.slice(1),
+    limit: categoryBudgets[cat].limit,
+    spent: categoryBudgets[cat].spent,
+  }));
+
+  const xpGains = dates.map(dateStr => {
+    const dayXP = _xpHistory
+      .filter(x => x.createdAt.split('T')[0] === dateStr)
+      .reduce((sum, x) => sum + x.amount, 0);
+    return {
+      date: new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short' }),
+      xp: dayXP,
+    };
+  });
+
+  return {
+    completionRates,
+    budgetUsage: budgetUsage.length > 0 ? budgetUsage : [{ name: 'None', limit: 100, spent: 0 }],
+    xpGains,
+  };
+}
+
+export function getPlannerStatistics(): PlannerStatistics[] {
+  return _plannerStatistics;
+}
+
+notifyWrite();

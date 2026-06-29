@@ -16,6 +16,7 @@ import DebtTracker from './pages/DebtTracker';
 import Challenges from './pages/Challenges';
 import SplitBill from './pages/SplitBill';
 import Forecast from './pages/Forecast';
+import DailyPlanner from './pages/DailyPlanner';
 import BottomNav from './components/BottomNav';
 import { ScrollRestoration } from './components/ScrollRestoration';
 import { AndroidBackHandler, PageTransitionTracker } from './components/AndroidBackHandler';
@@ -260,6 +261,7 @@ const AppContent: React.FC = () => {
           <Route path="/budgets" element={<Budgets />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/planner" element={<DailyPlanner />} />
           
           {/* Subpages / CRUD */}
           <Route path="/transactions/new" element={<AddTransaction />} />

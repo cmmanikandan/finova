@@ -406,3 +406,198 @@ begin
     end;
   end if;
 end $$;
+
+-- ============================================================
+-- ─── 13. PLANNER & XP TABLES ───────────────────────────────────
+-- ============================================================
+
+-- Add planner streak columns to streaks table
+ALTER TABLE public.streaks ADD COLUMN IF NOT EXISTS planner_current_streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.streaks ADD COLUMN IF NOT EXISTS planner_best_streak    INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.streaks ADD COLUMN IF NOT EXISTS planner_last_active_date DATE;
+
+-- daily_tasks
+CREATE TABLE IF NOT EXISTS public.daily_tasks (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title                TEXT NOT NULL,
+    description          TEXT,
+    icon                 TEXT NOT NULL DEFAULT '🎯',
+    color                TEXT NOT NULL DEFAULT '#2563EB',
+    category             TEXT NOT NULL DEFAULT 'custom',
+    budget_limit         NUMERIC(15,2) DEFAULT 0,
+    reminder_time        TEXT, -- e.g. '08:00 AM'
+    repeat_schedule      TEXT NOT NULL DEFAULT 'daily' CHECK (repeat_schedule IN ('daily','weekly','monthly','yearly','weekdays','weekends','custom')),
+    priority             TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low','medium','high')),
+    estimated_duration   INTEGER, -- in minutes
+    notes                TEXT,
+    location             TEXT,
+    notifications_enabled BOOLEAN NOT NULL DEFAULT true,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- daily_task_logs
+CREATE TABLE IF NOT EXISTS public.daily_task_logs (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    task_id              UUID NOT NULL REFERENCES public.daily_tasks(id) ON DELETE CASCADE,
+    date                 DATE NOT NULL DEFAULT CURRENT_DATE,
+    status               TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','completed','skipped','missed')),
+    completed_at         TIMESTAMPTZ,
+    spent_amount         NUMERIC(15,2) DEFAULT 0,
+    xp_earned            INTEGER DEFAULT 0,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT unique_task_date_user UNIQUE (task_id, date, user_id)
+);
+
+-- planner_schedule
+CREATE TABLE IF NOT EXISTS public.planner_schedule (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    day_of_week          INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    task_ids             UUID[] DEFAULT '{}',
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT unique_user_day UNIQUE (user_id, day_of_week)
+);
+
+-- planner_reminders
+CREATE TABLE IF NOT EXISTS public.planner_reminders (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    title                TEXT NOT NULL,
+    time                 TEXT NOT NULL, -- e.g. '08:00 AM'
+    days                 INTEGER[] DEFAULT '{}',
+    is_enabled           BOOLEAN NOT NULL DEFAULT true,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- xp_history
+CREATE TABLE IF NOT EXISTS public.xp_history (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    amount               INTEGER NOT NULL,
+    reason               TEXT NOT NULL,
+    reference_id         UUID,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- user_levels
+CREATE TABLE IF NOT EXISTS public.user_levels (
+    user_id              UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    current_level        INTEGER NOT NULL DEFAULT 1,
+    current_xp           INTEGER NOT NULL DEFAULT 0,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- user_badges
+CREATE TABLE IF NOT EXISTS public.user_badges (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    badge_name           TEXT NOT NULL,
+    unlocked_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT unique_user_badge UNIQUE (user_id, badge_name)
+);
+
+-- planner_statistics
+CREATE TABLE IF NOT EXISTS public.planner_statistics (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id              UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    date                 DATE NOT NULL DEFAULT CURRENT_DATE,
+    tasks_completed      INTEGER DEFAULT 0,
+    tasks_total          INTEGER DEFAULT 0,
+    budget_limit         NUMERIC(15,2) DEFAULT 0,
+    budget_spent         NUMERIC(15,2) DEFAULT 0,
+    xp_earned            INTEGER DEFAULT 0,
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT unique_user_stat_date UNIQUE (user_id, date)
+);
+
+-- Enable RLS
+ALTER TABLE public.daily_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_task_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.planner_schedule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.planner_reminders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.xp_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.planner_statistics ENABLE ROW LEVEL SECURITY;
+
+-- Drop and recreate RLS policies
+DROP POLICY IF EXISTS "daily_tasks_all_own" ON public.daily_tasks;
+CREATE POLICY "daily_tasks_all_own" ON public.daily_tasks FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "daily_task_logs_all_own" ON public.daily_task_logs;
+CREATE POLICY "daily_task_logs_all_own" ON public.daily_task_logs FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "planner_schedule_all_own" ON public.planner_schedule;
+CREATE POLICY "planner_schedule_all_own" ON public.planner_schedule FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "planner_reminders_all_own" ON public.planner_reminders;
+CREATE POLICY "planner_reminders_all_own" ON public.planner_reminders FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "xp_history_all_own" ON public.xp_history;
+CREATE POLICY "xp_history_all_own" ON public.xp_history FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_levels_all_own" ON public.user_levels;
+CREATE POLICY "user_levels_all_own" ON public.user_levels FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "user_badges_all_own" ON public.user_badges;
+CREATE POLICY "user_badges_all_own" ON public.user_badges FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "planner_statistics_all_own" ON public.planner_statistics;
+CREATE POLICY "planner_statistics_all_own" ON public.planner_statistics FOR ALL USING (auth.uid() = user_id);
+
+-- Add to publication if it exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.daily_tasks;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+    
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.daily_task_logs;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.planner_schedule;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.planner_reminders;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.xp_history;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.user_levels;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.user_badges;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+
+    BEGIN
+      ALTER PUBLICATION supabase_realtime ADD TABLE public.planner_statistics;
+    EXCEPTION WHEN others THEN NULL;
+    END;
+  END IF;
+END $$;

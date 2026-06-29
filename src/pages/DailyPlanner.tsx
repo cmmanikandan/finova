@@ -1,0 +1,1292 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Calendar, Check, Award, Flame, Plus, ChevronLeft, Trash2, Edit2, Sparkles
+} from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
+import * as db from '../services/db';
+import { formatCurrency } from '../utils/format';
+import type { DailyTask, DailyTaskLog } from '../types';
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Suggested presets for rapid creation
+const PRESETS = [
+  { title: 'Breakfast', category: 'food', icon: '🍳', budgetLimit: 50, duration: 20 },
+  { title: 'Daily Commute', category: 'travel', icon: '🚌', budgetLimit: 40, duration: 45 },
+  { title: 'Morning Coffee', category: 'food', icon: '☕', budgetLimit: 30, duration: 15 },
+  { title: 'Lunch Meal', category: 'food', icon: '🍛', budgetLimit: 80, duration: 30 },
+  { title: 'Fuel Top-up', category: 'fuel', icon: '⛽', budgetLimit: 200, duration: 10 },
+  { title: 'Gym Session', category: 'entertainment', icon: '🏋️', budgetLimit: 0, duration: 60 },
+  { title: 'Evening Snacks', category: 'food', icon: '🍪', budgetLimit: 25, duration: 15 },
+  { title: 'Dinner Outing', category: 'food', icon: '🍽️', budgetLimit: 150, duration: 40 },
+  { title: 'Buy Stationery', category: 'stationery', icon: '✏️', budgetLimit: 50, duration: 15 },
+  { title: 'Medicines', category: 'medical', icon: '💊', budgetLimit: 0, duration: 5 },
+  { title: 'Drink Water', category: 'others', icon: '💧', budgetLimit: 0, duration: 5 },
+  { title: 'Online Course', category: 'education', icon: '📚', budgetLimit: 0, duration: 90 },
+];
+
+const DailyPlanner: React.FC = () => {
+  const navigate = useNavigate();
+  const {
+    dailyTasks,
+    dailyTaskLogs,
+    plannerSchedules,
+    userLevel,
+    userBadges,
+    streakData,
+    categories,
+    xpHistory,
+    refresh
+  } = useApp();
+
+  const [activeSubTab, setActiveSubTab] = useState<'today' | 'weekly' | 'analytics' | 'badges'>('today');
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(new Date().getDay());
+  
+  // Sheet Form State
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<DailyTask | null>(null);
+  const [formTitle, setFormTitle] = useState('');
+  const [formCategory, setFormCategory] = useState('custom');
+  const [formIcon, setFormIcon] = useState('🎯');
+  const [formBudgetLimit, setFormBudgetLimit] = useState('0');
+  const [formPriority, setFormPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [formSchedule, setFormSchedule] = useState<DailyTask['repeatSchedule']>('daily');
+  const [formReminder, setFormReminder] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+
+  // Floating XP gain state
+  const [floatingXp, setFloatingXp] = useState<{ id: number; amount: number }[]>([]);
+  const [xpCounter, setXpCounter] = useState(0);
+
+  // Success / Error Alerts
+  const [toastMsg, setToastMsg] = useState('');
+
+  useEffect(() => {
+    const handleXpEvent = (e: any) => {
+      const amount = e.detail?.amount || 10;
+      const id = xpCounter + 1;
+      setXpCounter(id);
+      setFloatingXp(prev => [...prev, { id, amount }]);
+      setTimeout(() => {
+        setFloatingXp(prev => prev.filter(x => x.id !== id));
+      }, 2000);
+    };
+
+    window.addEventListener('finova_xp_earned', handleXpEvent);
+    return () => window.removeEventListener('finova_xp_earned', handleXpEvent);
+  }, [xpCounter]);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3000);
+  };
+
+  // Next XP Level bounds
+  const nextLevelXpCap = useMemo(() => {
+    const nextLevel = userLevel.currentLevel + 1;
+    if (nextLevel === 2) return 250;
+    if (nextLevel === 3) return 600;
+    if (nextLevel === 4) return 1200;
+    if (nextLevel === 5) return 2500;
+    return 2500 + (nextLevel - 5) * 2000;
+  }, [userLevel.currentLevel]);
+
+  const prevLevelXpCap = useMemo(() => {
+    const lvl = userLevel.currentLevel;
+    if (lvl === 1) return 0;
+    if (lvl === 2) return 250;
+    if (lvl === 3) return 600;
+    if (lvl === 4) return 1200;
+    return 2500 + (lvl - 5) * 2000;
+  }, [userLevel.currentLevel]);
+
+  const levelProgressPct = useMemo(() => {
+    const diff = nextLevelXpCap - prevLevelXpCap;
+    const progress = userLevel.currentXP - prevLevelXpCap;
+    return Math.min(100, Math.max(0, Math.round((progress / diff) * 100)));
+  }, [userLevel.currentXP, prevLevelXpCap, nextLevelXpCap]);
+
+  // Today's scheduled task collection
+  const todayWeekday = new Date().getDay();
+  const todaySchedule = useMemo(() => {
+    return plannerSchedules.find(s => s.dayOfWeek === todayWeekday);
+  }, [plannerSchedules, todayWeekday]);
+
+  const todayTasks = useMemo(() => {
+    if (!todaySchedule) return [];
+    return dailyTasks.filter(t => todaySchedule.taskIds.includes(t.id));
+  }, [dailyTasks, todaySchedule]);
+
+  const todayLogsMap = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const logs = dailyTaskLogs.filter(l => l.date === todayStr);
+    const map: Record<string, DailyTaskLog> = {};
+    logs.forEach(l => {
+      map[l.taskId] = l;
+    });
+    return map;
+  }, [dailyTaskLogs]);
+
+  const completionPct = useMemo(() => {
+    if (todayTasks.length === 0) return 0;
+    let completedCount = 0;
+    todayTasks.forEach(t => {
+      const log = todayLogsMap[t.id];
+      if (log && log.status === 'completed') completedCount++;
+    });
+    return Math.round((completedCount / todayTasks.length) * 100);
+  }, [todayTasks, todayLogsMap]);
+
+  // Create form trigger
+  const openCreateForm = (preset?: typeof PRESETS[0]) => {
+    setEditingTask(null);
+    setFormTitle(preset?.title || '');
+    setFormCategory(preset?.category || 'custom');
+    setFormIcon(preset?.icon || '🎯');
+    setFormBudgetLimit(preset?.budgetLimit ? String(preset.budgetLimit) : '0');
+    setFormPriority('medium');
+    setFormSchedule('daily');
+    setFormReminder('');
+    setFormNotes('');
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (task: DailyTask) => {
+    setEditingTask(task);
+    setFormTitle(task.title);
+    setFormCategory(task.category);
+    setFormIcon(task.icon);
+    setFormBudgetLimit(String(task.budgetLimit));
+    setFormPriority(task.priority);
+    setFormSchedule(task.repeatSchedule);
+    setFormReminder(task.reminderTime || '');
+    setFormNotes(task.notes || '');
+    setIsFormOpen(true);
+  };
+
+  const handleSaveTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formTitle.trim()) return;
+
+    const payload: Omit<DailyTask, 'id'> = {
+      title: formTitle,
+      category: formCategory,
+      icon: formIcon,
+      color: '#2563EB',
+      budgetLimit: Number(formBudgetLimit) || 0,
+      priority: formPriority,
+      repeatSchedule: formSchedule,
+      reminderTime: formReminder || undefined,
+      notes: formNotes || undefined,
+      notificationsEnabled: true,
+    };
+
+    try {
+      if (editingTask) {
+        await db.updateDailyTask(editingTask.id, payload);
+        triggerToast('Task updated successfully!');
+      } else {
+        const newTask = await db.addDailyTask(payload);
+        
+        // Add to weekday schedule auto if daily
+        const currentSched = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
+        const taskIds = currentSched ? [...currentSched.taskIds, newTask.id] : [newTask.id];
+        await db.savePlannerSchedule(selectedDayOfWeek, taskIds);
+        
+        triggerToast('New task added successfully! +20 XP');
+        await db.addXP(20, `Created task: ${formTitle}`);
+      }
+      setIsFormOpen(false);
+      refresh();
+    } catch (err) {
+      console.error(err);
+      triggerToast('Error saving task');
+    }
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await db.deleteDailyTask(id);
+      triggerToast('Task deleted.');
+      refresh();
+    } catch (err) {
+      triggerToast('Error deleting task');
+    }
+  };
+
+  const handleCheckTask = async (taskId: string, currentStatus: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      if (currentStatus === 'completed') {
+        await db.setTaskStatus(taskId, todayStr, 'pending');
+        triggerToast('Task marked pending.');
+      } else {
+        await db.setTaskStatus(taskId, todayStr, 'completed', 0);
+        triggerToast('Task completed! +10 XP');
+      }
+      refresh();
+    } catch (err) {
+      triggerToast('Error updating status');
+    }
+  };
+
+  const handleSkipTask = async (taskId: string) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    try {
+      await db.setTaskStatus(taskId, todayStr, 'skipped');
+      triggerToast('Task skipped.');
+      refresh();
+    } catch (err) {
+      triggerToast('Error updating status');
+    }
+  };
+
+  // Weekly scheduler routines builder
+  const weeklyDayTasks = useMemo(() => {
+    const sched = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
+    if (!sched) return [];
+    return dailyTasks.filter(t => sched.taskIds.includes(t.id));
+  }, [dailyTasks, plannerSchedules, selectedDayOfWeek]);
+
+  const handleToggleWeekdayTask = async (taskId: string) => {
+    const sched = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
+    let taskIds = sched ? [...sched.taskIds] : [];
+    if (taskIds.includes(taskId)) {
+      taskIds = taskIds.filter(id => id !== taskId);
+    } else {
+      taskIds.push(taskId);
+    }
+    await db.savePlannerSchedule(selectedDayOfWeek, taskIds);
+    refresh();
+  };
+
+  const handleCopySchedule = async (fromDay: number) => {
+    try {
+      await db.copyPlannerSchedule(fromDay, selectedDayOfWeek);
+      triggerToast(`Schedule copied from ${WEEKDAYS[fromDay]}!`);
+      refresh();
+    } catch (err) {
+      triggerToast('Error copying schedule');
+    }
+  };
+
+  const aiInsights = useMemo(() => {
+    return db.getAISuggestions();
+  }, [dailyTaskLogs, dailyTasks, plannerSchedules]);
+
+  const analytics = useMemo(() => {
+    return db.getPlannerAnalytics();
+  }, [dailyTaskLogs, dailyTasks, plannerSchedules, xpHistory]);
+
+  const badgesList = [
+    { name: 'Planner Pro', desc: 'Complete your first planner routine', icon: '🎯', goal: 1 },
+    { name: 'Morning Warrior', desc: 'Log task before 9:00 AM', icon: '🌅', goal: 1 },
+    { name: 'Budget Master', desc: 'Keep all tasks within budget limit', icon: '🛡️', goal: 1 },
+    { name: '7 Day Streak', desc: 'Hold a 7 day completion streak', icon: '🔥', goal: 7 },
+    { name: '30 Day Streak', desc: 'Hold a 30 day completion streak', icon: '👑', goal: 30 },
+  ];
+
+  return (
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
+      {/* Sticky header */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        background: 'var(--color-bg)',
+        borderBottom: '1px solid var(--color-border)',
+        padding: '16px',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => navigate('/home')}
+            style={{
+              background: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '12px',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-text)',
+              cursor: 'pointer',
+            }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Daily Planner</h1>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>XP & Habit Tracker</p>
+          </div>
+        </div>
+
+        {/* Level indicator card */}
+        <div style={{
+          background: 'linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%)',
+          borderRadius: '14px',
+          padding: '6px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#fff',
+          boxShadow: 'var(--shadow-subtle)'
+        }}>
+          <Award size={16} />
+          <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Lvl {userLevel.currentLevel}</span>
+        </div>
+      </div>
+
+      {/* Floating XP Animation Container */}
+      <div style={{ position: 'fixed', top: '100px', right: '20px', zIndex: 1000, pointerEvents: 'none' }}>
+        {floatingXp.map(x => (
+          <div
+            key={x.id}
+            className="floating-xp-gain"
+            style={{
+              background: 'rgba(34, 197, 94, 0.95)',
+              color: '#fff',
+              fontWeight: 900,
+              fontSize: '0.9375rem',
+              padding: '8px 16px',
+              borderRadius: '20px',
+              boxShadow: '0 4px 12px rgba(34,197,94,0.3)',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Sparkles size={14} />
+            <span>+{x.amount} XP</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Sub Tabs Selection Header */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '16px 16px 8px', gap: '8px' }}>
+        {[
+          { id: 'today', label: 'Today' },
+          { id: 'weekly', label: 'Weekly' },
+          { id: 'analytics', label: 'Stats' },
+          { id: 'badges', label: 'Badges' }
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setActiveSubTab(t.id as any)}
+            style={{
+              padding: '8px 4px',
+              borderRadius: '12px',
+              border: 'none',
+              background: activeSubTab === t.id ? 'var(--color-primary)' : 'var(--color-card)',
+              color: activeSubTab === t.id ? '#fff' : 'var(--color-text-muted)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-subtle)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ padding: '0 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+        {/* ─── TODAY TAB ─── */}
+        {activeSubTab === 'today' && (
+          <>
+            {/* Today Header circular Gauge & Streaks */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+              display: 'flex',
+              gap: '20px',
+              alignItems: 'center',
+            }}>
+              {/* Circular SVG Completion rate */}
+              <div style={{ position: 'relative', width: '80px', height: '80px', flexShrink: 0 }}>
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--color-border)" strokeWidth="6" />
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="34"
+                    fill="none"
+                    stroke="var(--color-primary)"
+                    strokeWidth="6"
+                    strokeDasharray={2 * Math.PI * 34}
+                    strokeDashoffset={2 * Math.PI * 34 * (1 - completionPct / 100)}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                  />
+                </svg>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '80px',
+                  height: '80px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column'
+                }}>
+                  <span style={{ fontSize: '1.125rem', fontWeight: 900, color: 'var(--color-text)' }}>{completionPct}%</span>
+                  <span style={{ fontSize: '0.5rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Done</span>
+                </div>
+              </div>
+
+              {/* XP progress bars and streaks */}
+              <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Flame size={18} fill="#EA580C" stroke="none" className="pulse" />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      {streakData.plannerCurrentStreak || 0} Day Streak
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                    Best: {streakData.plannerBestStreak || 0}d
+                  </span>
+                </div>
+
+                {/* XP progression bar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+                    <span>{userLevel.currentXP} XP</span>
+                    <span>Lvl {userLevel.currentLevel + 1} ({nextLevelXpCap} XP)</span>
+                  </div>
+                  <div style={{ height: '8px', background: 'var(--color-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%)',
+                      width: `${levelProgressPct}%`,
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Suggestions presets */}
+            <div>
+              <h3 style={{ margin: '0 0 10px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Suggested Routine Habits</h3>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                {PRESETS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => openCreateForm(preset)}
+                    style={{
+                      background: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '16px',
+                      padding: '8px 12px',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      boxShadow: 'var(--shadow-subtle)',
+                    }}
+                  >
+                    <span>{preset.icon}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>{preset.title}</span>
+                    <Plus size={12} style={{ color: 'var(--color-primary)' }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Insights display widget */}
+            {aiInsights.length > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(124, 58, 237, 0.04) 100%)',
+                border: '1.5px dashed var(--color-primary-light)',
+                borderRadius: '20px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Sparkles size={16} style={{ color: 'var(--color-primary)' }} />
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>FINOVA AI Coach</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {aiInsights.map((insight, index) => (
+                    <p key={index} style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', lineHeight: 1.4, fontWeight: 500 }}>
+                      {insight}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Today's schedule listing */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>Today's Tasks Timeline</h3>
+                <button
+                  onClick={() => openCreateForm()}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Plus size={14} /> Custom Task
+                </button>
+              </div>
+
+              {todayTasks.length === 0 ? (
+                <div style={{
+                  background: 'var(--color-card)',
+                  borderRadius: '24px',
+                  border: '1px solid var(--color-border)',
+                  padding: '40px 20px',
+                  textAlign: 'center'
+                }}>
+                  <Calendar size={36} style={{ color: 'var(--color-text-muted)', marginBottom: '10px' }} />
+                  <h4 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text)' }}>No tasks set for today</h4>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    Switch to "Weekly" tab to assign habits, or tap any preset above.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: '24px' }}>
+                  {/* Timeline vertical connector line */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    bottom: '20px',
+                    left: '8px',
+                    width: '2px',
+                    background: 'linear-gradient(180deg, var(--color-primary) 0%, var(--color-border) 100%)',
+                    zIndex: 1
+                  }} />
+
+                  {todayTasks.map((task) => {
+                    const log = todayLogsMap[task.id];
+                    const isCompleted = log?.status === 'completed';
+                    const isSkipped = log?.status === 'skipped';
+                    const isMissed = log?.status === 'missed';
+                    const spentAmount = log?.spentAmount || 0;
+
+                    // Budget threshold indicators
+                    const hasLimit = task.budgetLimit > 0;
+                    const isNearLimit = hasLimit && spentAmount >= task.budgetLimit * 0.8 && spentAmount < task.budgetLimit;
+                    const isOverLimit = hasLimit && spentAmount > task.budgetLimit;
+                    const budgetColor = isOverLimit ? '#EF4444' : isNearLimit ? '#F97316' : '#22C55E';
+
+                    return (
+                      <div key={task.id} style={{ position: 'relative', marginBottom: '20px' }}>
+                        {/* Timeline Bullet node */}
+                        <div
+                          onClick={() => handleCheckTask(task.id, log?.status || 'pending')}
+                          style={{
+                            position: 'absolute',
+                            left: '-24px',
+                            top: '12px',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: '3px solid',
+                            borderColor: isCompleted ? '#22C55E' : isSkipped ? '#64748B' : isMissed ? '#EF4444' : 'var(--color-primary)',
+                            background: isCompleted ? '#22C55E' : '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            zIndex: 2,
+                            color: '#fff',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                          }}
+                        >
+                          {isCompleted && <Check size={10} strokeWidth={4} />}
+                        </div>
+
+                        {/* Glassmorphic Task Card */}
+                        <div className="card-elevated" style={{
+                          background: 'var(--color-card)',
+                          borderRadius: '20px',
+                          border: '1px solid var(--color-border)',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          opacity: isSkipped ? 0.7 : 1,
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '1.5rem' }}>{task.icon}</span>
+                              <div>
+                                <h4 style={{
+                                  margin: 0,
+                                  fontSize: '0.875rem',
+                                  fontWeight: 800,
+                                  color: 'var(--color-text)',
+                                  textDecoration: isCompleted ? 'line-through' : 'none'
+                                }}>
+                                  {task.title}
+                                </h4>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                                  <span style={{ fontSize: '0.625rem', padding: '2px 6px', borderRadius: '6px', background: 'var(--color-border)', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 700 }}>
+                                    {task.category}
+                                  </span>
+                                  {task.reminderTime && (
+                                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                                      ⏰ {task.reminderTime}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Edit / Delete actions */}
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                onClick={() => openEditForm(task)}
+                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px' }}
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTask(task.id)}
+                                style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Budget Limit Tracker */}
+                          {hasLimit && (
+                            <div style={{
+                              background: 'var(--color-border)',
+                              borderRadius: '12px',
+                              padding: '10px 12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700 }}>
+                                <span style={{ color: 'var(--color-text-muted)' }}>Budget tracking</span>
+                                <span style={{ color: budgetColor }}>
+                                  {formatCurrency(spentAmount)} / {formatCurrency(task.budgetLimit)}
+                                </span>
+                              </div>
+                              <div style={{ height: '6px', background: 'rgba(0,0,0,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{
+                                  height: '100%',
+                                  background: budgetColor,
+                                  width: `${Math.min(100, (spentAmount / task.budgetLimit) * 100)}%`,
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+                              {isOverLimit && (
+                                <span style={{ fontSize: '0.5625rem', color: '#EF4444', fontWeight: 800 }}>
+                                  ⚠️ Limit Exceeded! Streak XP deduction active.
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Task Checkoff Options */}
+                          <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                            <button
+                              onClick={() => handleCheckTask(task.id, log?.status || 'pending')}
+                              style={{
+                                flexGrow: 1,
+                                padding: '8px',
+                                borderRadius: '10px',
+                                border: 'none',
+                                background: isCompleted ? '#DCFCE7' : 'var(--color-primary)',
+                                color: isCompleted ? '#16A34A' : '#fff',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <Check size={14} /> {isCompleted ? 'Completed' : 'Checkoff'}
+                            </button>
+
+                            <button
+                              onClick={() => handleSkipTask(task.id)}
+                              disabled={isCompleted}
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                border: '1px solid var(--color-border)',
+                                background: isSkipped ? 'var(--color-border)' : 'var(--color-card)',
+                                color: isSkipped ? 'var(--color-text-muted)' : 'var(--color-text)',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ─── WEEKLY ROUTINES SCHEDULER TAB ─── */}
+        {activeSubTab === 'weekly' && (
+          <>
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '16px',
+            }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Select Weekday</h3>
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', scrollbarWidth: 'none' }}>
+                {WEEKDAYS.map((day, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDayOfWeek(idx)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: selectedDayOfWeek === idx ? 'var(--color-primary)' : 'var(--color-border)',
+                      color: selectedDayOfWeek === idx ? '#fff' : 'var(--color-text)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {day.slice(0,3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* routine builder checklist */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 850 }}>
+                  Assigned routines on {WEEKDAYS[selectedDayOfWeek]}
+                </h4>
+                <button
+                  onClick={() => openCreateForm()}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-primary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px'
+                  }}
+                >
+                  <Plus size={12} /> New Task
+                </button>
+              </div>
+
+              {dailyTasks.length === 0 ? (
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                  Create tasks first to start designing routines.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {dailyTasks.map(task => {
+                    const isChecked = weeklyDayTasks.some(t => t.id === task.id);
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => handleToggleWeekdayTask(task.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          background: 'var(--color-border)',
+                          borderRadius: '16px',
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          transition: 'all 0.1s ease',
+                          border: isChecked ? '1.5px solid var(--color-primary-light)' : '1.5px solid transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '1.25rem' }}>{task.icon}</span>
+                          <div>
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)' }}>{task.title}</span>
+                            {task.budgetLimit > 0 && (
+                              <p style={{ margin: 0, fontSize: '0.625rem', color: 'var(--color-text-muted)' }}>
+                                Limit: {formatCurrency(task.budgetLimit)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Checkbox circle indicator */}
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          border: '2px solid',
+                          borderColor: isChecked ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                          background: isChecked ? 'var(--color-primary)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          fontSize: '0.625rem'
+                        }}>
+                          {isChecked && '✓'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Routines copier panel */}
+              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Copy schedule from another day</span>
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginTop: '8px', scrollbarWidth: 'none' }}>
+                  {WEEKDAYS.map((day, idx) => {
+                    if (idx === selectedDayOfWeek) return null;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleCopySchedule(idx)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-card)',
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {day.slice(0,3)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ─── ANALYTICS TAB ─── */}
+        {activeSubTab === 'analytics' && (
+          <>
+            {/* Completion rates Bar Chart */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+            }}>
+              <h4 style={{ margin: '0 0 16px', fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 800 }}>Weekly Completion Trends</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', height: '140px', alignItems: 'flex-end', paddingTop: '10px' }}>
+                {analytics.completionRates.map((day, idx) => (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
+                    <div style={{ position: 'relative', width: '20px', height: '100px', background: 'var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        width: '100%',
+                        height: `${day.pct}%`,
+                        background: 'var(--color-primary)',
+                        borderRadius: '10px',
+                        transition: 'height 0.5s ease'
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{day.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Budget status comparison card */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+            }}>
+              <h4 style={{ margin: '0 0 16px', fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 800 }}>Today's Category Budget Usage</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {analytics.budgetUsage.map((item, idx) => {
+                  const pct = Math.round((item.spent / item.limit) * 100) || 0;
+                  const isOver = item.spent > item.limit;
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                        <span style={{ color: 'var(--color-text)' }}>{item.name}</span>
+                        <span style={{ color: isOver ? '#EF4444' : 'var(--color-text-muted)' }}>
+                          {formatCurrency(item.spent)} / {formatCurrency(item.limit)}
+                        </span>
+                      </div>
+                      <div style={{ height: '8px', background: 'var(--color-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          background: isOver ? '#EF4444' : 'var(--color-primary)',
+                          width: `${Math.min(100, pct)}%`
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ─── BADGES TAB ─── */}
+        {activeSubTab === 'badges' && (
+          <div className="card-elevated" style={{
+            background: 'var(--color-card)',
+            borderRadius: '24px',
+            border: '1px solid var(--color-border)',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>Achievement Milestones</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+              {badgesList.map(badge => {
+                const isUnlocked = userBadges.some(b => b.badgeName === badge.name);
+                return (
+                  <div
+                    key={badge.name}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      background: isUnlocked ? 'rgba(34, 197, 94, 0.05)' : 'var(--color-border)',
+                      border: isUnlocked ? '1.5px solid #22C55E' : '1.5px solid transparent',
+                      borderRadius: '18px',
+                      padding: '12px 16px',
+                      opacity: isUnlocked ? 1 : 0.65
+                    }}
+                  >
+                    <span style={{ fontSize: '2rem' }}>{badge.icon}</span>
+                    <div style={{ flexGrow: 1 }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>{badge.name}</span>
+                      <p style={{ margin: 0, fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{badge.desc}</p>
+                    </div>
+                    <div>
+                      <span style={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        padding: '4px 8px',
+                        borderRadius: '8px',
+                        background: isUnlocked ? '#22C55E' : 'rgba(0,0,0,0.1)',
+                        color: isUnlocked ? '#fff' : 'var(--color-text-muted)'
+                      }}>
+                        {isUnlocked ? 'Unlocked +150 XP' : 'Locked'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* CREATE/EDIT DIALOG SHEET */}
+      {isFormOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.4)',
+          zIndex: 100,
+          display: 'flex',
+          alignItems: 'flex-end',
+        }}>
+          {/* backdrop click */}
+          <div onClick={() => setIsFormOpen(false)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+
+          <form onSubmit={handleSaveTask} className="slide-up" style={{
+            position: 'relative',
+            background: 'var(--color-card)',
+            borderTopLeftRadius: '28px',
+            borderTopRightRadius: '28px',
+            width: '100%',
+            padding: '24px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            zIndex: 101,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            borderTop: '1px solid var(--color-border)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                {editingTask ? 'Modify Routine' : 'Add Routine Habit'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsFormOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.25rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Title field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Habit Routine Title</label>
+              <input
+                type="text"
+                placeholder="e.g. Morning Tea & Snacks"
+                value={formTitle}
+                onChange={e => setFormTitle(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </div>
+
+            {/* Row Icon + Category select */}
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Emoji Icon</label>
+                <input
+                  type="text"
+                  maxLength={2}
+                  value={formIcon}
+                  onChange={e => setFormIcon(e.target.value)}
+                  style={{
+                    padding: '10px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
+                    fontSize: '1rem',
+                    textAlign: 'center',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Link spending Category</label>
+                <select
+                  value={formCategory}
+                  onChange={e => setFormCategory(e.target.value)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.8125rem',
+                  }}
+                >
+                  <option value="custom">No category (General activity)</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id.split('_')[0]}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Budget limit field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Optional budget limit (₹)</label>
+              <input
+                type="number"
+                value={formBudgetLimit}
+                onChange={e => setFormBudgetLimit(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </div>
+
+            {/* Row Priority + Schedule select */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Routine Priority</label>
+                <select
+                  value={formPriority}
+                  onChange={e => setFormPriority(e.target.value as any)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.8125rem',
+                  }}
+                >
+                  <option value="low">Low (General)</option>
+                  <option value="medium">Medium (Standard)</option>
+                  <option value="high">High (Critical)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Repeats</label>
+                <select
+                  value={formSchedule}
+                  onChange={e => setFormSchedule(e.target.value as any)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.8125rem',
+                  }}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekdays">Weekdays</option>
+                  <option value="weekends">Weekends</option>
+                  <option value="custom">Custom weekday</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Reminder time input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Reminder Alert Time</label>
+              <input
+                type="text"
+                placeholder="e.g. 08:30 AM"
+                value={formReminder}
+                onChange={e => setFormReminder(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </div>
+
+            {/* Notes field */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text)' }}>Coaching Notes</label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Keep expenses under ₹40 to secure budget bonuses!"
+                value={formNotes}
+                onChange={e => setFormNotes(e.target.value)}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.875rem',
+                  resize: 'none',
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                padding: '14px',
+                borderRadius: '14px',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-elevated)',
+                marginTop: '10px'
+              }}
+            >
+              Confirm and Save Routine
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Global alert toast */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.85)',
+          color: '#fff',
+          padding: '10px 20px',
+          borderRadius: '20px',
+          zIndex: 1000,
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          boxShadow: 'var(--shadow-elevated)'
+        }}>
+          {toastMsg}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DailyPlanner;

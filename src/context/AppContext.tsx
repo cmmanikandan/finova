@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import type { User, Transaction, Budget, Goal, Account, Category, AppSettings } from '../types';
+import type {
+  User, Transaction, Budget, Goal, Account, Category, AppSettings,
+  DailyTask, DailyTaskLog, PlannerSchedule, PlannerReminder, XPHistory, UserLevel, UserBadge, StreakData
+} from '../types';
 import { DEFAULT_SETTINGS } from '../data/defaults';
 import { onAuthStateChanged } from '../services/auth';
 import * as db from '../services/db';
@@ -11,7 +14,7 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
 }
 
-export type NavTab = 'home' | 'transactions' | 'budgets' | 'reports' | 'goals' | 'settings';
+export type NavTab = 'home' | 'transactions' | 'budgets' | 'planner' | 'reports' | 'goals' | 'settings';
 
 interface AppContextType {
   user: User | null;
@@ -26,6 +29,14 @@ interface AppContextType {
   saveSettings: (s: AppSettings) => void;
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
+  dailyTasks: DailyTask[];
+  dailyTaskLogs: DailyTaskLog[];
+  plannerSchedules: PlannerSchedule[];
+  plannerReminders: PlannerReminder[];
+  xpHistory: XPHistory[];
+  userLevel: UserLevel;
+  userBadges: UserBadge[];
+  streakData: StreakData;
 }
 
 const AppContext = createContext<AppContextType>({
@@ -41,6 +52,14 @@ const AppContext = createContext<AppContextType>({
   saveSettings: () => {},
   activeTab: 'home',
   setActiveTab: () => {},
+  dailyTasks: [],
+  dailyTaskLogs: [],
+  plannerSchedules: [],
+  plannerReminders: [],
+  xpHistory: [],
+  userLevel: { currentLevel: 1, currentXP: 0 },
+  userBadges: [],
+  streakData: { currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' },
 });
 
 export const useApp = () => useContext(AppContext);
@@ -58,6 +77,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
 
+  // Daily Planner fields
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [dailyTaskLogs, setDailyTaskLogs] = useState<DailyTaskLog[]>([]);
+  const [plannerSchedules, setPlannerSchedules] = useState<PlannerSchedule[]>([]);
+  const [plannerReminders, setPlannerReminders] = useState<PlannerReminder[]>([]);
+  const [xpHistory, setXpHistory] = useState<XPHistory[]>([]);
+  const [userLevel, setUserLevel] = useState<UserLevel>({ currentLevel: 1, currentXP: 0 });
+  const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
+  const [streakData, setStreakData] = useState<StreakData>({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' });
+
   // Ref to debounce rapid realtime events
   const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,6 +96,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGoals(db.getGoals());
     setAccounts(db.getAccounts());
     setCategories(db.getCategories());
+
+    setDailyTasks(db.getDailyTasks());
+    const todayStr = new Date().toISOString().split('T')[0];
+    setDailyTaskLogs(db.getDailyTaskLogs(todayStr));
+    setPlannerSchedules(db.getPlannerSchedule());
+    setPlannerReminders(db.getPlannerReminders());
+    setXpHistory(db.getXPHistory());
+    setUserLevel(db.getUserLevel());
+    setUserBadges(db.getUserBadges());
+    setStreakData(db.getStreakData());
+
     const s = db.getSettings();
     setSettings(s);
     applyTheme(s.theme);
@@ -92,11 +132,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           await db.pullAllFromSupabase();
           // Process any overdue recurring bills
           await db.processRecurringTransactions();
+          // Audit streaks on launch
+          await db.auditStreaksLaunch();
           // Update React UI state from freshly-fetched Supabase data
           refresh();
         } catch (e) {
           console.error('Failed to sync Supabase data on login:', e);
-          // Even on error, call refresh() so the app renders (with empty data, not stale cache)
           refresh();
         } finally {
           setLoading(false);
@@ -110,6 +151,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAccounts([]);
         setCategories([]);
         setSettings({ ...DEFAULT_SETTINGS });
+        setDailyTasks([]);
+        setDailyTaskLogs([]);
+        setPlannerSchedules([]);
+        setPlannerReminders([]);
+        setXpHistory([]);
+        setUserLevel({ currentLevel: 1, currentXP: 0 });
+        setUserBadges([]);
+        setStreakData({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '', plannerCurrentStreak: 0, plannerBestStreak: 0, plannerLastActiveDate: '' });
         setLoading(false);
       }
     });
@@ -179,6 +228,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         saveSettings,
         activeTab,
         setActiveTab,
+        dailyTasks,
+        dailyTaskLogs,
+        plannerSchedules,
+        plannerReminders,
+        xpHistory,
+        userLevel,
+        userBadges,
+        streakData,
       }}
     >
       {children}

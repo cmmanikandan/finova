@@ -1,13 +1,14 @@
 import React from 'react';
-import { Home, ArrowLeftRight, Sliders, BarChart2, Settings } from 'lucide-react';
+import { Home, ArrowLeftRight, Sliders, BarChart2, Settings, Calendar } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-export type NavTab = 'home' | 'transactions' | 'budgets' | 'reports' | 'settings';
+export type NavTab = 'home' | 'transactions' | 'budgets' | 'planner' | 'reports' | 'settings';
 
 const TABS: { id: NavTab; label: string; path: string; icon: React.ComponentType<any> }[] = [
   { id: 'home',         label: 'Home',     path: '/home',         icon: Home },
   { id: 'transactions', label: 'Txns',     path: '/transactions', icon: ArrowLeftRight },
   { id: 'budgets',      label: 'Budgets',  path: '/budgets',      icon: Sliders },
+  { id: 'planner',      label: 'Planner',  path: '/planner',      icon: Calendar },
   { id: 'reports',      label: 'Reports',  path: '/reports',      icon: BarChart2 },
   { id: 'settings',     label: 'Settings', path: '/settings',     icon: Settings },
 ];
