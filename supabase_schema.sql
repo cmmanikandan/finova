@@ -742,7 +742,6 @@ ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions
 ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_category_id_fkey;
 ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_category_id_fkey;
 ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_account_id_fkey;
-ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_category_id_fkey;
 ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_account_id_fkey;
 
 
@@ -785,7 +784,6 @@ ALTER TABLE public.transactions ALTER COLUMN category_id TYPE TEXT;
 ALTER TABLE public.budgets ALTER COLUMN category_id TYPE TEXT;
 ALTER TABLE public.recurring_transactions ALTER COLUMN category_id TYPE TEXT;
 ALTER TABLE public.recurring_transactions ALTER COLUMN account_id TYPE TEXT;
-ALTER TABLE public.split_bills ALTER COLUMN category_id TYPE TEXT;
 ALTER TABLE public.split_bills ALTER COLUMN account_id TYPE TEXT;
 
 -- 2. Re-add foreign key constraints referencing profiles(id)
@@ -817,7 +815,6 @@ ALTER TABLE public.transactions ADD CONSTRAINT transactions_category_id_fkey FOR
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
 ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE;
 ALTER TABLE public.recurring_transactions ADD CONSTRAINT recurring_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
-ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL;
 ALTER TABLE public.split_bills ADD CONSTRAINT split_bills_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id) ON DELETE CASCADE;
 
 -- 3. Re-create RLS policies on profiles, accounts, and categories
