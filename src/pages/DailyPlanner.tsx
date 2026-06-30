@@ -432,8 +432,9 @@ const DailyPlanner: React.FC = () => {
         </div>
 
         {/* Scrollable Form Container */}
-        <div className="pb-safe" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
-          <form onSubmit={handleSaveTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
+        <div className="pb-safe" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
+            <form id="routine-form" onSubmit={handleSaveTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
             {/* Title field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Habit Routine Title</label>
@@ -604,8 +605,12 @@ const DailyPlanner: React.FC = () => {
               />
             </div>
 
+            </form>
+          </div>
+          <div style={{ padding: '16px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
             <button
               type="submit"
+              form="routine-form"
               style={{
                 background: 'var(--color-primary)',
                 color: '#fff',
@@ -616,12 +621,13 @@ const DailyPlanner: React.FC = () => {
                 fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: 'var(--shadow-elevated)',
-                marginTop: '10px'
+                width: '100%',
+                maxWidth: '480px'
               }}
             >
               Confirm and Save Routine
             </button>
-          </form>
+          </div>
         </div>
       </div>
     );
