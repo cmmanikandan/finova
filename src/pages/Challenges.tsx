@@ -102,13 +102,7 @@ const Challenges: React.FC = () => {
     return (completedCount * 150) + (activeCount * 50) + 75; // baseline 75 XP
   }, [challenges]);
 
-  // Badge Level
-  const userLevel = useMemo(() => {
-    if (totalXp < 250) return { title: 'Frugal Cadet', next: 250 };
-    if (totalXp < 750) return { title: 'Savings Specialist', next: 750 };
-    if (totalXp < 1500) return { title: 'Wealth Architect', next: 1500 };
-    return { title: 'Financial Zen Master', next: 9999 };
-  }, [totalXp]);
+
 
   const computedTotalSaved = useMemo(() => {
     let saved = 0;

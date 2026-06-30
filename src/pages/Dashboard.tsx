@@ -68,7 +68,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onInstallPWA }) => {
   const {
     user, categories, settings, refresh, transactions,
-    dailyTasks, dailyTaskLogs, plannerSchedules, userLevel, streakData
+    dailyTasks, dailyTaskLogs, plannerSchedules, streakData
   } = useApp();
   const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(() => {

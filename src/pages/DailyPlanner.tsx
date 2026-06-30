@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Calendar, Check, Award, Flame, Plus, ChevronLeft, Trash2, Edit2, Sparkles
+  Calendar, Check, Flame, Plus, ChevronLeft, Trash2, Edit2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -66,9 +66,7 @@ const DailyPlanner: React.FC = () => {
   const [formReminder, setFormReminder] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
-  // Floating XP gain state
-  const [floatingXp, setFloatingXp] = useState<{ id: number; amount: number }[]>([]);
-  const [xpCounter, setXpCounter] = useState(0);
+
 
   // Spending log and celebration states
   const [habitToLog, setHabitToLog] = useState<DailyTask | null>(null);
@@ -98,50 +96,14 @@ const DailyPlanner: React.FC = () => {
   // Success / Error Alerts
   const [toastMsg, setToastMsg] = useState('');
 
-  useEffect(() => {
-    const handleXpEvent = (e: any) => {
-      const amount = e.detail?.amount || 10;
-      const id = xpCounter + 1;
-      setXpCounter(id);
-      setFloatingXp(prev => [...prev, { id, amount }]);
-      setTimeout(() => {
-        setFloatingXp(prev => prev.filter(x => x.id !== id));
-      }, 2000);
-    };
 
-    window.addEventListener('finova_xp_earned', handleXpEvent);
-    return () => window.removeEventListener('finova_xp_earned', handleXpEvent);
-  }, [xpCounter]);
 
   const triggerToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Next XP Level bounds
-  const nextLevelXpCap = useMemo(() => {
-    const nextLevel = userLevel.currentLevel + 1;
-    if (nextLevel === 2) return 250;
-    if (nextLevel === 3) return 600;
-    if (nextLevel === 4) return 1200;
-    if (nextLevel === 5) return 2500;
-    return 2500 + (nextLevel - 5) * 2000;
-  }, [userLevel.currentLevel]);
 
-  const prevLevelXpCap = useMemo(() => {
-    const lvl = userLevel.currentLevel;
-    if (lvl === 1) return 0;
-    if (lvl === 2) return 250;
-    if (lvl === 3) return 600;
-    if (lvl === 4) return 1200;
-    return 2500 + (lvl - 5) * 2000;
-  }, [userLevel.currentLevel]);
-
-  const levelProgressPct = useMemo(() => {
-    const diff = nextLevelXpCap - prevLevelXpCap;
-    const progress = userLevel.currentXP - prevLevelXpCap;
-    return Math.min(100, Math.max(0, Math.round((progress / diff) * 100)));
-  }, [userLevel.currentXP, prevLevelXpCap, nextLevelXpCap]);
 
   // Today's scheduled task collection
   const todayWeekday = new Date().getDay();
