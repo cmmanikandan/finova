@@ -848,7 +848,7 @@ export async function addTransaction(data: Omit<Transaction, 'id' | 'createdAt'>
   if (data.type === 'expense') {
     await updateBudgetSpent(data.category, data.amount, data.date);
     const dateStr = data.date.split('T')[0];
-    await recalculateTaskBudgetSpent(data.category, dateStr);
+    await recalculateAllTaskBudgetsForDate(dateStr);
   }
 
   // 4. Update in-memory state only after all Supabase writes succeed
@@ -892,7 +892,7 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
   if (old.type === 'expense') {
     await reverseBudgetSpent(old.category, old.amount, old.date);
     const oldDateStr = old.date.split('T')[0];
-    await recalculateTaskBudgetSpent(old.category, oldDateStr);
+    await recalculateAllTaskBudgetsForDate(oldDateStr);
   }
 
   const updated: Transaction = { ...old, ...data };
@@ -927,7 +927,7 @@ export async function updateTransaction(id: string, data: Partial<Transaction>):
   if (updated.type === 'expense') {
     await updateBudgetSpent(updated.category, updated.amount, updated.date);
     const newDateStr = updated.date.split('T')[0];
-    await recalculateTaskBudgetSpent(updated.category, newDateStr);
+    await recalculateAllTaskBudgetsForDate(newDateStr);
   }
 
   notifyWrite();
@@ -966,14 +966,15 @@ export async function deleteTransaction(id: string): Promise<void> {
     if (accIdx !== -1) _accounts[accIdx] = { ...acc, balance: revertedBalance };
   }
 
+  // Update memory only after successful Supabase delete
+  _transactions = _transactions.filter(t => t.id !== id);
+
   if (txn.type === 'expense') {
     await reverseBudgetSpent(txn.category, txn.amount, txn.date);
     const dateStr = txn.date.split('T')[0];
-    await recalculateTaskBudgetSpent(txn.category, dateStr);
+    // Recalculate ALL task budgets for that day — handles slug vs UUID mismatches
+    await recalculateAllTaskBudgetsForDate(dateStr);
   }
-
-  // Update memory only after successful Supabase delete
-  _transactions = _transactions.filter(t => t.id !== id);
 
   notifyWrite();
 }
@@ -2090,14 +2091,27 @@ export async function setTaskStatus(taskId: string, dateStr: string, status: 'pe
   return log;
 }
 
+// Recalculate a single task's budget spent for a given date.
+// Matches transactions by: taskId in note OR category ID match OR category slug match.
 export async function recalculateTaskBudgetSpent(category: string, dateStr: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
   const auth = getAuth(app);
   const uid = auth.currentUser?.uid;
   if (!uid) return;
 
-  const tasksWithCategory = _dailyTasks.filter(t => t.category === category);
-  if (tasksWithCategory.length === 0) return;
+  // Find matching category UUID (handles slug→UUID resolution for preset tasks)
+  const catObj = _categories.find(c => c.id === category);
+  const catName = catObj?.name?.toLowerCase();
+
+  // Find tasks whose category matches by ID OR by name (slug fallback)
+  const tasksWithCategory = _dailyTasks.filter(t => {
+    if (t.category === category) return true;
+    // Fallback: match by category name slug (e.g. 'food' matches category named 'Food')
+    if (catName && t.category.toLowerCase().replace(/_/g, ' ') === catName) return true;
+    // Also match if the category object for task's stored slug matches the uuid passed
+    const taskCatObj = _categories.find(c => c.id === t.category);
+    return taskCatObj?.id === category;
+  });
 
   const dayTxns = _transactions.filter(t => {
     const tDateStr = t.date.split('T')[0];
@@ -2111,7 +2125,7 @@ export async function recalculateTaskBudgetSpent(category: string, dateStr: stri
       const updatedLog = { ..._dailyTaskLogs[logIdx], spentAmount: totalSpent };
       await supabase.from('daily_task_logs').update({ spent_amount: totalSpent }).eq('id', updatedLog.id);
       _dailyTaskLogs[logIdx] = updatedLog;
-    } else {
+    } else if (totalSpent > 0) {
       const newLog: DailyTaskLog = {
         id: uuidv4(),
         taskId: t.id,
@@ -2122,6 +2136,54 @@ export async function recalculateTaskBudgetSpent(category: string, dateStr: stri
       };
       await supabase.from('daily_task_logs').insert({ ...mapDailyTaskLogToDb(newLog), user_id: uid });
       _dailyTaskLogs.push(newLog);
+    }
+  }
+  notifyWrite();
+}
+
+// Recalculate budget spent for ALL tasks for a given date.
+// Used after transaction delete to ensure every planner task shows correct spent amount.
+export async function recalculateAllTaskBudgetsForDate(dateStr: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const auth = getAuth(app);
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+
+  // Get all expense transactions for that day, grouped by their note's taskId pattern
+  const dayTxns = _transactions.filter(t => {
+    const tDateStr = t.date.split('T')[0];
+    return tDateStr === dateStr && t.type === 'expense';
+  });
+
+  // For every daily task that has a log for that date, recalculate spentAmount
+  // by matching transactions: by task note containing taskId, or by category match
+  for (const task of _dailyTasks) {
+    const logIdx = _dailyTaskLogs.findIndex(l => l.taskId === task.id && l.date === dateStr);
+    if (logIdx === -1) continue; // No log exists for this task today, skip
+
+    // Find category UUID for this task (handle slug → UUID resolution)
+    const taskCatObj = _categories.find(c =>
+      c.id === task.category ||
+      c.name.toLowerCase() === task.category.toLowerCase().replace(/_/g, ' ')
+    );
+    const taskCatId = taskCatObj?.id || task.category;
+
+    // Match transactions by:
+    // 1) Note contains the task title (from habit log)
+    // 2) Category matches the resolved category ID
+    const matchingTxns = dayTxns.filter(t => {
+      const noteMatch = t.note && t.note.includes(task.title);
+      const catMatch = t.category === taskCatId || t.category === task.category;
+      return noteMatch || catMatch;
+    });
+
+    const newSpent = matchingTxns.reduce((sum, t) => sum + t.amount, 0);
+    const currentLog = _dailyTaskLogs[logIdx];
+
+    if (currentLog.spentAmount !== newSpent) {
+      const updatedLog = { ...currentLog, spentAmount: newSpent };
+      await supabase.from('daily_task_logs').update({ spent_amount: newSpent }).eq('id', currentLog.id);
+      _dailyTaskLogs[logIdx] = updatedLog;
     }
   }
   notifyWrite();

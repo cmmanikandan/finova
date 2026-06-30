@@ -91,24 +91,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(() => {
-    setTransactions(db.getTransactions());
-    setBudgets(db.getBudgets());
-    setGoals(db.getGoals());
-    setAccounts(db.getAccounts());
-    setCategories(db.getCategories());
+    setTransactions([...db.getTransactions()]);
+    setBudgets([...db.getBudgets()]);
+    setGoals([...db.getGoals()]);
+    setAccounts([...db.getAccounts()]);
+    setCategories([...db.getCategories()]);
 
-    setDailyTasks(db.getDailyTasks());
+    setDailyTasks([...db.getDailyTasks()]);
     const todayStr = new Date().toISOString().split('T')[0];
-    setDailyTaskLogs(db.getDailyTaskLogs(todayStr));
-    setPlannerSchedules(db.getPlannerSchedule());
-    setPlannerReminders(db.getPlannerReminders());
-    setXpHistory(db.getXPHistory());
-    setUserLevel(db.getUserLevel());
-    setUserBadges(db.getUserBadges());
-    setStreakData(db.getStreakData());
+    setDailyTaskLogs([...db.getDailyTaskLogs(todayStr)]);
+    setPlannerSchedules([...db.getPlannerSchedule()]);
+    setPlannerReminders([...db.getPlannerReminders()]);
+    setXpHistory([...db.getXPHistory()]);
+    setUserLevel({ ...db.getUserLevel() });
+    setUserBadges([...db.getUserBadges()]);
+    setStreakData({ ...db.getStreakData() });
 
     const s = db.getSettings();
-    setSettings(s);
+    setSettings({ ...s });
     applyTheme(s.theme);
   }, []);
 
