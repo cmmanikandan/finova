@@ -14,7 +14,7 @@
   --color-text-muted: #64748B;
   --color-border: #E2E8F0;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Sora', 'Inter', system-ui, -apple-system, sans-serif;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -110,31 +110,36 @@ body {
 }
 
 /* Typography Classes (Material Design 3 Scale) */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 800;
+}
+
 .text-display {
   font-size: 32px;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 40px;
   letter-spacing: -0.5px;
 }
 .text-headline {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 36px;
   letter-spacing: -0.2px;
 }
 .text-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 28px;
 }
 .text-section {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 26px;
 }
 .text-card-title {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 24px;
 }
 .text-body {
@@ -225,7 +230,7 @@ body {
   color: #ffffff;
   border: none;
   border-radius: 16px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
   padding: 0 1.5rem;
   cursor: pointer;
@@ -245,7 +250,7 @@ body {
   background: transparent;
   border: 1.5px solid var(--color-border);
   border-radius: 16px;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
   padding: 0 1.5rem;
   cursor: pointer;
