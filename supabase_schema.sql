@@ -79,6 +79,7 @@ ALTER TABLE IF EXISTS public.split_bills DROP CONSTRAINT IF EXISTS split_bills_u
 
 ALTER TABLE IF EXISTS public.daily_tasks DROP CONSTRAINT IF EXISTS daily_tasks_user_id_fkey;
 ALTER TABLE IF EXISTS public.daily_task_logs DROP CONSTRAINT IF EXISTS daily_task_logs_user_id_fkey;
+ALTER TABLE IF EXISTS public.daily_task_logs DROP CONSTRAINT IF EXISTS daily_task_logs_task_id_fkey;
 ALTER TABLE IF EXISTS public.planner_schedule DROP CONSTRAINT IF EXISTS planner_schedule_user_id_fkey;
 ALTER TABLE IF EXISTS public.planner_reminders DROP CONSTRAINT IF EXISTS planner_reminders_user_id_fkey;
 ALTER TABLE IF EXISTS public.xp_history DROP CONSTRAINT IF EXISTS xp_history_user_id_fkey;
