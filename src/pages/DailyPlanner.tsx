@@ -432,7 +432,7 @@ const DailyPlanner: React.FC = () => {
         </div>
 
         {/* Scrollable Form Container */}
-        <div className="pb-nav-safe" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
+        <div className="pb-safe" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
           <form onSubmit={handleSaveTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
             {/* Title field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

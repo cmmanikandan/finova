@@ -2,6 +2,8 @@
 import type { Transaction } from '../types';
 import { getCategories, getAccounts } from './db';
 import { format } from 'date-fns';
+import { getAuth } from 'firebase/auth';
+import { LOGO_BASE64 } from './logoBase64';
 
 function getCatName(id: string) {
   return getCategories().find(c => c.id === id)?.name || id;
@@ -61,36 +63,55 @@ export async function exportPDF(
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  // Draw vector logo wordmark
-  drawWordmark(doc, 14, 8, 8);
+  // Draw logo image if base64 is loaded, else draw vector wordmark fallback
+  if (LOGO_BASE64) {
+    doc.addImage(LOGO_BASE64, 'JPEG', 14, 7, 12, 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(8, 26, 69); // Dark Navy #081A45
+    doc.text('FINOVA', 28, 16.5);
+  } else {
+    drawWordmark(doc, 14, 8, 8);
+  }
 
   // Tagline below logo
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text('TRACK MONEY · BUILD BETTER HABITS', 14, 22);
+  doc.text('TRACK MONEY · BUILD BETTER HABITS', 14, 23.5);
+
+  // Retrieve user name
+  let userName = 'User';
+  try {
+    const auth = getAuth();
+    if (auth.currentUser) {
+      userName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'User';
+    }
+  } catch (err) {
+    console.warn('Failed to retrieve user name from auth:', err);
+  }
 
   // Right-aligned report metadata at x=196mm
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(8, 26, 69); // Dark Navy Brand Color
-  doc.text('OFFICIAL FINANCIAL STATEMENT', 196, 11, { align: 'right' });
+  doc.text(`STATEMENT FOR: ${userName.toUpperCase()}`, 196, 11, { align: 'right' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139); // slate-500
-  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy hh:mm a')}`, 196, 16, { align: 'right' });
-  doc.text(`Record Count: ${transactions.length} entries`, 196, 21, { align: 'right' });
-  doc.text(`Scope: ${filters?.range || 'All Scope'} | Category: ${filters?.category || 'All'} | Account: ${filters?.account || 'All'}`, 196, 26, { align: 'right' });
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy hh:mm a')}`, 196, 15.5, { align: 'right' });
+  doc.text(`Record Count: ${transactions.length} entries`, 196, 19.5, { align: 'right' });
+  doc.text(`Scope: ${filters?.range || 'All Scope'} | Category: ${filters?.category || 'All'} | Account: ${filters?.account || 'All'}`, 196, 23.5, { align: 'right' });
 
-  // Dual-color premium dividing accent line at y=30mm
+  // Dual-color premium dividing accent line at y=27mm
   doc.setLineWidth(0.6);
   // Left half (blue)
   doc.setDrawColor(37, 99, 235);
-  doc.line(14, 30, 105, 30);
+  doc.line(14, 27, 105, 27);
   // Right half (green)
   doc.setDrawColor(0, 208, 132);
-  doc.line(105, 30, 196, 30);
+  doc.line(105, 27, 196, 27);
 
   // Summary Metrics Section
   const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -98,51 +119,50 @@ export async function exportPDF(
   const savings = income - expense;
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
 
-  // Cashflow summary cards (drawn as rounded rects)
+  // Cashflow summary cards (drawn as rounded rects) at y=33
   // Income Card
   doc.setFillColor(240, 253, 244); // light green
   doc.setDrawColor(187, 247, 208);
-  doc.roundedRect(14, 36, 56, 18, 3, 3, 'FD');
+  doc.roundedRect(14, 33, 56, 18, 3, 3, 'FD');
   doc.setTextColor(22, 163, 74);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('TOTAL INCOME', 18, 41);
+  doc.text('TOTAL INCOME', 18, 38);
   doc.setFontSize(11);
-  doc.text(`₹${income.toLocaleString('en-IN')}`, 18, 49);
+  doc.text(`Rs. ${income.toLocaleString('en-IN')}`, 18, 46);
 
   // Expense Card
   doc.setFillColor(254, 242, 242); // light red
   doc.setDrawColor(254, 202, 202);
-  doc.roundedRect(77, 36, 56, 18, 3, 3, 'FD');
+  doc.roundedRect(77, 33, 56, 18, 3, 3, 'FD');
   doc.setTextColor(220, 38, 38);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('TOTAL EXPENSE', 81, 41);
+  doc.text('TOTAL EXPENSE', 81, 38);
   doc.setFontSize(11);
-  doc.text(`₹${expense.toLocaleString('en-IN')}`, 81, 49);
+  doc.text(`Rs. ${expense.toLocaleString('en-IN')}`, 81, 46);
 
   // Net Savings Card
   doc.setFillColor(239, 246, 255); // light blue
   doc.setDrawColor(191, 219, 254);
-  doc.roundedRect(140, 36, 56, 18, 3, 3, 'FD');
+  doc.roundedRect(140, 33, 56, 18, 3, 3, 'FD');
   doc.setTextColor(37, 99, 235);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`SAVINGS (RATE: ${savingsRate}%)`, 144, 41);
+  doc.text(`SAVINGS (RATE: ${savingsRate}%)`, 144, 38);
   doc.setFontSize(11);
-  doc.text(`₹${savings.toLocaleString('en-IN')}`, 144, 49);
+  doc.text(`Rs. ${savings.toLocaleString('en-IN')}`, 144, 46);
 
-  // Transactions Table
+  // Transactions Table (startY=57, note column removed to prevent overflow)
   autoTable(doc, {
-    startY: 60,
-    head: [['Date', 'Type', 'Category', 'Account', 'Amount', 'Note']],
+    startY: 57,
+    head: [['Date', 'Type', 'Category', 'Account', 'Amount']],
     body: transactions.map(t => [
       format(new Date(t.date), 'dd MMM yyyy'),
       t.type.toUpperCase(),
       getCatName(t.category),
       getAccName(t.account),
       `${t.type === 'expense' ? '-' : '+'}${t.amount.toLocaleString('en-IN')}`,
-      t.note || '',
     ]),
     headStyles: { fillColor: [8, 26, 69], textColor: 255, fontStyle: 'bold', fontSize: 9, cellPadding: 3.5 },
     bodyStyles: { fontSize: 8.5, cellPadding: 3 },
