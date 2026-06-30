@@ -53,3 +53,38 @@ export function percentage(value: number, total: number): number {
   if (total === 0) return 0;
   return clamp((value / total) * 100, 0, 100);
 }
+
+export function to24h(time12h: string): string {
+  if (!time12h) return '';
+  const match = time12h.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) {
+    if (/^\d{2}:\d{2}$/.test(time12h)) return time12h;
+    return '';
+  }
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3];
+  
+  if (ampm) {
+    const isPm = ampm.toUpperCase() === 'PM';
+    if (isPm && hours < 12) {
+      hours += 12;
+    }
+    if (!isPm && hours === 12) {
+      hours = 0;
+    }
+  }
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+export function to12h(time24h: string): string {
+  if (!time24h) return '';
+  const match = time24h.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return time24h;
+  let hours = parseInt(match[1], 10);
+  const minutesStr = match[2];
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${String(hours).padStart(2, '0')}:${minutesStr} ${ampm}`;
+}

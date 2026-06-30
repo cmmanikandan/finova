@@ -5,7 +5,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, to24h, to12h } from '../utils/format';
 import type { DailyTask, DailyTaskLog } from '../types';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -37,6 +37,7 @@ const DailyPlanner: React.FC = () => {
     streakData,
     categories,
     xpHistory,
+    accounts,
     refresh
   } = useApp();
 
@@ -58,6 +59,19 @@ const DailyPlanner: React.FC = () => {
   // Floating XP gain state
   const [floatingXp, setFloatingXp] = useState<{ id: number; amount: number }[]>([]);
   const [xpCounter, setXpCounter] = useState(0);
+
+  // Spending log and celebration states
+  const [habitToLog, setHabitToLog] = useState<DailyTask | null>(null);
+  const [habitSpendAmount, setHabitSpendAmount] = useState('');
+  const [habitSpendAccount, setHabitSpendAccount] = useState('');
+  const [celebrationSavings, setCelebrationSavings] = useState<{ title: string; limit: number; spent: number; saved: number } | null>(null);
+
+  // Auto set default account ID when habitToLog changes
+  useEffect(() => {
+    if (habitToLog && accounts && accounts.length > 0) {
+      setHabitSpendAccount(accounts[0].id);
+    }
+  }, [habitToLog, accounts]);
 
   // Success / Error Alerts
   const [toastMsg, setToastMsg] = useState('');
@@ -138,6 +152,19 @@ const DailyPlanner: React.FC = () => {
     return Math.round((completedCount / todayTasks.length) * 100);
   }, [todayTasks, todayLogsMap]);
 
+  const totalTodaySavings = useMemo(() => {
+    let savings = 0;
+    todayTasks.forEach(task => {
+      const log = todayLogsMap[task.id];
+      if (log && log.status === 'completed' && task.budgetLimit > 0) {
+        if (log.spentAmount < task.budgetLimit) {
+          savings += (task.budgetLimit - log.spentAmount);
+        }
+      }
+    });
+    return savings;
+  }, [todayTasks, todayLogsMap]);
+
   // Create form trigger
   const openCreateForm = (preset?: typeof PRESETS[0]) => {
     setEditingTask(null);
@@ -160,7 +187,7 @@ const DailyPlanner: React.FC = () => {
     setFormBudgetLimit(String(task.budgetLimit));
     setFormPriority(task.priority);
     setFormSchedule(task.repeatSchedule);
-    setFormReminder(task.reminderTime || '');
+    setFormReminder(to24h(task.reminderTime || ''));
     setFormNotes(task.notes || '');
     setIsFormOpen(true);
   };
@@ -177,7 +204,7 @@ const DailyPlanner: React.FC = () => {
       budgetLimit: Number(formBudgetLimit) || 0,
       priority: formPriority,
       repeatSchedule: formSchedule,
-      reminderTime: formReminder || undefined,
+      reminderTime: formReminder ? to12h(formReminder) : undefined,
       notes: formNotes || undefined,
       notificationsEnabled: true,
     };
@@ -222,11 +249,18 @@ const DailyPlanner: React.FC = () => {
       if (currentStatus === 'completed') {
         await db.setTaskStatus(taskId, todayStr, 'pending');
         triggerToast('Task marked pending.');
+        refresh();
       } else {
-        await db.setTaskStatus(taskId, todayStr, 'completed', 0);
-        triggerToast('Task completed! +10 XP');
+        const task = dailyTasks.find(t => t.id === taskId);
+        if (task && task.budgetLimit > 0) {
+          setHabitToLog(task);
+          setHabitSpendAmount('');
+        } else {
+          await db.setTaskStatus(taskId, todayStr, 'completed', 0);
+          triggerToast('Task completed! +10 XP');
+          refresh();
+        }
       }
-      refresh();
     } catch (err) {
       triggerToast('Error updating status');
     }
@@ -463,8 +497,7 @@ const DailyPlanner: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>Reminder Alert Time</label>
               <input
-                type="text"
-                placeholder="e.g. 08:30 AM"
+                type="time"
                 value={formReminder}
                 onChange={e => setFormReminder(e.target.value)}
                 style={{
@@ -694,6 +727,15 @@ const DailyPlanner: React.FC = () => {
                     Best: {streakData.plannerBestStreak || 0}d
                   </span>
                 </div>
+
+                {totalTodaySavings > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '-2px' }}>
+                    <span style={{ fontSize: '1rem' }}>💰</span>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#10B981' }}>
+                      ₹{totalTodaySavings.toLocaleString()} Saved Today
+                    </span>
+                  </div>
+                )}
 
                 {/* XP progression bar */}
                 <div>
@@ -1289,6 +1331,179 @@ const DailyPlanner: React.FC = () => {
       >
         <Plus size={28} />
       </button>
+
+      {/* Spent logging and celebration overlays */}
+      {habitToLog && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div className="card animate-scale-up" style={{ width: '100%', maxWidth: '380px', padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            <div className="flex-between">
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Log Spend: {habitToLog.title}</h4>
+              <button 
+                onClick={() => setHabitToLog(null)} 
+                style={{ border: 'none', background: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.12)', padding: '14px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Budget Limit</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{habitToLog.budgetLimit}</span>
+              </div>
+              <span style={{ fontSize: '1.75rem' }}>{habitToLog.icon}</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Actual Amount Spent (₹)</label>
+                <input 
+                  type="number" 
+                  placeholder="e.g. 40" 
+                  value={habitSpendAmount} 
+                  onChange={e => setHabitSpendAmount(e.target.value)} 
+                  className="input-field"
+                  required
+                  style={{ fontWeight: 800, fontSize: '1rem' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Pay From Account</label>
+                <select
+                  value={habitSpendAccount}
+                  onChange={e => setHabitSpendAccount(e.target.value)}
+                  className="input-field"
+                  style={{ fontWeight: 600 }}
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} (Bal: ₹{acc.balance})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={async () => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  await db.setTaskStatus(habitToLog.id, todayStr, 'completed');
+                  triggerToast('Completed! +10 XP');
+                  setHabitToLog(null);
+                  refresh();
+                }}
+                className="btn-ghost"
+                style={{ flex: 1, height: '44px', borderRadius: '14px', fontSize: '0.8125rem' }}
+              >
+                Spent ₹0
+              </button>
+              <button 
+                onClick={async () => {
+                  const spentVal = Number(habitSpendAmount);
+                  if (isNaN(spentVal) || spentVal < 0) {
+                    alert('Please enter a valid amount!');
+                    return;
+                  }
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  
+                  await db.addTransaction({
+                    type: 'expense',
+                    amount: spentVal,
+                    category: habitToLog.category || 'food',
+                    account: habitSpendAccount || 'cash',
+                    date: new Date().toISOString(),
+                    note: `${habitToLog.title} Habit Log (Budget: ₹${habitToLog.budgetLimit})`
+                  });
+
+                  await db.setTaskStatus(habitToLog.id, todayStr, 'completed');
+
+                  const saved = habitToLog.budgetLimit - spentVal;
+                  if (saved > 0) {
+                    setCelebrationSavings({
+                      title: habitToLog.title,
+                      limit: habitToLog.budgetLimit,
+                      spent: spentVal,
+                      saved
+                    });
+                  } else {
+                    triggerToast('Habit completed & expense logged!');
+                  }
+
+                  setHabitToLog(null);
+                  setHabitSpendAmount('');
+                  refresh();
+                }}
+                className="btn-primary"
+                style={{ flex: 2, height: '44px', borderRadius: '14px', fontWeight: 800 }}
+              >
+                Log & Complete 🎉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {celebrationSavings && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10001,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div className="card animate-scale-up text-center" style={{ width: '100%', maxWidth: '360px', padding: '30px 24px', borderRadius: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'var(--color-card)', border: 'none', boxShadow: 'var(--shadow-modal)' }}>
+            <span style={{ fontSize: '4rem', animation: 'bounce 1s infinite' }}>🎉</span>
+            
+            <div>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Excellent Savings!</h3>
+              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                Sticking to your budget is a superpower. You successfully completed your <strong>{celebrationSavings.title}</strong> routine under budget!
+              </p>
+            </div>
+
+            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1.5px dashed rgba(16,185,129,0.25)', padding: '16px', borderRadius: '20px', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Limit</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{celebrationSavings.limit}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Actual Spent</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#EF4444' }}>₹{celebrationSavings.spent}</span>
+              </div>
+              <div style={{ gridColumn: 'span 2', borderTop: '1px solid rgba(16,185,129,0.1)', paddingTop: '8px', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Your Savings Today</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10B981' }}>+ ₹{celebrationSavings.saved}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setCelebrationSavings(null)}
+              className="btn-primary"
+              style={{ width: '100%', height: '46px', borderRadius: '16px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+            >
+              Awesome! Keep it Up! 👍
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Global alert toast */}
       {toastMsg && (

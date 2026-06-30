@@ -129,9 +129,14 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
   const handleQuickComplete = async (e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
     const todayStr = new Date().toISOString().split('T')[0];
+    const task = todayTasks.find(t => t.id === taskId);
     try {
-      await db.setTaskStatus(taskId, todayStr, 'completed', 0);
-      refresh();
+      if (task && task.budgetLimit > 0) {
+        navigate('/planner');
+      } else {
+        await db.setTaskStatus(taskId, todayStr, 'completed', 0);
+        refresh();
+      }
     } catch (err) {
       console.error(err);
     }

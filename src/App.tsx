@@ -21,15 +21,92 @@ import BottomNav from './components/BottomNav';
 import { ScrollRestoration } from './components/ScrollRestoration';
 import { AndroidBackHandler, PageTransitionTracker } from './components/AndroidBackHandler';
 import * as db from './services/db';
+import { to24h, to12h } from './utils/format';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings } = useApp();
+  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, refresh } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
   const [showReminderToast, setShowReminderToast] = useState(false);
 
   const pageContentRef = useRef<HTMLDivElement>(null);
+
+  // Routine Habit background alert & log states
+  const [routineAlert, setRoutineAlert] = useState<{ task: any; message: string } | null>(null);
+  const [habitToLog, setHabitToLog] = useState<any | null>(null);
+  const [habitSpendAmount, setHabitSpendAmount] = useState('');
+  const [habitSpendAccount, setHabitSpendAccount] = useState('');
+  const [celebrationSavings, setCelebrationSavings] = useState<{ title: string; limit: number; spent: number; saved: number } | null>(null);
+
+  // Auto set default account ID when habitToLog changes in App
+  useEffect(() => {
+    if (habitToLog && accounts && accounts.length > 0) {
+      setHabitSpendAccount(accounts[0].id);
+    }
+  }, [habitToLog, accounts]);
+
+  // Routine Alert background check (runs every minute)
+  useEffect(() => {
+    if (!user || !dailyTasks) return;
+
+    const checkRoutines = () => {
+      const now = new Date();
+      const formatLocalDate = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      const todayStr = formatLocalDate(now);
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentMinutesOfDay = currentHours * 60 + currentMinutes;
+
+      dailyTasks.forEach(task => {
+        if (!task.reminderTime) return;
+
+        const task24h = to24h(task.reminderTime);
+        if (!task24h) return;
+        const [tHours, tMinutes] = task24h.split(':').map(Number);
+        const taskMinutesOfDay = tHours * 60 + tMinutes;
+
+        // Trigger alert exactly 10 minutes before the scheduled time
+        const targetMinutesOfDay = taskMinutesOfDay - 10;
+
+        if (currentMinutesOfDay === targetMinutesOfDay) {
+          // Check if task is already completed/skipped today
+          const log = dailyTaskLogs.find(l => l.taskId === task.id && l.date === todayStr);
+          const isDoneOrSkipped = log && (log.status === 'completed' || log.status === 'skipped');
+
+          if (!isDoneOrSkipped) {
+            const notifyKey = `finova_routine_alert_${task.id}_${todayStr}`;
+            if (!localStorage.getItem(notifyKey)) {
+              localStorage.setItem(notifyKey, 'true');
+
+              let message = `Time for your routine: "${task.title}"!`;
+              const lowerTitle = task.title.toLowerCase();
+              if (lowerTitle.includes('breakfast')) {
+                message = "🍳 Time to eat breakfast! Go and eat!";
+              } else if (lowerTitle.includes('lunch')) {
+                message = "🍱 Time to eat lunch! Go and eat!";
+              } else if (lowerTitle.includes('dinner')) {
+                message = "🥗 Time to eat dinner! Go and eat!";
+              } else if (lowerTitle.includes('eat') || lowerTitle.includes('food') || lowerTitle.includes('snack')) {
+                message = "🍕 Go and eat!";
+              }
+
+              setRoutineAlert({ task, message });
+            }
+          }
+        }
+      });
+    };
+
+    checkRoutines();
+    const interval = setInterval(checkRoutines, 30000); // check every 30s
+    return () => clearInterval(interval);
+  }, [user, dailyTasks, dailyTaskLogs]);
 
   // ─── PWA States ───────────────────────────────────────────────────────────
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -259,6 +336,264 @@ const AppContent: React.FC = () => {
           >
             Got it
           </button>
+        </div>
+      )}
+
+      {/* Background Routine Habits alerts & logging */}
+      {routineAlert && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div className="card animate-scale-up" style={{ width: '100%', maxWidth: '380px', padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <span style={{ fontSize: '2rem' }}>{routineAlert.task.icon || '⏰'}</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Routine Alert</h4>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                  Starting in 10 minutes (at {routineAlert.task.reminderTime})
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--color-bg)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.4 }}>
+                {routineAlert.message}
+              </p>
+              {routineAlert.task.budgetLimit > 0 && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 700, marginTop: '8px' }}>
+                  Budget Limit: ₹{routineAlert.task.budgetLimit}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {routineAlert.task.budgetLimit > 0 ? (
+                <button
+                  onClick={() => {
+                    setHabitToLog(routineAlert.task);
+                    setRoutineAlert(null);
+                  }}
+                  className="btn-primary"
+                  style={{ height: '44px', borderRadius: '14px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Go & Eat (Log Spend) 🍱
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    await db.setTaskStatus(routineAlert.task.id, todayStr, 'completed');
+                    setRoutineAlert(null);
+                    refresh();
+                  }}
+                  className="btn-primary"
+                  style={{ height: '44px', borderRadius: '14px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Mark Complete
+                </button>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={async () => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    await db.setTaskStatus(routineAlert.task.id, todayStr, 'skipped');
+                    setRoutineAlert(null);
+                    refresh();
+                  }}
+                  className="btn-ghost"
+                  style={{ flex: 1, height: '40px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800 }}
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={() => setRoutineAlert(null)}
+                  className="btn-ghost"
+                  style={{ flex: 1, height: '40px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 800 }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {habitToLog && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div className="card animate-scale-up" style={{ width: '100%', maxWidth: '380px', padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+            <div className="flex-between">
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Log Spend: {habitToLog.title}</h4>
+              <button 
+                onClick={() => setHabitToLog(null)} 
+                style={{ border: 'none', background: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.12)', padding: '14px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Budget Limit</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{habitToLog.budgetLimit}</span>
+              </div>
+              <span style={{ fontSize: '1.75rem' }}>{habitToLog.icon}</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Actual Amount Spent (₹)</label>
+                <input 
+                  type="number" 
+                  placeholder="e.g. 40" 
+                  value={habitSpendAmount} 
+                  onChange={e => setHabitSpendAmount(e.target.value)} 
+                  className="input-field"
+                  required
+                  style={{ fontWeight: 800, fontSize: '1rem' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Pay From Account</label>
+                <select
+                  value={habitSpendAccount}
+                  onChange={e => setHabitSpendAccount(e.target.value)}
+                  className="input-field"
+                  style={{ fontWeight: 600 }}
+                >
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} (Bal: ₹{acc.balance})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={async () => {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  await db.setTaskStatus(habitToLog.id, todayStr, 'completed');
+                  setHabitToLog(null);
+                  refresh();
+                }}
+                className="btn-ghost"
+                style={{ flex: 1, height: '44px', borderRadius: '14px', fontSize: '0.8125rem' }}
+              >
+                Spent ₹0
+              </button>
+              <button 
+                onClick={async () => {
+                  const spentVal = Number(habitSpendAmount);
+                  if (isNaN(spentVal) || spentVal < 0) {
+                    alert('Please enter a valid amount!');
+                    return;
+                  }
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  
+                  await db.addTransaction({
+                    type: 'expense',
+                    amount: spentVal,
+                    category: habitToLog.category || 'food',
+                    account: habitSpendAccount || 'cash',
+                    date: new Date().toISOString(),
+                    note: `${habitToLog.title} Habit Log (Budget: ₹${habitToLog.budgetLimit})`
+                  });
+
+                  await db.setTaskStatus(habitToLog.id, todayStr, 'completed');
+
+                  const saved = habitToLog.budgetLimit - spentVal;
+                  if (saved > 0) {
+                    setCelebrationSavings({
+                      title: habitToLog.title,
+                      limit: habitToLog.budgetLimit,
+                      spent: spentVal,
+                      saved
+                    });
+                  }
+
+                  setHabitToLog(null);
+                  setHabitSpendAmount('');
+                  refresh();
+                }}
+                className="btn-primary"
+                style={{ flex: 2, height: '44px', borderRadius: '14px', fontWeight: 800 }}
+              >
+                Log & Complete 🎉
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {celebrationSavings && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100000,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div className="card animate-scale-up text-center" style={{ width: '100%', maxWidth: '360px', padding: '30px 24px', borderRadius: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'var(--color-card)', border: 'none', boxShadow: 'var(--shadow-modal)' }}>
+            <span style={{ fontSize: '4rem', animation: 'bounce 1s infinite' }}>🎉</span>
+            
+            <div>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Excellent Savings!</h3>
+              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                Sticking to your budget is a superpower. You successfully completed your <strong>{celebrationSavings.title}</strong> routine under budget!
+              </p>
+            </div>
+
+            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1.5px dashed rgba(16,185,129,0.25)', padding: '16px', borderRadius: '20px', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Limit</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{celebrationSavings.limit}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Actual Spent</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#EF4444' }}>₹{celebrationSavings.spent}</span>
+              </div>
+              <div style={{ gridColumn: 'span 2', borderTop: '1px solid rgba(16,185,129,0.1)', paddingTop: '8px', marginTop: '4px' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Your Savings Today</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10B981' }}>+ ₹{celebrationSavings.saved}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setCelebrationSavings(null)}
+              className="btn-primary"
+              style={{ width: '100%', height: '46px', borderRadius: '16px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+            >
+              Awesome! Keep it Up! 👍
+            </button>
+          </div>
         </div>
       )}
 

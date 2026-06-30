@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Share2, Clipboard, Users, 
   ArrowLeft, FileText, Camera, 
-  Search, BarChart2
+  Search, BarChart2, Trash2
 } from 'lucide-react';
 import * as db from '../services/db';
 import type { SplitBillItem, Member } from '../types';
@@ -53,6 +53,18 @@ const SplitBill: React.FC = () => {
     loadData();
     db.registerWriteListener(loadData);
   }, []);
+
+  // Lock body scrolling when QR modal is open to prevent white space issues
+  useEffect(() => {
+    if (selectedSplit) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [selectedSplit]);
 
   const loadData = () => {
     // Only loads user-owned splits from Supabase (no mock data fallback!)
@@ -203,6 +215,18 @@ const SplitBill: React.FC = () => {
     loadData();
   };
 
+  const handleDeleteSplit = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this split bill?')) {
+      try {
+        await db.deleteSplitBill(id);
+        loadData();
+      } catch (err) {
+        console.error('Failed to delete split bill:', err);
+      }
+    }
+  };
+
   const handleCopyLink = () => {
     if (!upiUrl) return;
     navigator.clipboard.writeText(upiUrl);
@@ -220,7 +244,7 @@ const SplitBill: React.FC = () => {
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '120px' }}>
       {/* Sticky App Bar */}
       <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => {
@@ -232,12 +256,22 @@ const SplitBill: React.FC = () => {
         <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>
           {viewMode === 'dashboard' ? 'Split Bills' : viewMode === 'create' ? 'Create Split' : viewMode === 'history' ? 'Split History' : 'Analytics'}
         </h2>
-        <div style={{ width: '32px' }} />
+        {viewMode === 'dashboard' ? (
+          <button 
+            onClick={() => setViewMode('create')} 
+            style={{ border: 'none', background: 'transparent', color: 'var(--color-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+            title="Create Split Bill"
+          >
+            <Plus size={22} />
+          </button>
+        ) : (
+          <div style={{ width: '32px' }} />
+        )}
       </div>
 
       {/* ─── Dashboard View ─── */}
       {viewMode === 'dashboard' && (
-        <div style={{ paddingBottom: '120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Top Overview Hero Card */}
           <div className="card bg-premium-gradient" style={{ margin: '16px 16px 0', padding: '20px', borderRadius: '24px', color: '#fff', border: 'none', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
             <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.12, transform: 'rotate(15deg)' }}>
@@ -299,32 +333,46 @@ const SplitBill: React.FC = () => {
                         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>{s.name}</h4>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Date: {s.date} • Total: ₹{s.amount.toLocaleString()}</span>
                       </div>
-                      <span style={{ fontSize: '0.65rem', background: 'rgba(245,158,11,0.08)', color: '#F59E0B', padding: '4px 10px', borderRadius: '12px', fontWeight: 700 }}>Pending</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(245,158,11,0.08)', color: '#F59E0B', padding: '4px 10px', borderRadius: '12px', fontWeight: 700 }}>Pending</span>
+                        <button 
+                          onClick={(e) => handleDeleteSplit(s.id, e)} 
+                          style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                          title="Delete Split"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {s.members.filter(m => m.id !== 'you').map(m => (
-                          <div key={m.id} className="flex-between" style={{ fontSize: '0.8rem' }}>
+                          <div key={m.id} className="flex-between" style={{ fontSize: '0.8rem', padding: '8px 0', borderBottom: '1px dashed var(--color-border)' }}>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span>{m.avatar}</span>
-                              <span style={{ fontWeight: 700 }}>{m.name}</span>
+                              <span style={{ fontSize: '1.25rem' }}>{m.avatar}</span>
+                              <div>
+                                <div style={{ fontWeight: 700, color: 'var(--color-text)' }}>{m.name}</div>
+                                <div style={{ fontSize: '0.65rem', color: m.status === 'settled' ? '#10B981' : 'var(--color-text-muted)', fontWeight: 600 }}>
+                                  {m.status === 'settled' ? 'Paid' : 'Pending payment'}
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span style={{ color: m.status === 'settled' ? '#10B981' : 'var(--color-text-muted)', fontWeight: 800 }}>
-                                ₹{m.share.toLocaleString()} {m.status === 'settled' ? '(Paid)' : ''}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                              <span style={{ color: m.status === 'settled' ? '#10B981' : 'var(--color-text)', fontWeight: 800 }}>
+                                ₹{m.share.toFixed(2)}
                               </span>
                               {m.status !== 'settled' && (
                                 <div style={{ display: 'flex', gap: '6px' }}>
                                   <button 
                                     onClick={() => generatePaymentRequest(s, m)}
-                                    style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '8px', padding: '5px 10px', color: '#fff', fontSize: '0.6875rem', fontWeight: 800, cursor: 'pointer' }}
+                                    style={{ background: 'var(--color-primary)', border: 'none', borderRadius: '6px', padding: '4px 8px', color: '#fff', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer' }}
                                   >
                                     Request
                                   </button>
                                   <button 
                                     onClick={() => markAsSettled(s.id, m.id)}
-                                    style={{ background: 'rgba(16,185,129,0.08)', border: 'none', borderRadius: '8px', padding: '5px 10px', color: '#10B981', fontSize: '0.6875rem', fontWeight: 800, cursor: 'pointer' }}
+                                    style={{ background: 'rgba(16,185,129,0.1)', border: 'none', borderRadius: '6px', padding: '4px 8px', color: '#10B981', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer' }}
                                   >
                                     Settle
                                   </button>
@@ -451,6 +499,20 @@ const SplitBill: React.FC = () => {
                       <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 800 }}>+ Add</span>
                     </div>
                   ))}
+                  
+                  {!RECENT_CONTACTS.some(c => c.name.toLowerCase() === searchContact.toLowerCase().trim()) && (
+                    <div 
+                      onClick={() => addFriend(searchContact.trim(), '', '👤')}
+                      className="flex-between clickable" 
+                      style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)', borderTop: '1px solid var(--color-border)', marginTop: '4px' }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span>👤</span>
+                        <span>Add custom: "{searchContact.trim()}"</span>
+                      </div>
+                      <span style={{ fontSize: '0.65rem', background: 'var(--color-primary)', color: '#fff', padding: '2px 8px', borderRadius: '8px', fontWeight: 800 }}>+ Create</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -599,12 +661,19 @@ const SplitBill: React.FC = () => {
                     <h4 style={{ margin: '0 0 2px 0', fontSize: '0.875rem', fontWeight: 800 }}>{s.name}</h4>
                     <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Date: {s.date} • Total: ₹{s.amount}</span>
                   </div>
-                  <div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     {s.status === 'completed' ? (
                       <span style={{ fontSize: '0.65rem', background: 'rgba(16,185,129,0.08)', color: '#10B981', padding: '4px 10px', borderRadius: '12px', fontWeight: 700 }}>Settled</span>
                     ) : (
                       <span style={{ fontSize: '0.65rem', background: 'rgba(245,158,11,0.08)', color: '#F59E0B', padding: '4px 10px', borderRadius: '12px', fontWeight: 700 }}>Pending</span>
                     )}
+                    <button 
+                      onClick={(e) => handleDeleteSplit(s.id, e)} 
+                      style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                      title="Delete Split"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -660,14 +729,19 @@ const SplitBill: React.FC = () => {
       {selectedSplit && selectedMember && qrUrl && (
         <div style={{
           position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.4)',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.75)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
+          zIndex: 10000,
           padding: '20px',
           animation: 'fadeIn 0.22s ease-out',
         }}>
