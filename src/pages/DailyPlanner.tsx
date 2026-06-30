@@ -1398,7 +1398,15 @@ const DailyPlanner: React.FC = () => {
         style={{
           position: 'fixed',
           bottom: '96px',
-          r      {/* Spent logging and celebration overlays */}
+          right: '20px',
+          zIndex: 50
+        }}
+        aria-label="Add Habit"
+      >
+        <Plus size={28} />
+      </button>
+
+      {/* Spent logging and celebration overlays */}
       {habitToLog && createPortal(
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setHabitToLog(null)}>
           <div className="bottom-sheet">
