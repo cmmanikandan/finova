@@ -477,15 +477,34 @@ select.input-field {
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
   text-decoration: none;
 }
 .list-row:last-child {
   border-bottom: none;
 }
+.list-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  transform: scale(1.01);
+}
+[data-theme="dark"] .list-row:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
 .list-row:active {
-  background-color: rgba(0, 0, 0, 0.04);
+  transform: scale(0.99);
+}
+
+.clickable-card {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
+}
+.clickable-card:active {
+  transform: scale(0.98);
 }
 
 /* Category Color Accents */

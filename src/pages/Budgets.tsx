@@ -774,35 +774,35 @@ const BudgetsListTab: React.FC = () => {
           <div key={b.id} style={{
             background: 'var(--color-card)', border: '1.5px solid var(--color-border)',
             borderRadius: '18px', padding: '16px', boxShadow: 'var(--shadow-card)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${b.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
                 {cat?.icon ?? '💰'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{periodLabel(b.period)} · {cat?.name ?? b.category}</div>
-              </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => { setEditBudget(b); setShowForm(true); }} style={{ padding: '6px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--color-text-secondary)' }}><Edit3 size={14} /></button>
-                <button onClick={() => handleDelete(b.id)} style={{ padding: '6px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', cursor: 'pointer', color: '#DC2626' }}><Trash2 size={14} /></button>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div style={{ marginBottom: '8px' }}>
-              <div style={{ height: '8px', borderRadius: '99px', background: 'var(--color-border)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: color, borderRadius: '99px', transition: 'width 0.5s ease' }} />
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>{periodLabel(b.period)} · {cat?.name ?? b.category}</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                  Spent: <strong style={{ color: 'var(--color-text)' }}>₹{b.spent.toLocaleString()}</strong> of ₹{b.limit.toLocaleString()}
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                Spent: <strong style={{ color: 'var(--color-text)' }}>{b.spent.toLocaleString()}</strong>
-              </span>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color }}>
-                {Math.round(pct)}% of {b.limit.toLocaleString()}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+              {/* Circular Progress Ring */}
+              <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+                <Ring pct={pct} size={64} stroke={6} color={color} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 800, color: color }}>
+                  {Math.round(pct)}%
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button onClick={() => { setEditBudget(b); setShowForm(true); }} style={{ padding: '6px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center' }}><Edit3 size={13} /></button>
+                <button onClick={() => handleDelete(b.id)} style={{ padding: '6px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', cursor: 'pointer', color: '#DC2626', display: 'flex', alignItems: 'center' }}><Trash2 size={13} /></button>
+              </div>
             </div>
           </div>
         );

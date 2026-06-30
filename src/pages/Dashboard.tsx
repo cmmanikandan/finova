@@ -67,7 +67,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onInstallPWA }) => {
   const {
-    user, categories, settings, refresh,
+    user, categories, settings, refresh, transactions,
     dailyTasks, dailyTaskLogs, plannerSchedules, userLevel, streakData
   } = useApp();
   const navigate = useNavigate();
@@ -87,6 +87,30 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
       setIsSyncing(false);
     }
   };
+
+  // Weekly Cash Flow calculation
+  const weeklyCashFlow = useMemo(() => {
+    const dates = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - idx);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    const txns = transactions || [];
+
+    return dates.map(dateStr => {
+      const dayTxns = txns.filter(t => t.date.split('T')[0] === dateStr);
+      const income = dayTxns.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = dayTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      
+      const d = new Date(dateStr);
+      return {
+        name: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        income,
+        expense
+      };
+    });
+  }, [transactions]);
 
   // Daily Planner widget calculations
   const todayWeekday = new Date().getDay();
@@ -548,6 +572,63 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
           </div>
         </div>
 
+        {/* Weekly Cash Flow Chart Card */}
+        <div style={{ padding: '16px 16px 0' }}>
+          <div className="card-elevated" style={{
+            background: 'var(--color-card)',
+            borderRadius: '24px',
+            border: '1px solid var(--color-border)',
+            padding: '20px',
+          }}>
+            <h4 style={{ margin: '0 0 4px', fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 800 }}>Weekly Cash Flow</h4>
+            <p style={{ margin: '0 0 16px', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Comparison of income and expenses over the last 7 days.</p>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', height: '140px', alignItems: 'flex-end', paddingTop: '10px' }}>
+              {weeklyCashFlow.map((day, idx) => {
+                const maxVal = Math.max(...weeklyCashFlow.map(d => Math.max(d.income, d.expense)), 100);
+                const incPct = Math.min(100, Math.round((day.income / maxVal) * 100));
+                const expPct = Math.min(100, Math.round((day.expense / maxVal) * 100));
+                
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexGrow: 1 }}>
+                    <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '90px' }}>
+                      {/* Income Bar (Green) */}
+                      <div style={{
+                        width: '8px',
+                        height: `${incPct}%`,
+                        background: '#22C55E',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.4s ease'
+                      }} title={`Income: ₹${day.income}`} />
+                      {/* Expense Bar (Red) */}
+                      <div style={{
+                        width: '8px',
+                        height: `${expPct}%`,
+                        background: '#EF4444',
+                        borderRadius: '4px 4px 0 0',
+                        transition: 'height 0.4s ease'
+                      }} title={`Expense: ₹${day.expense}`} />
+                    </div>
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{day.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Chart Legend */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '14px', fontSize: '0.6875rem', fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text)' }}>
+                <div style={{ width: '10px', height: '10px', background: '#22C55E', borderRadius: '3px' }} />
+                <span>Income</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text)' }}>
+                <div style={{ width: '10px', height: '10px', background: '#EF4444', borderRadius: '3px' }} />
+                <span>Expense</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* PWA Promotion Card */}
         {deferredPrompt && !isInstalled && (
           <div style={{ padding: '12px 16px 0' }}>
@@ -597,6 +678,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
           <div style={{ padding: '12px 16px 0' }}>
             <button
               onClick={() => navigate('/budgets')}
+              className="clickable-card"
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: '14px',
                 background: dailyStatus.over ? '#FEF2F2' : dailyStatus.warn ? '#FFFBEB' : 'var(--color-card)',
@@ -639,7 +721,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
         <div style={{ padding: '12px 16px 0' }}>
           <div
             onClick={() => navigate('/planner')}
-            className="card-elevated"
+            className="card-elevated clickable-card"
             style={{
               background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%)',
               border: '1px solid var(--color-border)',
@@ -976,7 +1058,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
               {goals.slice(0, 2).map(g => {
                 const pct = percentage(g.currentAmount, g.targetAmount);
                 return (
-                  <div key={g.id} className="card-elevated" onClick={() => navigate(`/goals/${g.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}>
+                  <div key={g.id} className="card-elevated clickable-card" onClick={() => navigate(`/goals/${g.id}`)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '1.25rem' }}>{g.icon}</span>
