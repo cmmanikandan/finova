@@ -35,7 +35,7 @@ const SplitBill: React.FC = () => {
     { id: 'you', name: 'You', avatar: '👤', share: 0, status: 'settled' }
   ]);
   const [searchContact, setSearchContact] = useState('');
-  const [upiId, setUpiId] = useState(() => localStorage.getItem('finova_saved_upi') || '');
+  const [upiId, setUpiId] = useState(() => db.getSettings().upiId || '');
   const [receiverName, setReceiverName] = useState('');
 
   // OCR state
@@ -57,6 +57,10 @@ const SplitBill: React.FC = () => {
   const loadData = () => {
     // Only loads user-owned splits from Supabase (no mock data fallback!)
     setSplits(db.getSplitBills());
+    const settings = db.getSettings();
+    if (settings.upiId) {
+      setUpiId(settings.upiId);
+    }
   };
 
   // OCR Receipt Scanner Mock
@@ -549,7 +553,10 @@ const SplitBill: React.FC = () => {
                 <input 
                   type="text" 
                   value={upiId} 
-                  onChange={e => { setUpiId(e.target.value); localStorage.setItem('finova_saved_upi', e.target.value); }} 
+                  onChange={e => { 
+                    setUpiId(e.target.value); 
+                    db.saveSettings({ ...db.getSettings(), upiId: e.target.value }).catch(err => console.error('Failed to save UPI settings:', err)); 
+                  }} 
                   placeholder="e.g. mobile@paytm" 
                   className="input-field"
                   required

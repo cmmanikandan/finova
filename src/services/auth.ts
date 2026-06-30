@@ -7,8 +7,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut as firebaseSignOut,
-  onAuthStateChanged as firebaseOnAuthStateChanged,
+  onIdTokenChanged,
 } from 'firebase/auth';
+import { getSupabase } from './supabase';
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
@@ -66,11 +67,20 @@ export async function signOut(): Promise<void> {
 export function onAuthStateChanged(callback: AuthCallback): () => void {
   listeners.push(callback);
 
-  // Firebase state change is the source of truth.
+  // Firebase token/auth change is the source of truth.
   // We do NOT check localStorage for a cached user – that was the source of the bug.
-  const unsubscribe = firebaseOnAuthStateChanged(auth, async (firebaseUser) => {
+  const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       const user = mapFirebaseUser(firebaseUser);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const supabase = getSupabase();
+        if (supabase) {
+          supabase.realtime.setAuth(token);
+        }
+      } catch (err) {
+        console.error('Failed to update Supabase Realtime auth token:', err);
+      }
       callback(user);
     } else {
       callback(null);

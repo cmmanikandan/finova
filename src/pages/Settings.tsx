@@ -12,7 +12,7 @@ import * as db from '../services/db';
 import { exportAllData, importAllData } from '../services/db';
 import { CURRENCIES } from '../data/defaults';
 import logoUrl from '../assets/logo.jpeg';
-import { setPIN, clearPIN, simpleHash } from './PinLock';
+import { simpleHash } from './PinLock';
 import { BrandTitle } from '../components/BrandTitle';
 
 
@@ -1011,7 +1011,6 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
 
   const handleToggle = () => {
     if (pinEnabled) {
-      clearPIN();
       setPinEnabled(false);
       saveSettings({ ...settings, pinEnabled: false, pinHash: undefined });
       alert('PIN Lock disabled successfully.');
@@ -1037,7 +1036,6 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
       return;
     }
     const hash = simpleHash(pinConfirm);
-    setPIN(pinConfirm);
     setPinEnabled(true);
     saveSettings({ ...settings, pinEnabled: true, pinHash: hash });
     setStep('toggle');

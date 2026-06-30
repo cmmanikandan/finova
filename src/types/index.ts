@@ -85,6 +85,7 @@ export interface AppSettings {
   // Savings
   savingsGoalPercent: number; // Target savings rate %
   dailyReminderTime?: string; // e.g. "21:00"
+  upiId?: string;
 }
 
 // Computed status shapes (not stored)

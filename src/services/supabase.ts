@@ -13,18 +13,29 @@ export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!_client) {
     _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      accessToken: async () => {
-        try {
-          const auth = getAuth(app);
-          const user = auth.currentUser;
-          if (user) {
-            return await user.getIdToken();
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        fetch: async (url, options = {}) => {
+          try {
+            const auth = getAuth(app);
+            const user = auth.currentUser;
+            if (user) {
+              const token = await user.getIdToken();
+              options.headers = {
+                ...options.headers,
+                Authorization: `Bearer ${token}`,
+              };
+            }
+          } catch (e) {
+            console.error('Error injecting Firebase ID token into Supabase request:', e);
           }
-        } catch (e) {
-          console.error('Error fetching Firebase ID token for Supabase:', e);
-        }
-        return null;
-      }
+          return fetch(url, options);
+        },
+      },
     });
   }
   return _client;

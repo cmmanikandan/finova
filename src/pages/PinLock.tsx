@@ -8,8 +8,6 @@ interface PinLockProps {
 
 import { getSettings } from '../services/db';
 
-const CORRECT_HASH_KEY = 'finova_pin_hash';
-
 export function simpleHash(pin: string): string {
   // Simple djb2 hash (not crypto-secure, but sufficient for local PIN)
   let hash = 5381;
@@ -19,12 +17,12 @@ export function simpleHash(pin: string): string {
   return String(hash >>> 0);
 }
 
-export function setPIN(pin: string) {
-  localStorage.setItem(CORRECT_HASH_KEY, simpleHash(pin));
+export function setPIN(_pin: string) {
+  // Deprecated: PIN is now saved dynamically in settings table on Supabase
 }
 
 export function clearPIN() {
-  localStorage.removeItem(CORRECT_HASH_KEY);
+  // Deprecated: PIN is now cleared dynamically in settings table on Supabase
 }
 
 export function verifyPIN(pin: string): boolean {
@@ -32,8 +30,7 @@ export function verifyPIN(pin: string): boolean {
   if (settings.pinEnabled && settings.pinHash) {
     return settings.pinHash === simpleHash(pin);
   }
-  const stored = localStorage.getItem(CORRECT_HASH_KEY);
-  return stored !== null && stored === simpleHash(pin);
+  return false;
 }
 
 export function isPINSet(): boolean {
@@ -41,7 +38,7 @@ export function isPINSet(): boolean {
   if (settings.pinEnabled && settings.pinHash) {
     return true;
   }
-  return localStorage.getItem(CORRECT_HASH_KEY) !== null;
+  return false;
 }
 
 const DIGITS = ['1','2','3','4','5','6','7','8','9','','0','⌫'];

@@ -226,6 +226,7 @@ function mapSettingsToDb(s: AppSettings): any {
     weekly_limit_enabled: s.weeklyLimitEnabled,
     weekly_limit: s.weeklyLimit,
     savings_goal_percent: s.savingsGoalPercent,
+    upi_id: s.upiId || null,
   };
 }
 
@@ -245,6 +246,7 @@ function mapSettingsFromDb(row: any): AppSettings {
     weeklyLimit: Number(row.weekly_limit),
     savingsGoalPercent: Number(row.savings_goal_percent),
     dailyReminderTime: row.daily_reminder_time || '21:00',
+    upiId: row.upi_id || undefined,
   };
 }
 
