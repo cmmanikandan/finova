@@ -635,7 +635,7 @@ const Goals: React.FC = () => {
       </div>
 
       {/* Savings Info Cards & List */}
-      <div style={{ paddingBottom: '120px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ paddingBottom: '140px', display: 'flex', flexDirection: 'column' }}>
         {/* Savings Performance Overview */}
         <SavingsOverviewCard />
 
@@ -760,3 +760,4 @@ const Goals: React.FC = () => {
 };
 
 export default Goals;
+

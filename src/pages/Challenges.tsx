@@ -306,7 +306,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── Dashboard View ─── */}
       {viewMode === 'dashboard' && (
-        <div style={{ paddingBottom: '120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ paddingBottom: '140px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Hero Performance Card */}
           <div className="card bg-premium-gradient" style={{ margin: '16px 16px 0', padding: '20px', borderRadius: '24px', color: '#fff', border: 'none', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
@@ -796,3 +796,4 @@ const Challenges: React.FC = () => {
 };
 
 export default Challenges;
+

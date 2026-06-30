@@ -323,7 +323,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
         onNotification={() => navigate('/settings/notifications')}
       />
 
-      <div style={{ paddingBottom: '120px' }}>
+      <div style={{ paddingBottom: '140px' }}>
 
         {/* 1.5. Greeting Card under header */}
         <div style={{ padding: '16px 16px 0' }}>
@@ -1125,3 +1125,4 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
 };
 
 export default Dashboard;
+

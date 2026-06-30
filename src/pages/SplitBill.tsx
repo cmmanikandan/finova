@@ -300,7 +300,7 @@ const SplitBill: React.FC = () => {
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '120px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '140px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Sticky App Bar */}
       <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => {
@@ -890,3 +890,4 @@ const SplitBill: React.FC = () => {
 };
 
 export default SplitBill;
+

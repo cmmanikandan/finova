@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell, Sun, Moon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import logoUrl from '../assets/logo.jpeg';
@@ -13,6 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
   const { user, settings, saveSettings } = useApp();
+  const [pressedBtn, setPressedBtn] = useState<string | null>(null);
 
   const toggleTheme = () => {
     const next = settings.theme === 'dark' ? 'light' : 'dark';
@@ -21,79 +22,185 @@ const Header: React.FC<HeaderProps> = ({ onNotification, onProfile }) => {
 
   const isDark = settings.theme === 'dark';
 
+  const handlePress = (id: string) => {
+    setPressedBtn(id);
+    setTimeout(() => setPressedBtn(null), 180);
+  };
+
+  const iconBtnStyle = (id: string): React.CSSProperties => ({
+    width: '46px',
+    height: '46px',
+    borderRadius: '16px',
+    border: isDark
+      ? '1px solid rgba(255,255,255,0.08)'
+      : '1px solid rgba(47,107,255,0.10)',
+    background: isDark
+      ? 'rgba(255,255,255,0.06)'
+      : 'rgba(255,255,255,0.80)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: isDark ? '#CBD5E1' : '#475569',
+    transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: isDark
+      ? '0 2px 8px rgba(0,0,0,0.25)'
+      : '0 2px 8px rgba(47,107,255,0.08), 0 1px 2px rgba(0,0,0,0.04)',
+    transform: pressedBtn === id ? 'scale(0.91)' : 'scale(1)',
+    position: 'relative',
+  });
+
   return (
-    <header className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-      {/* Left: Logo and FINOVA */}
+    <header style={{
+      position: 'sticky',
+      top: 0,
+      zIndex: 200,
+      height: '72px',
+      background: isDark
+        ? 'rgba(15,23,42,0.92)'
+        : 'rgba(255,255,255,0.92)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderBottom: isDark
+        ? '1px solid rgba(255,255,255,0.06)'
+        : '1px solid rgba(47,107,255,0.08)',
+      boxShadow: isDark
+        ? '0 2px 24px rgba(0,0,0,0.30)'
+        : '0 2px 24px rgba(47,107,255,0.07), 0 1px 4px rgba(0,0,0,0.04)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 20px',
+    }}>
+      {/* Left: Logo + Brand Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <img src={logoUrl} alt="FINOVA" style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain' }} />
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '11px',
+          overflow: 'hidden',
+          flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(47,107,255,0.18)',
+          border: '1.5px solid rgba(47,107,255,0.12)',
+        }}>
+          <img
+            src={logoUrl}
+            alt="FINOVA"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
         <BrandTitle size="small" showTagline={false} />
       </div>
 
-      {/* Right: Theme + Notification + Avatar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        {/* Dark/Light Mode Toggle */}
+      {/* Right: Action Buttons */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+        {/* Theme Toggle */}
         <button
           id="theme-toggle-btn"
-          onClick={toggleTheme}
+          onClick={() => { handlePress('theme'); toggleTheme(); }}
           title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           style={{
-            width: '38px', height: '38px',
-            borderRadius: '12px',
-            background: isDark ? 'rgba(250,204,21,0.12)' : 'rgba(37,99,235,0.08)',
-            border: `1px solid ${isDark ? 'rgba(250,204,21,0.3)' : 'var(--color-border)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-            color: isDark ? '#FDE047' : '#4B5563',
-            transition: 'all 0.2s ease',
+            ...iconBtnStyle('theme'),
+            color: isDark ? '#FDE047' : '#64748B',
+            background: isDark
+              ? 'rgba(253,224,71,0.10)'
+              : 'rgba(255,255,255,0.80)',
+            border: isDark
+              ? '1px solid rgba(253,224,71,0.22)'
+              : '1px solid rgba(47,107,255,0.10)',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = isDark
+              ? '0 0 0 3px rgba(253,224,71,0.18), 0 2px 8px rgba(0,0,0,0.20)'
+              : '0 0 0 3px rgba(47,107,255,0.14), 0 2px 8px rgba(47,107,255,0.10)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = isDark
+              ? '0 2px 8px rgba(0,0,0,0.25)'
+              : '0 2px 8px rgba(47,107,255,0.08), 0 1px 2px rgba(0,0,0,0.04)';
           }}
         >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          {isDark ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
+        {/* Notifications */}
         <button
           id="notification-btn"
-          onClick={onNotification}
-          style={{
-            width: '38px', height: '38px',
-            borderRadius: '12px',
-            background: 'var(--color-bg)',
-            border: '1px solid var(--color-border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: 'var(--color-text-muted)',
-            position: 'relative',
+          onClick={() => { handlePress('notif'); onNotification?.(); }}
+          style={iconBtnStyle('notif')}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 0 3px rgba(47,107,255,0.14), 0 2px 8px rgba(47,107,255,0.10)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = isDark
+              ? '0 2px 8px rgba(0,0,0,0.25)'
+              : '0 2px 8px rgba(47,107,255,0.08), 0 1px 2px rgba(0,0,0,0.04)';
           }}
         >
           <Bell size={18} />
-          {/* Notification dot */}
+          {/* Pulsing notification badge */}
           <span style={{
-            position: 'absolute', top: '8px', right: '8px',
-            width: '7px', height: '7px',
-            background: 'var(--color-danger, #EF4444)',
+            position: 'absolute',
+            top: '9px',
+            right: '9px',
+            width: '8px',
+            height: '8px',
+            background: '#EF4444',
             borderRadius: '50%',
-            border: '2px solid var(--color-card)',
+            border: `2px solid ${isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.92)'}`,
+            animation: 'notif-pulse 2s ease-in-out infinite',
           }} />
         </button>
 
+        {/* Profile Avatar */}
         <button
           id="profile-btn"
-          onClick={onProfile}
+          onClick={() => { handlePress('profile'); onProfile?.(); }}
           style={{
-            width: '38px', height: '38px',
-            borderRadius: '50%',
-            padding: 0, border: '2px solid var(--color-border)',
-            cursor: 'pointer', overflow: 'hidden', background: 'var(--color-bg)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '16px',
+            padding: 0,
+            border: isDark
+              ? '2px solid rgba(255,255,255,0.12)'
+              : '2px solid rgba(47,107,255,0.18)',
+            cursor: 'pointer',
+            overflow: 'hidden',
+            background: 'var(--color-bg)',
+            transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: pressedBtn === 'profile' ? 'scale(0.91)' : 'scale(1)',
+            boxShadow: isDark
+              ? '0 2px 8px rgba(0,0,0,0.25)'
+              : '0 2px 8px rgba(47,107,255,0.14)',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 0 3px rgba(47,107,255,0.18), 0 2px 8px rgba(47,107,255,0.14)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = isDark
+              ? '0 2px 8px rgba(0,0,0,0.25)'
+              : '0 2px 8px rgba(47,107,255,0.14)';
           }}
         >
           {user?.photoURL ? (
             <img src={user.photoURL} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <div style={{
-              width: '100%', height: '100%',
-              background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontWeight: 700, fontSize: '0.875rem',
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(135deg, #2F6BFF 0%, #4F8CFF 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontWeight: 800,
+              fontSize: '1rem',
+              letterSpacing: '-0.02em',
             }}>
-              {user?.name?.charAt(0) || 'U'}
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
           )}
         </button>

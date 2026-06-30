@@ -173,3 +173,4 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
 };
 
 export default SplashScreen;
+

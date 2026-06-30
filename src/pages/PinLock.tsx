@@ -136,3 +136,4 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
 };
 
 export default PinLock;
+

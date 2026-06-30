@@ -805,3 +805,4 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 };
 
 export default LandingPage;
+

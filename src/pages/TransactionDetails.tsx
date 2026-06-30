@@ -237,3 +237,4 @@ const DetailRow: React.FC<DetailRowProps> = ({ icon, label, children }) => (
 );
 
 export default TransactionDetails;
+

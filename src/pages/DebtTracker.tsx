@@ -105,7 +105,7 @@ const DebtTracker: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '120px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '140px' }}>
         {/* Summary Cards */}
         <div style={{ padding: '16px 16px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div style={{
@@ -465,3 +465,4 @@ const DebtTracker: React.FC = () => {
 };
 
 export default DebtTracker;
+
