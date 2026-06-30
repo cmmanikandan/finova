@@ -21,7 +21,7 @@ import BottomNav from './components/BottomNav';
 import { ScrollRestoration } from './components/ScrollRestoration';
 import { AndroidBackHandler, PageTransitionTracker } from './components/AndroidBackHandler';
 import * as db from './services/db';
-import { to24h, to12h } from './utils/format';
+import { to24h } from './utils/format';
 import './index.css';
 
 const AppContent: React.FC = () => {
