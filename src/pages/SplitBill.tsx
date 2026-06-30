@@ -514,50 +514,86 @@ const SplitBill: React.FC = () => {
 
             <div className="form-group">
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Bill Name</label>
-              <input type="text" value={billName} onChange={e => setBillName(e.target.value)} placeholder="e.g. Lunch with team" className="input-field" required />
+              <input
+                type="text"
+                value={billName}
+                onChange={e => setBillName(e.target.value)}
+                placeholder="e.g. Lunch with team"
+                className="input-field"
+                required
+                style={{ height: '48px', fontSize: '0.9375rem' }}
+              />
             </div>
 
             <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Payment Source (Paid Entire Bill)</label>
-              <select 
-                className="input-field" 
-                value={selectedAccount} 
-                onChange={e => setSelectedAccount(e.target.value)} 
-                style={{ height: '44px', fontWeight: 600 }}
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Payment Source</label>
+              <select
+                className="input-field"
+                value={selectedAccount}
+                onChange={e => setSelectedAccount(e.target.value)}
+                style={{ height: '48px', fontWeight: 600, fontSize: '0.875rem' }}
               >
                 {visibleAccounts.map(acc => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.icon} {acc.name} (Bal: ₹{acc.balance})
+                    {acc.icon} {acc.name} (Bal: ₹{acc.balance.toLocaleString()})
                   </option>
                 ))}
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+              <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Total Amount (₹)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="input-field" required min="1" />
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="input-field"
+                  required
+                  min="1"
+                  style={{ height: '48px', fontSize: '1rem', fontWeight: 700 }}
+                />
               </div>
-              <div className="form-group">
+              <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Category</label>
-                <select className="input-field" value={category} onChange={e => setCategory(e.target.value)} style={{ height: '44px' }}>
+                <select
+                  className="input-field"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  style={{ height: '48px', fontSize: '0.875rem' }}
+                >
                   <option value="food">🍔 Food & Dining</option>
-                  <option value="travel">🚗 Travel & Taxi</option>
+                  <option value="travel">🚗 Travel</option>
                   <option value="groceries">🛒 Groceries</option>
-                  <option value="bills">⚡ Bills & Utilities</option>
+                  <option value="bills">⚡ Bills</option>
                   <option value="other">📦 Other</option>
                 </select>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+              <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Bill Date</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input-field" required style={{ height: '44px' }} />
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  className="input-field"
+                  required
+                  style={{ height: '48px', fontSize: '0.875rem' }}
+                />
               </div>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Description / Notes</label>
-                <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Starbucks drinks" className="input-field" style={{ height: '44px' }} />
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Notes</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Optional description"
+                  className="input-field"
+                  style={{ height: '48px', fontSize: '0.875rem' }}
+                />
               </div>
             </div>
           </div>
@@ -714,47 +750,51 @@ const SplitBill: React.FC = () => {
           <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '24px' }}>
             <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px' }}>Step 3: Preview & Receiver Settings</h3>
 
-            <div style={{ background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.12)', padding: '16px', borderRadius: '18px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>You Pay</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>
+            {/* Payment preview */}
+            <div style={{ background: 'rgba(37,99,235,0.04)', border: '1.5px solid rgba(37,99,235,0.12)', padding: '16px 20px', borderRadius: '18px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0' }}>
+              <div style={{ paddingRight: '16px' }}>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>You Pay</span>
+                <span style={{ fontSize: '1.375rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   ₹{(calculatedMembers.find(m => m.id === 'you')?.share || 0).toFixed(2)}
                 </span>
               </div>
-              <div>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Others Pay (Total to receive)</span>
-                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+              <div style={{ paddingLeft: '16px', borderLeft: '1px solid var(--color-border)' }}>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Friends Pay</span>
+                <span style={{ fontSize: '1.375rem', fontWeight: 900, color: 'var(--color-primary)' }}>
                   ₹{calculatedMembers.filter(m => m.id !== 'you').reduce((sum, m) => sum + m.share, 0).toFixed(2)}
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Your UPI ID</label>
-                <input 
-                  type="text" 
-                  value={upiId} 
-                  onChange={e => { 
-                    setUpiId(e.target.value); 
-                    db.saveSettings({ ...db.getSettings(), upiId: e.target.value }).catch(err => console.error('Failed to save UPI settings:', err)); 
-                  }} 
-                  placeholder="e.g. mobile@paytm" 
-                  className="input-field"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Display Name</label>
-                <input 
-                  type="text" 
-                  value={receiverName} 
-                  onChange={e => setReceiverName(e.target.value)} 
-                  placeholder="Receiver Name" 
-                  className="input-field"
-                  required
-                />
-              </div>
+            {/* UPI ID — full width */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Your UPI ID</label>
+              <input
+                type="text"
+                value={upiId}
+                onChange={e => {
+                  setUpiId(e.target.value);
+                  db.saveSettings({ ...db.getSettings(), upiId: e.target.value }).catch(err => console.error('Failed to save UPI settings:', err));
+                }}
+                placeholder="e.g. 9876543210@upi"
+                className="input-field"
+                style={{ height: '48px', fontSize: '0.9375rem' }}
+                required
+              />
+            </div>
+
+            {/* Display Name — full width */}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Display Name</label>
+              <input
+                type="text"
+                value={receiverName}
+                onChange={e => setReceiverName(e.target.value)}
+                placeholder="Your name (shown to friends)"
+                className="input-field"
+                style={{ height: '48px', fontSize: '0.9375rem' }}
+                required
+              />
             </div>
           </div>
 
