@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Trophy, Target, Plus, 
   CheckCircle2, AlertCircle, 
@@ -62,9 +62,14 @@ const TEMPLATES: ChallengeTemplate[] = [
 
 const Challenges: React.FC = () => {
   const navigate = useNavigate();
+  const { subpage } = useParams<{ subpage: string }>();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'create' | 'details' | 'achievements' | 'history'>('dashboard');
+  const viewMode = (subpage || 'dashboard') as 'dashboard' | 'create' | 'details' | 'achievements' | 'history';
+  const setViewMode = (mode: 'dashboard' | 'create' | 'details' | 'achievements' | 'history') => {
+    if (mode === 'dashboard') navigate('/challenges');
+    else navigate(`/challenges/${mode}`);
+  };
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [streakData, setStreakData] = useState<StreakData>({ currentStreak: 0, bestStreak: 0, lastStreakUpdatedDate: '' });
 

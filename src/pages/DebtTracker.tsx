@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, CheckCircle2, Trash2, Clock, TrendingUp,
   TrendingDown, X
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import * as db from '../services/db';
 import type { Debt } from '../types';
 import { formatCurrency } from '../utils/format';
@@ -14,7 +14,12 @@ const CONTACT_EMOJIS = ['👤','👨','👩','👦','👧','🧑','👴','👵',
 const DebtTracker: React.FC = () => {
   const navigate = useNavigate();
   const [debts, setDebts] = useState<Debt[]>(() => db.getDebts());
-  const [showForm, setShowForm] = useState(false);
+  const { action } = useParams<{ action: string }>();
+  const showForm = action === 'new';
+  const setShowForm = (show: boolean) => {
+    if (show) navigate('/debts/new');
+    else navigate('/debts');
+  };
   const [tab, setTab] = useState<'pending' | 'settled'>('pending');
 
   // Form state

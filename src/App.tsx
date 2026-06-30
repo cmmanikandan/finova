@@ -269,7 +269,9 @@ const AppContent: React.FC = () => {
           <Route path="/goals/:id/deposit" element={<Goals />} />
           <Route path="/goals/:id/withdraw" element={<Goals />} />
           <Route path="/debts" element={<DebtTracker />} />
+          <Route path="/debts/:action" element={<DebtTracker />} />
           <Route path="/challenges" element={<Challenges />} />
+          <Route path="/challenges/:subpage" element={<Challenges />} />
           <Route path="/split-bill" element={<SplitBill />} />
           <Route path="/split-bill/:subview" element={<SplitBill />} />
           <Route path="/forecast" element={<Forecast />} />
