@@ -3,7 +3,7 @@ import {
   Calendar, Check, Award, Flame, Plus, ChevronLeft, Trash2, Edit2, Sparkles
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import * as db from '../services/db';
 import { formatCurrency, to24h, to12h } from '../utils/format';
 import type { DailyTask, DailyTaskLog } from '../types';
@@ -46,7 +46,16 @@ const DailyPlanner: React.FC = () => {
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(new Date().getDay());
   
   // Sheet Form State
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { action } = useParams<{ action: string }>();
+  const isFormOpen = action === 'new' || action === 'edit';
+  const setIsFormOpen = (open: boolean) => {
+    if (open) {
+      if (editingTask) navigate('/planner/edit');
+      else navigate('/planner/new');
+    } else {
+      navigate('/planner');
+    }
+  };
   const [editingTask, setEditingTask] = useState<DailyTask | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formCategory, setFormCategory] = useState('custom');

@@ -256,6 +256,7 @@ const AppContent: React.FC = () => {
           <Route path="/reports" element={<Reports />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/planner" element={<DailyPlanner />} />
+          <Route path="/planner/:action" element={<DailyPlanner />} />
           
           {/* Subpages / CRUD */}
           <Route path="/transactions/new" element={<AddTransaction />} />
