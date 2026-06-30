@@ -333,22 +333,12 @@ const Challenges: React.FC = () => {
                 <span style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '2px', display: 'block' }}>₹{computedTotalSaved.toLocaleString()}</span>
               </div>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block' }}>{userLevel.title}</span>
-                <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>Next level at {userLevel.next} XP</span>
-              </div>
-              <div style={{ width: '80px', height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ width: `${Math.min(100, (totalXp / userLevel.next) * 100)}%`, height: '100%', background: '#10B981' }} />
-              </div>
-            </div>
           </div>
 
           {/* Sub Navigation Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '0 16px' }}>
             <button onClick={() => setViewMode('achievements')} className="card clickable" style={{ padding: '14px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 800, border: '1px solid var(--color-border)' }}>
-              <Award size={18} className="text-blue-500" /> Badges & XP
+              <Award size={18} className="text-blue-500" /> Badges
             </button>
             <button onClick={() => setViewMode('history')} className="card clickable" style={{ padding: '14px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 800, border: '1px solid var(--color-border)' }}>
               <Clock size={18} className="text-emerald-500" /> History Logs
@@ -691,9 +681,11 @@ const Challenges: React.FC = () => {
         <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Savings XP</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', margin: '4px 0' }}>{totalXp}</div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Completed challenges reward you with premium badges and XP.</p>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unlocked Badges</span>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', margin: '4px 0' }}>
+              {challenges.filter(c => c.status === 'completed').length} / 4
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>Completed challenges unlock new achievements and showcase your saving milestones.</p>
           </div>
 
           <div>

@@ -750,7 +750,6 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
                 </div>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>Today's Planner Progress</div>
-                  <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Lvl {userLevel.currentLevel} • {userLevel.currentXP} XP</div>
                 </div>
               </div>
 

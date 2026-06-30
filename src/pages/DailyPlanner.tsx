@@ -279,7 +279,7 @@ const DailyPlanner: React.FC = () => {
           setHabitSpendAmount('');
         } else {
           await db.setTaskStatus(taskId, todayStr, 'completed', 0);
-          triggerToast('Task completed! +10 XP');
+          triggerToast('Task completed!');
           refresh();
         }
       }
@@ -682,51 +682,12 @@ const DailyPlanner: React.FC = () => {
           </button>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>Daily Planner</h1>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>XP & Habit Tracker</p>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Routines & Habit Tracker</p>
           </div>
-        </div>
-
-        {/* Level indicator card */}
-        <div style={{
-          background: 'linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%)',
-          borderRadius: '14px',
-          padding: '6px 12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          color: '#fff',
-          boxShadow: 'var(--shadow-subtle)'
-        }}>
-          <Award size={16} />
-          <span style={{ fontSize: '0.8125rem', fontWeight: 800 }}>Lvl {userLevel.currentLevel}</span>
         </div>
       </div>
 
-      {/* Floating XP Animation Container */}
-      <div style={{ position: 'fixed', top: '100px', right: '20px', zIndex: 1000, pointerEvents: 'none' }}>
-        {floatingXp.map(x => (
-          <div
-            key={x.id}
-            className="floating-xp-gain"
-            style={{
-              background: 'rgba(34, 197, 94, 0.95)',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '0.9375rem',
-              padding: '8px 16px',
-              borderRadius: '20px',
-              boxShadow: '0 4px 12px rgba(34,197,94,0.3)',
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Sparkles size={14} />
-            <span>+{x.amount} XP</span>
-          </div>
-        ))}
-      </div>
+
 
       {/* Sub Tabs Selection Header */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '16px 16px 8px', gap: '8px' }}>
@@ -828,21 +789,7 @@ const DailyPlanner: React.FC = () => {
                   </div>
                 )}
 
-                {/* XP progression bar */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                    <span>{userLevel.currentXP} XP</span>
-                    <span>Lvl {userLevel.currentLevel + 1} ({nextLevelXpCap} XP)</span>
-                  </div>
-                  <div style={{ height: '8px', background: 'var(--color-border)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      background: 'linear-gradient(90deg, var(--color-primary-light) 0%, var(--color-primary) 100%)',
-                      width: `${levelProgressPct}%`,
-                      transition: 'width 0.4s ease'
-                    }} />
-                  </div>
-                </div>
+
               </div>
             </div>
 
@@ -1462,7 +1409,7 @@ const DailyPlanner: React.FC = () => {
                         background: isUnlocked ? '#22C55E' : 'rgba(0,0,0,0.1)',
                         color: isUnlocked ? '#fff' : 'var(--color-text-muted)'
                       }}>
-                        {isUnlocked ? 'Unlocked +150 XP' : 'Locked'}
+                        {isUnlocked ? 'Unlocked' : 'Locked'}
                       </span>
                     </div>
                   </div>
