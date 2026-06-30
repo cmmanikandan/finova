@@ -1094,7 +1094,7 @@ interface RecurringViewProps {
 }
 
 const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
-  const { categories, accounts } = useApp();
+  const { categories, accounts, transactions } = useApp();
   const [formMode, setFormMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editId, setEditId] = useState<string | null>(null);
 
@@ -1108,7 +1108,7 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
   const [note, setNote] = useState('');
   const [active, setActive] = useState(true);
 
-  const recurringList: RecurringTransaction[] = useMemo(() => db.getRecurringTransactions(), [formMode]);
+  const recurringList: RecurringTransaction[] = useMemo(() => db.getRecurringTransactions(), [formMode, transactions]);
 
   const visibleAccounts = useMemo(() => {
     try {

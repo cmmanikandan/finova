@@ -107,14 +107,14 @@ const WeeklyChart: React.FC<{ limit: number; currencySymbol: string }> = ({ limi
 const MILESTONES = [3, 7, 15, 30, 50, 100, 365];
 
 const LimitsTab: React.FC = () => {
-  const { settings, saveSettings, refresh } = useApp();
+  const { settings, saveSettings, transactions, budgets, refresh } = useApp();
   const cs = settings.currencySymbol;
 
-  const daily  = useMemo(() => db.getDailyLimitStatus(),  [settings]);
-  const weekly = useMemo(() => db.getWeeklyLimitStatus(), [settings]);
-  const streakData = useMemo(() => db.getStreakData(), [settings]);
+  const daily  = useMemo(() => db.getDailyLimitStatus(),  [settings, transactions, budgets]);
+  const weekly = useMemo(() => db.getWeeklyLimitStatus(), [settings, transactions, budgets]);
+  const streakData = useMemo(() => db.getStreakData(), [settings, transactions]);
   const now = new Date();
-  const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
+  const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), [transactions]);
 
   const [editingDaily, setEditingDaily]   = useState(false);
   const [editingWeekly, setEditingWeekly] = useState(false);

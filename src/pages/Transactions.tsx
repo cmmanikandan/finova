@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Edit2, ArrowUpDown, Download } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Edit2, ArrowUpDown, Download, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
@@ -140,7 +140,7 @@ const SwipeableTransactionItem: React.FC<{
 };
 
 const Transactions: React.FC = () => {
-  const { categories, accounts, refresh } = useApp();
+  const { categories, accounts, transactions, refresh } = useApp();
   const navigate = useNavigate();
   const { fabVisible, handleScroll } = useScrollFAB();
   const [search, setSearch]             = useState('');
@@ -161,11 +161,24 @@ const Transactions: React.FC = () => {
   const [startDate, setStartDate]               = useState('');
   const [endDate, setEndDate]                   = useState('');
 
+  // Toast notification state (shown when returning from add/edit screens)
+  const [toastMsg, setToastMsg]                 = useState<string | null>(null);
   // Undo Delete Snackbar State
   const [deletedBackup, setDeletedBackup]       = useState<any | null>(null);
   const [snackbarMessage, setSnackbarMessage]   = useState<string | null>(null);
 
-  const allTxns = db.getTransactions();
+  // Show toast when navigating back from AddTransaction with success message
+  useEffect(() => {
+    const msg = sessionStorage.getItem('finova_toast');
+    if (msg) {
+      sessionStorage.removeItem('finova_toast');
+      setToastMsg(msg);
+      const t = setTimeout(() => setToastMsg(null), 2800);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const allTxns = transactions;
 
   const isFilterActive = useMemo(() => {
     return selectedCategory !== 'all' ||
@@ -341,6 +354,13 @@ const Transactions: React.FC = () => {
 
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* ── Global Toast Notification ── */}
+      {toastMsg && (
+        <div className="toast-notification toast-success">
+          <CheckCircle size={16} />
+          {toastMsg}
+        </div>
+      )}
       {/* Top bar (Sticky) */}
       <div style={{
         position: 'sticky',

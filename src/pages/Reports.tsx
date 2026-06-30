@@ -14,7 +14,7 @@ const TABS = ['Overview', 'Category', 'Account', 'Monthly', 'Yearly', 'Calendar'
 const PIE_COLORS = ['#EF4444','#F59E0B','#22C55E','#2563EB','#7C3AED','#0891B2','#EA580C','#DB2777','#059669'];
 
 const Reports: React.FC = () => {
-  const { categories, accounts } = useApp();
+  const { categories, accounts, transactions } = useApp();
   const [tab, setTab] = useState('Overview');
   const [showExportOptions, setShowExportOptions] = useState(false);
 
@@ -37,7 +37,7 @@ const Reports: React.FC = () => {
   }, [accounts]);
 
   const now = new Date();
-  const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
+  const stats = useMemo(() => db.getMonthlyStats(now.getFullYear(), now.getMonth()), [transactions]);
 
   // Category breakdown
   const categoryData = useMemo(() => {
@@ -59,11 +59,11 @@ const Reports: React.FC = () => {
       icon: a.icon,
       color: a.color
     })).filter(a => a.value > 0);
-  }, [accounts]);
+  }, [accounts, transactions]);
 
   const totalWealth = useMemo(() => {
     return accounts.reduce((sum, a) => sum + a.balance, 0);
-  }, [accounts]);
+  }, [accounts, transactions]);
 
   // Monthly comparison (last 6 months)
   const monthlyData = useMemo(() => {
@@ -77,7 +77,7 @@ const Reports: React.FC = () => {
         savings: s.savings,
       };
     });
-  }, []);
+  }, [transactions]);
 
   // Yearly comparison (last 12 months)
   const yearlyData = useMemo(() => {
@@ -91,7 +91,7 @@ const Reports: React.FC = () => {
         savings: s.savings,
       };
     });
-  }, []);
+  }, [transactions]);
 
   const avgDaily = stats.expense / (now.getDate() || 1);
   const highestCategory = categoryData[0]?.name || 'N/A';

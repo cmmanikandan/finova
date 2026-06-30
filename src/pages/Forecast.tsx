@@ -21,7 +21,7 @@ const Forecast: React.FC = () => {
 
   useEffect(() => {
     calculateForecast();
-    db.registerWriteListener(calculateForecast);
+    return db.registerWriteListener(calculateForecast);
   }, []);
 
   const calculateForecast = () => {

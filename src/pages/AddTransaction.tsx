@@ -176,6 +176,8 @@ const AddTransaction: React.FC = () => {
       playSuccessSound();
 
       refresh();
+      // Store toast message for Transactions page to pick up after navigation
+      sessionStorage.setItem('finova_toast', editId ? '✏️ Transaction updated!' : '✅ Transaction saved!');
       navigate(-1);
     } catch (err: any) {
       console.error('Failed to save transaction:', err);

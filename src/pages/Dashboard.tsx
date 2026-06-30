@@ -68,6 +68,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onInstallPWA }) => {
   const {
     user, categories, settings, refresh, transactions,
+    budgets: contextBudgets, goals: contextGoals, accounts: contextAccounts,
     dailyTasks, dailyTaskLogs, plannerSchedules, streakData
   } = useApp();
   const navigate = useNavigate();
@@ -255,30 +256,30 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
   const currentDateString = time.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   const now = new Date();
-  const stats = db.getMonthlyStats(now.getFullYear(), now.getMonth());
-  const balance = db.getTotalBalance((() => {
+  const stats = useMemo(() => db.getMonthlyStats(now.getFullYear(), now.getMonth()), [transactions]);
+  const balance = useMemo(() => db.getTotalBalance((() => {
     try { return JSON.parse(localStorage.getItem('finova_hidden_accounts') || '[]'); }
     catch { return []; }
-  })());
-  const budgets = db.getBudgets();
-  const goals = db.getGoals().filter(g => g.status === 'active');
-  const recentTxns = db.getTransactions().slice(0, 5);
+  })()), [transactions, contextAccounts]);
+  const budgets = contextBudgets;
+  const goals = contextGoals.filter(g => g.status === 'active');
+  const recentTxns = transactions.slice(0, 5);
 
   const getCatInfo = (catId: string) => categories.find(c => c.id === catId);
 
   // Daily limit status
-  const dailyStatus = useMemo(() => db.getDailyLimitStatus(), []);
-  const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), []);
+  const dailyStatus = useMemo(() => db.getDailyLimitStatus(), [transactions, contextBudgets]);
+  const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), [transactions]);
 
   // Last month stats for insights
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastStats = useMemo(() => db.getMonthlyStats(lastMonthDate.getFullYear(), lastMonthDate.getMonth()), []);
+  const lastStats = useMemo(() => db.getMonthlyStats(lastMonthDate.getFullYear(), lastMonthDate.getMonth()), [transactions]);
   const expenseDiff = stats.expense - lastStats.expense;
   const expensePct  = lastStats.expense > 0 ? Math.round(Math.abs(expenseDiff) / lastStats.expense * 100) : null;
 
   // Top spending category this month
   const topCategory = useMemo(() => {
-    const txns = db.getTransactions().filter(t => {
+    const txns = transactions.filter(t => {
       const d = new Date(t.date);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && t.type === 'expense';
     });
@@ -289,10 +290,10 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
     const [catId, total] = sorted[0];
     const cat = categories.find(c => c.id === catId);
     return cat ? { cat, total } : null;
-  }, [categories]);
+  }, [categories, transactions]);
 
   // Debt summary for net worth
-  const debtSummary = useMemo(() => db.getPendingDebtsSummary(), []);
+  const debtSummary = useMemo(() => db.getPendingDebtsSummary(), [transactions]);
   const netWorth = balance + debtSummary.totalLent - debtSummary.totalBorrowed;
 
   // Filter bills due within 7 days
@@ -308,7 +309,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
       const due = new Date(rt.nextDueDate + 'T00:00:00');
       return due >= today && due <= targetDate;
     }).sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
-  }, []);
+  }, [transactions]);
 
   const openForm = (type: TransactionType) => {
     navigate('/transactions/new', { state: { defaultType: type } });

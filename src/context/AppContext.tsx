@@ -114,7 +114,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Register database write listener to update React UI state on CRUD actions
   useEffect(() => {
-    db.registerWriteListener(refresh);
+    return db.registerWriteListener(refresh);
   }, [refresh]);
 
   // Auth observer and initial sync load

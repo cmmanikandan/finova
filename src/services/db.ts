@@ -63,14 +63,23 @@ export function setUserIdForCache(_uid: string | null) {
 }
 
 // ─── Write listener registration ──────────────────────────────────────────────
-let _writeListener: (() => void) | null = null;
+let _writeListeners: (() => void)[] = [];
 
 export function registerWriteListener(cb: () => void) {
-  _writeListener = cb;
+  _writeListeners.push(cb);
+  return () => {
+    _writeListeners = _writeListeners.filter(l => l !== cb);
+  };
 }
 
 function notifyWrite() {
-  if (_writeListener) _writeListener();
+  _writeListeners.forEach(cb => {
+    try {
+      cb();
+    } catch (e) {
+      console.error('Error in db write listener callback:', e);
+    }
+  });
 }
 
 // ─── Database Mappings ────────────────────────────────────────────────────────

@@ -86,7 +86,7 @@ const Challenges: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    db.registerWriteListener(loadData);
+    return db.registerWriteListener(loadData);
   }, []);
 
   const loadData = () => {

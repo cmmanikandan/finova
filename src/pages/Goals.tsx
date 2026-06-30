@@ -53,11 +53,11 @@ const ProgressRing: React.FC<{ percentage: number; color: string; size?: number 
 
 // ─── Savings Overview Card ───────────────────────────────────────────────────
 const SavingsOverviewCard: React.FC = () => {
-  const { settings } = useApp();
+  const { settings, transactions } = useApp();
   const now = new Date();
   const { income, expense, savings } = useMemo(
     () => db.getMonthlyStats(now.getFullYear(), now.getMonth()),
-    []
+    [transactions]
   );
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
   const cs = settings.currencySymbol;

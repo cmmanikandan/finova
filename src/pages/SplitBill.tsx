@@ -56,7 +56,7 @@ const SplitBill: React.FC = () => {
       setReceiverName(auth.currentUser.displayName || 'Me');
     }
     loadData();
-    db.registerWriteListener(loadData);
+    return db.registerWriteListener(loadData);
   }, []);
 
   // Lock body scrolling when QR modal is open to prevent white space issues
