@@ -168,7 +168,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             
-            <BrandTitle size="large" showTagline={true} taglineColor="#1E293B" />
+            <BrandTitle size="large" showTagline={true} taglineColor="#1E293B" textColor="#081A45" />
             
             <p style={{ fontSize: '0.875rem', color: '#64748B', fontWeight: 500, margin: '6px 24px 0', lineHeight: 1.5 }}>
               Smart Personal Finance Manager. Track expenses, manage budgets, build savings goals, and understand your money with beautiful insights.
@@ -536,7 +536,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               <img src={logoUrl} alt="FINOVA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
 
-            <BrandTitle size="medium" showTagline={true} taglineColor="#1E293B" style={{ marginBottom: '20px' }} />
+            <BrandTitle size="medium" showTagline={true} taglineColor="#1E293B" textColor="#081A45" style={{ marginBottom: '20px' }} />
 
             <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0 0 24px', textAlign: 'center', fontWeight: 600, lineHeight: 1.5 }}>
               Welcome back. Sign in securely with your Google Account to continue.

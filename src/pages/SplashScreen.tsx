@@ -101,7 +101,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onDone }) => {
             transform: 'translateY(15px)',
             animation: 'brandSlideUp 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.8s forwards',
           }}>
-            <BrandTitle size="large" showTagline={false} />
+            <BrandTitle size="large" showTagline={false} textColor="#081A45" />
           </div>
 
           {/* Tagline: fades in at 1.6s */}

@@ -4,6 +4,7 @@ interface BrandTitleProps {
   size?: 'small' | 'medium' | 'large' | 'huge';
   showTagline?: boolean;
   taglineColor?: string;
+  textColor?: string;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -12,6 +13,7 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
   size = 'medium',
   showTagline = false,
   taglineColor = '#1E293B',
+  textColor,
   style,
 }) => {
   // Configs based on size
@@ -63,22 +65,22 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
         </defs>
         
         {/* Letter F */}
-        <path d="M 20,22 V 78 M 20,22 H 56 M 20,50 H 46" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
+        <path d="M 20,22 V 78 M 20,22 H 56 M 20,50 H 46" stroke={textColor || "var(--color-logo-text, #081A45)"} strokeWidth="12" />
         
         {/* Letter I */}
-        <path d="M 71,22 V 78" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
+        <path d="M 71,22 V 78" stroke={textColor || "var(--color-logo-text, #081A45)"} strokeWidth="12" />
         
         {/* Letter N */}
-        <path d="M 86,78 V 22 L 126,78 V 22" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
+        <path d="M 86,78 V 22 L 126,78 V 22" stroke={textColor || "var(--color-logo-text, #081A45)"} strokeWidth="12" />
         
         {/* Signature 'O' (Visually balanced bold weight, tight kerning) */}
         <circle cx="168" cy="50" r="28" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
         
         {/* Letter V */}
-        <path d="M 210,22 L 230,78 L 250,22" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
+        <path d="M 210,22 L 230,78 L 250,22" stroke={textColor || "var(--color-logo-text, #081A45)"} strokeWidth="12" />
         
         {/* Letter A */}
-        <path d="M 264,78 L 284,22 L 304,78 M 272,58 H 296" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
+        <path d="M 264,78 L 284,22 L 304,78 M 272,58 H 296" stroke={textColor || "var(--color-logo-text, #081A45)"} strokeWidth="12" />
       </svg>
 
       {showTagline && (

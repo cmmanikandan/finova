@@ -75,7 +75,7 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
     }}>
       {/* Logo */}
       <img src={logoUrl} alt="FINOVA" style={{ width: '72px', height: '72px', borderRadius: '20px', objectFit: 'contain', marginBottom: '1.25rem', boxShadow: '0 6px 20px rgba(8,26,69,0.08)' }} />
-      <BrandTitle size="medium" showTagline={false} style={{ marginBottom: '10px' }} />
+      <BrandTitle size="medium" showTagline={false} textColor="#081A45" style={{ marginBottom: '10px' }} />
       <p style={{ margin: '0 0 2.5rem', color: '#64748B', fontWeight: 600 }}>Enter your PIN to continue</p>
 
       {/* PIN dots */}
