@@ -354,13 +354,6 @@ const Transactions: React.FC = () => {
 
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      {/* ── Global Toast Notification ── */}
-      {toastMsg && (
-        <div className="toast-notification toast-success">
-          <CheckCircle size={16} />
-          {toastMsg}
-        </div>
-      )}
       {/* Top bar (Sticky) */}
       <div style={{
         position: 'sticky',
@@ -601,7 +594,9 @@ const Transactions: React.FC = () => {
           whiteSpace: 'nowrap',
         }}>
           <CheckCircle size={18} style={{ flexShrink: 0, color: '#4ADE80' }} />
-          <span style={{ fontSize: '0.875rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>{toastMsg}</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {toastMsg.replace(/^[^a-zA-Z\s]+/, '').trim()}
+          </span>
         </div>
       )}
 
