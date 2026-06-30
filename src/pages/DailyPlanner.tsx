@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Calendar, Check, Flame, Plus, ChevronLeft, Trash2, Edit2, Sparkles
 } from 'lucide-react';
@@ -1397,31 +1398,11 @@ const DailyPlanner: React.FC = () => {
         style={{
           position: 'fixed',
           bottom: '96px',
-          right: '20px',
-          zIndex: 50
-        }}
-        aria-label="Add Habit"
-      >
-        <Plus size={28} />
-      </button>
-
-      {/* Spent logging and celebration overlays */}
-      {habitToLog && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.4)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px',
-          animation: 'fadeIn 0.22s ease-out',
-        }}>
-          <div className="card animate-scale-up" style={{ width: '100%', maxWidth: '380px', padding: '24px', borderRadius: '24px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
-            <div className="flex-between">
+          r      {/* Spent logging and celebration overlays */}
+      {habitToLog && createPortal(
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setHabitToLog(null)}>
+          <div className="bottom-sheet">
+            <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
               <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Log Spend: {habitToLog.title}</h4>
               <button 
                 onClick={() => setHabitToLog(null)} 
@@ -1431,7 +1412,7 @@ const DailyPlanner: React.FC = () => {
               </button>
             </div>
 
-            <div style={{ background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.12)', padding: '14px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.12)', padding: '14px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Budget Limit</span>
                 <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{habitToLog.budgetLimit}</span>
@@ -1453,7 +1434,7 @@ const DailyPlanner: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginTop: '10px' }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Pay From Account</label>
                 <select
                   value={habitSpendAccount}
@@ -1468,7 +1449,7 @@ const DailyPlanner: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
               <button 
                 onClick={async () => {
                   const todayStr = new Date().toISOString().split('T')[0];
@@ -1530,34 +1511,23 @@ const DailyPlanner: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {celebrationSavings && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10001,
-          padding: '20px',
-          animation: 'fadeIn 0.22s ease-out',
-        }}>
-          <div className="card animate-scale-up text-center" style={{ width: '100%', maxWidth: '360px', padding: '30px 24px', borderRadius: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', background: 'var(--color-card)', border: 'none', boxShadow: 'var(--shadow-modal)' }}>
-            <span style={{ fontSize: '4rem', animation: 'bounce 1s infinite' }}>🎉</span>
+      {celebrationSavings && createPortal(
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setCelebrationSavings(null)}>
+          <div className="bottom-sheet" style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: '4rem', animation: 'bounce 1s infinite', display: 'block', margin: '0 auto 10px' }}>🎉</span>
             
-            <div>
+            <div style={{ marginBottom: '1.25rem' }}>
               <h3 style={{ margin: '0 0 6px 0', fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>Excellent Savings!</h3>
               <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
                 Sticking to your budget is a superpower. You successfully completed your <strong>{celebrationSavings.title}</strong> routine under budget!
               </p>
             </div>
 
-            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1.5px dashed rgba(16,185,129,0.25)', padding: '16px', borderRadius: '20px', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div style={{ background: 'rgba(16,185,129,0.06)', border: '1.5px dashed rgba(16,185,129,0.25)', padding: '16px', borderRadius: '20px', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.25rem' }}>
               <div>
                 <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Routine Limit</span>
                 <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{celebrationSavings.limit}</span>
@@ -1582,7 +1552,8 @@ const DailyPlanner: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px',
-                textAlign: 'left'
+                textAlign: 'left',
+                marginBottom: '1.25rem'
               }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block' }}>
                   🎯 Transfer Savings to Financial Goal:
@@ -1642,7 +1613,8 @@ const DailyPlanner: React.FC = () => {
               Just Complete Routine 👍
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Global alert toast */}
