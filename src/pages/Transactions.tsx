@@ -79,7 +79,8 @@ const SwipeableTransactionItem: React.FC<{
 
   const hasSplit = t.note?.includes('[SplitBillMeta:');
   const isSettlement = t.type === 'settlement';
-  const cleanNote = isSettlement ? t.note : getCleanNote(t.note);
+  const isSplitBillEntry = t.type === 'split_bill_entry';
+  const cleanNote = (isSettlement || isSplitBillEntry) ? t.note : getCleanNote(t.note);
 
   return (
     <div style={{ position: 'relative', background: 'var(--color-bg)', overflow: 'hidden', minHeight: '64px' }}>
@@ -130,16 +131,16 @@ const SwipeableTransactionItem: React.FC<{
       >
         <div style={{
           width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0,
-          background: isSettlement ? 'rgba(16,185,129,0.15)' : isIncome ? 'rgba(34,197,94,0.15)' : t.type === 'transfer' ? 'rgba(37,99,235,0.15)' : `${cat?.color || '#EF4444'}20`,
-          color: isSettlement ? '#10B981' : isIncome ? '#22C55E' : t.type === 'transfer' ? '#2563EB' : cat?.color || '#EF4444',
+          background: isSettlement ? 'rgba(16,185,129,0.15)' : isSplitBillEntry ? 'rgba(139,92,246,0.15)' : isIncome ? 'rgba(34,197,94,0.15)' : t.type === 'transfer' ? 'rgba(37,99,235,0.15)' : `${cat?.color || '#EF4444'}20`,
+          color: isSettlement ? '#10B981' : isSplitBillEntry ? '#8B5CF6' : isIncome ? '#22C55E' : t.type === 'transfer' ? '#2563EB' : cat?.color || '#EF4444',
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
-        }}>{isSettlement ? '🤝' : cat?.icon || '📦'}</div>
+        }}>{isSettlement ? '🤝' : isSplitBillEntry ? '👥' : cat?.icon || '📦'}</div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>
-              {isSettlement ? 'Settlement' : cat?.name || t.category}
+              {isSettlement ? 'Settlement' : isSplitBillEntry ? t.billName : cat?.name || t.category}
             </span>
             {t.subcategory && (
               <span style={{
@@ -180,6 +181,32 @@ const SwipeableTransactionItem: React.FC<{
                 Repayment
               </span>
             )}
+            {isSplitBillEntry && t.friendCount > 0 && (
+              <span style={{
+                fontSize: '0.65rem',
+                background: 'rgba(139,92,246,0.08)',
+                border: '1px solid rgba(139,92,246,0.15)',
+                color: '#8B5CF6',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                fontWeight: 700
+              }}>
+                {t.friendCount} {t.friendCount === 1 ? 'Friend' : 'Friends'}
+              </span>
+            )}
+            {isSplitBillEntry && (
+              <span style={{
+                fontSize: '0.65rem',
+                background: t.billStatus === 'completed' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+                border: `1px solid ${t.billStatus === 'completed' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                color: t.billStatus === 'completed' ? '#10B981' : '#F59E0B',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                fontWeight: 700
+              }}>
+                {t.billStatus === 'completed' ? 'Settled' : 'Pending'}
+              </span>
+            )}
           </div>
           {cleanNote && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanNote}</div>}
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>{formatTime(t.date)}</div>
@@ -188,10 +215,13 @@ const SwipeableTransactionItem: React.FC<{
         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{
             fontSize: '1rem', fontWeight: 900,
-            color: isSettlement || isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
+            color: isSettlement || isIncome ? '#16A34A' : isSplitBillEntry ? '#8B5CF6' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
           }}>
-            {isSettlement || isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
+            {isSettlement || isIncome ? '+' : isSplitBillEntry ? '' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
           </div>
+          {isSplitBillEntry && (
+            <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>My Share</div>
+          )}
         </div>
       </div>
     </div>
@@ -283,12 +313,44 @@ const Transactions: React.FC = () => {
       });
     }
 
+    if (typeFilter === 'split_bill') {
+      // Build virtual items directly from all split bills (works for old & new)
+      const allSplits = db.getSplitBills();
+      const splitItems = allSplits.map(s => {
+        const myMember = s.members.find(m => m.id === 'you');
+        const myShare = myMember ? myMember.share : s.amount / s.members.length;
+        const friendCount = s.members.filter(m => m.id !== 'you').length;
+        return {
+          id: `split-${s.id}`,
+          type: 'split_bill_entry' as any,
+          amount: myShare,
+          category: s.category,
+          account: s.accountId || 'cash',
+          date: s.date,
+          note: s.description || '',
+          createdAt: s.date,
+          billName: s.name,
+          billStatus: s.status,
+          friendCount,
+          totalAmount: s.amount,
+          splitId: s.id,
+        };
+      });
+      return splitItems.filter(t => {
+        if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
+        if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
+        if (minAmount && t.amount < parseFloat(minAmount)) return false;
+        if (maxAmount && t.amount > parseFloat(maxAmount)) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          return t.billName.toLowerCase().includes(q) || (t.note || '').toLowerCase().includes(q) || String(t.amount).includes(q);
+        }
+        return true;
+      });
+    }
+
     return allTxns.filter(t => {
-      if (typeFilter === 'split_bill') {
-        if (!t.note?.includes('[SplitBillMeta:')) return false;
-      } else if (typeFilter !== 'all' && t.type !== typeFilter) {
-        return false;
-      }
+      if (typeFilter !== 'all' && t.type !== typeFilter) return false;
 
       if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
       if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
@@ -801,7 +863,7 @@ const Transactions: React.FC = () => {
                         isIncome={isIncome}
                         onEdit={(id) => navigate(`/transactions/${id}/edit`)}
                         onDelete={handleDeleteTrigger}
-                        onClick={() => navigate(`/transactions/${t.id}`)}
+                        onClick={() => t.type === 'split_bill_entry' ? navigate('/split-bill') : navigate(`/transactions/${t.id}`)}
                       />
                     </div>
                   );
