@@ -78,10 +78,6 @@ const DailyPlanner: React.FC = () => {
     }
   }, [celebrationSavings, goals]);
 
-  const triggerToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3500);
-  };
 
   // Auto set default account ID when habitToLog changes
   useEffect(() => {
