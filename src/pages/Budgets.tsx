@@ -435,12 +435,12 @@ const LimitsTab: React.FC = () => {
           </div>
         </div>
         <div style={{
-          background: savingsRate >= (settings.savingsGoalPercent || 20) ? '#F0FDF4' : savingsRate > 0 ? 'var(--color-card)' : '#FEF2F2',
-          border: `1.5px solid ${savingsRate >= (settings.savingsGoalPercent || 20) ? '#BBF7D0' : savingsRate > 0 ? 'var(--color-border)' : '#FECACA'}`,
+          background: savingsRate >= (settings.savingsGoalPercent || 20) ? '#F0FDF4' : savingsRate < 0 ? '#FEF2F2' : 'var(--color-card)',
+          border: `1.5px solid ${savingsRate >= (settings.savingsGoalPercent || 20) ? '#BBF7D0' : savingsRate < 0 ? '#FECACA' : 'var(--color-border)'}`,
           borderRadius: '16px', padding: '16px', textAlign: 'center',
         }}>
           <div style={{ fontSize: '1.75rem' }}>💰</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: savingsRate >= 20 ? '#16A34A' : savingsRate < 0 ? '#DC2626' : 'var(--color-text)', lineHeight: 1.1 }}>{savingsRate}%</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: savingsRate >= (settings.savingsGoalPercent || 20) ? '#16A34A' : savingsRate < 0 ? '#DC2626' : 'var(--color-text)', lineHeight: 1.1 }}>{savingsRate}%</div>
           <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600, marginTop: '4px' }}>Savings Rate</div>
           <div style={{ fontSize: '0.65rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
             Goal: {settings.savingsGoalPercent || 20}% this month

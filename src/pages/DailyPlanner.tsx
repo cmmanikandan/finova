@@ -344,13 +344,21 @@ const DailyPlanner: React.FC = () => {
       const dayOfWeek = d.getDay();
       const schedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
       const scheduledTaskIds = schedule ? schedule.taskIds : [];
-      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
       
+      // Sum scheduled budget limits
+      scheduledTaskIds.forEach(tid => {
+        const task = dailyTasks.find(t => t.id === tid);
+        if (task && task.budgetLimit > 0) {
+          totalBudget7Days += task.budgetLimit;
+        }
+      });
+
+      // Sum spent amount for logged tasks on this day
+      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
       logs.forEach(log => {
         const task = dailyTasks.find(t => t.id === log.taskId);
         if (task && log.status === 'completed' && task.budgetLimit > 0) {
           totalSpent7Days += log.spentAmount;
-          totalBudget7Days += task.budgetLimit;
         }
       });
     });

@@ -1535,8 +1535,10 @@ export function getWeeklyLimitStatus(): LimitStatus {
 }
 
 export function getSavingsRate(year: number, month: number): number {
-  const { income, savings } = getMonthlyStats(year, month);
-  if (income === 0) return 0;
+  const { income, savings, expense } = getMonthlyStats(year, month);
+  if (income === 0) {
+    return expense > 0 ? -100 : 0;
+  }
   return Math.round((savings / income) * 100);
 }
 
@@ -2603,11 +2605,14 @@ export function getPlannerAnalytics(): PlannerAnalytics {
     }
   });
 
-  const budgetUsage = Object.keys(categoryBudgets).map(cat => ({
-    name: cat.charAt(0).toUpperCase() + cat.slice(1),
-    limit: categoryBudgets[cat].limit,
-    spent: categoryBudgets[cat].spent,
-  }));
+  const budgetUsage = Object.keys(categoryBudgets).map(cat => {
+    const catObj = _categories.find(c => c.id === cat);
+    return {
+      name: catObj?.name || (cat.charAt(0).toUpperCase() + cat.slice(1)),
+      limit: categoryBudgets[cat].limit,
+      spent: categoryBudgets[cat].spent,
+    };
+  });
 
   const xpGains = dates.map(dateStr => {
     const dayXP = _xpHistory
