@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Calendar, Check, Flame, Plus, ChevronLeft, Trash2, Edit2
+  Calendar, Check, Flame, Plus, ChevronLeft, Trash2, Edit2, Sparkles
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -32,7 +32,6 @@ const DailyPlanner: React.FC = () => {
     dailyTasks,
     dailyTaskLogs,
     plannerSchedules,
-    userLevel,
     userBadges,
     streakData,
     categories,
