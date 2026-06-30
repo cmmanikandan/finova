@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import SplashScreen from './pages/SplashScreen';
@@ -40,12 +40,22 @@ const AppContent: React.FC = () => {
   const [celebrationSavings, setCelebrationSavings] = useState<{ title: string; limit: number; spent: number; saved: number } | null>(null);
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
 
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id) || a.id === habitSpendAccount);
+    } catch {
+      return accounts;
+    }
+  }, [accounts, habitSpendAccount]);
+
   // Auto set default account and goal ID when habitToLog or celebrationSavings changes
   useEffect(() => {
-    if (habitToLog && accounts && accounts.length > 0) {
-      setHabitSpendAccount(accounts[0].id);
+    if (habitToLog && visibleAccounts && visibleAccounts.length > 0) {
+      setHabitSpendAccount(visibleAccounts[0].id);
     }
-  }, [habitToLog, accounts]);
+  }, [habitToLog, visibleAccounts]);
 
   useEffect(() => {
     if (celebrationSavings && goals && goals.length > 0) {
@@ -497,7 +507,7 @@ const AppContent: React.FC = () => {
                   className="input-field"
                   style={{ fontWeight: 600 }}
                 >
-                  {accounts.map(acc => (
+                  {visibleAccounts.map((acc: any) => (
                     <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} (Bal: ₹{acc.balance})</option>
                   ))}
                 </select>

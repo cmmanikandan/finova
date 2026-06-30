@@ -86,12 +86,22 @@ const DailyPlanner: React.FC = () => {
   }, [celebrationSavings, goals]);
 
 
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id) || a.id === habitSpendAccount);
+    } catch {
+      return accounts;
+    }
+  }, [accounts, habitSpendAccount]);
+
   // Auto set default account ID when habitToLog changes
   useEffect(() => {
-    if (habitToLog && accounts && accounts.length > 0) {
-      setHabitSpendAccount(accounts[0].id);
+    if (habitToLog && visibleAccounts && visibleAccounts.length > 0) {
+      setHabitSpendAccount(visibleAccounts[0].id);
     }
-  }, [habitToLog, accounts]);
+  }, [habitToLog, visibleAccounts]);
 
   // Success / Error Alerts
   const [toastMsg, setToastMsg] = useState('');
@@ -1458,7 +1468,7 @@ const DailyPlanner: React.FC = () => {
                   className="input-field"
                   style={{ fontWeight: 600 }}
                 >
-                  {accounts.map(acc => (
+                  {visibleAccounts.map(acc => (
                     <option key={acc.id} value={acc.id}>{acc.icon} {acc.name} (Bal: ₹{acc.balance})</option>
                   ))}
                 </select>
