@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, Legend, AreaChart, Area
+  ResponsiveContainer, Legend, AreaChart, Area
 } from 'recharts';
 import { Download, Calendar, TrendingUp, ArrowUpRight, ArrowDownLeft, X, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -200,14 +200,30 @@ const Reports: React.FC = () => {
         {/* Tabs */}
         <div style={{
           display: 'flex',
-          gap: '0.5rem',
+          gap: '0.375rem',
           overflowX: 'auto',
           padding: '0 16px 12px 16px',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
         }}>
           {TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`chip ${tab === t ? 'chip-active' : 'chip-inactive'}`}>{t}</button>
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '0.8125rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+                background: tab === t ? 'rgba(37, 99, 235, 0.12)' : 'transparent',
+                color: tab === t ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              }}
+            >
+              {t}
+            </button>
           ))}
         </div>
       </div>
@@ -217,79 +233,96 @@ const Reports: React.FC = () => {
 
         {tab === 'Overview' && (
           <>
-            {/* Stats block (Full bleed table grid) */}
-            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid var(--color-border)' }}>
-                {[
-                  { label: 'Income',     value: stats.income,  color: '#22C55E', bg: 'transparent', icon: <ArrowUpRight size={14} />, borderRight: '1px solid var(--color-border)' },
-                  { label: 'Expenses',   value: stats.expense, color: '#EF4444', bg: 'transparent', icon: <ArrowDownLeft size={14} />, borderRight: 'none' }
-                ].map(s => (
-                  <div key={s.label} style={{ background: s.bg, padding: '16px', borderRight: s.borderRight }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{s.label}</div>
-                      <div style={{ color: s.color }}>{s.icon}</div>
+            {/* Stats block (Gradient visual cards) */}
+            <div style={{ padding: '16px 16px 8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                { label: 'Income', value: stats.income, color: '#22C55E', bg: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.01) 100%)', border: '1px solid rgba(34, 197, 94, 0.15)', icon: <ArrowUpRight size={16} /> },
+                { label: 'Expenses', value: stats.expense, color: '#EF4444', bg: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.01) 100%)', border: '1px solid rgba(239, 68, 68, 0.15)', icon: <ArrowDownLeft size={16} /> }
+              ].map(s => (
+                <div key={s.label} className="card" style={{ background: s.bg, border: s.border, padding: '16px', borderRadius: '18px', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: `${s.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color }}>
+                      {s.icon}
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
                   </div>
-                ))}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-                {[
-                  { label: 'Net Savings',value: stats.savings, color: '#2563EB', bg: 'transparent', icon: <TrendingUp size={14} />, borderRight: '1px solid var(--color-border)' },
-                  { label: 'Avg/Day',    value: avgDaily,      color: '#F59E0B', bg: 'transparent', icon: <Calendar size={14} />, borderRight: 'none' }
-                ].map(s => (
-                  <div key={s.label} style={{ background: s.bg, padding: '16px', borderRight: s.borderRight }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{s.label}</div>
-                      <div style={{ color: s.color }}>{s.icon}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: s.color }}>{formatCurrency(s.value)}</div>
+                </div>
+              ))}
+
+              {[
+                { label: 'Net Savings', value: stats.savings, color: '#2563EB', bg: 'linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.01) 100%)', border: '1px solid rgba(37, 99, 235, 0.15)', icon: <TrendingUp size={16} /> },
+                { label: 'Avg / Day', value: avgDaily, color: '#F59E0B', bg: 'linear-gradient(135deg, rgba(245, 158, 11) 0%, rgba(245, 158, 11, 0.01) 100%)', border: '1px solid rgba(245, 158, 11, 0.15)', icon: <Calendar size={16} /> }
+              ].map(s => (
+                <div key={s.label} className="card" style={{ background: s.bg, border: s.border, padding: '16px', borderRadius: '18px', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: `${s.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color }}>
+                      {s.icon}
                     </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: s.color }}>{formatCurrency(s.value)}</div>
                   </div>
-                ))}
-              </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: s.color }}>{formatCurrency(s.value)}</div>
+                </div>
+              ))}
             </div>
 
             {/* Extra Stats list group */}
-            <div className="list-group" style={{ marginTop: '16px' }}>
+            <div className="list-group" style={{ margin: '8px 16px 0', border: '1px solid var(--color-border)', borderRadius: '18px', overflow: 'hidden' }}>
               <div className="list-row" style={{ cursor: 'default' }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Highest Category</span>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Highest Category</span>
                 <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{highestCategory}</span>
               </div>
-              <div className="list-row" style={{ cursor: 'default' }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Txn Count</span>
+              <div className="list-row" style={{ cursor: 'default', borderBottom: 'none' }}>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Txn Count</span>
                 <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{txnCount} logs</span>
               </div>
             </div>
 
-            {/* Monthly bar chart (Full bleed) */}
-            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden', marginTop: '20px' }}>
+            {/* Monthly bar chart (Floating Card) */}
+            <div style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '24px', padding: '20px 16px', overflow: 'hidden', margin: '20px 16px 0', boxShadow: 'var(--shadow-card)' }}>
               <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Income vs Expense</h4>
               <div style={{ width: '100%', height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData} barCategoryGap="25%" barGap={4}>
+                    <defs>
+                      <linearGradient id="barIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22C55E" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="#22C55E" stopOpacity={0.3}/>
+                      </linearGradient>
+                      <linearGradient id="barExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#EF4444" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="#EF4444" stopOpacity={0.3}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="income"  name="Income"  fill="#22C55E" radius={[4,4,0,0]} />
-                    <Bar dataKey="expense" name="Expense" fill="#EF4444" radius={[4,4,0,0]} />
+                    <Bar dataKey="income"  name="Income"  fill="url(#barIncome)" radius={[6,6,0,0]} />
+                    <Bar dataKey="expense" name="Expense" fill="url(#barExpense)" radius={[6,6,0,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Savings line chart (Full bleed) */}
-            <div style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', padding: '20px 16px', overflow: 'hidden', marginTop: '20px' }}>
+            {/* Savings line chart (Floating Card) */}
+            <div style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '24px', padding: '20px 16px', overflow: 'hidden', margin: '20px 16px 0', boxShadow: 'var(--shadow-card)' }}>
               <h4 style={{ margin: '0 0 16px', fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Savings Trend</h4>
               <div style={{ width: '100%', height: 180 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyData}>
+                  <AreaChart data={monthlyData}>
+                    <defs>
+                      <linearGradient id="areaSavings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity={0.4}/>
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="savings" name="Savings" stroke="#2563EB" strokeWidth={2.5} dot={{ fill: '#2563EB', r: 3 }} activeDot={{ r: 5 }} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="savings" name="Savings" stroke="#2563EB" strokeWidth={2.5} fill="url(#areaSavings)" dot={{ fill: '#2563EB', r: 3 }} activeDot={{ r: 5 }} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -461,8 +494,8 @@ const Reports: React.FC = () => {
       {/* Export Options Dialog Overlay */}
       {showExportOptions && (
         <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => setShowExportOptions(false)}>
-          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', gap: '16px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '24px', padding: '24px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '380px', gap: '16px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '24px', padding: '24px 20px', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)' }}>Export Statement</h3>
               <button onClick={() => setShowExportOptions(false)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '10px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                 <X size={16} />
@@ -470,8 +503,8 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Format Selection */}
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Select Format</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select Format</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
                 {[
                   { key: 'pdf', label: 'PDF', color: '#EF4444' },
@@ -487,11 +520,12 @@ const Reports: React.FC = () => {
                       borderRadius: '12px',
                       border: '1.5px solid',
                       borderColor: exportFormat === item.key ? item.color : 'var(--color-border)',
-                      background: exportFormat === item.key ? `${item.color}10` : 'transparent',
-                      color: exportFormat === item.key ? item.color : 'var(--color-text)',
+                      background: exportFormat === item.key ? `${item.color}15` : 'var(--color-card)',
+                      color: exportFormat === item.key ? item.color : 'var(--color-text-muted)',
                       fontWeight: 800,
                       fontSize: '0.75rem',
                       cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {item.label}
@@ -501,10 +535,24 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Date Range Scope */}
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Date Range</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date Range</label>
               <div style={{ position: 'relative' }}>
-                <select className="input-field" value={dateRangeFilter} onChange={e => setDateRangeFilter(e.target.value as any)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                <select 
+                  className="input-field" 
+                  value={dateRangeFilter} 
+                  onChange={e => setDateRangeFilter(e.target.value as any)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: 0,
+                    paddingBottom: 0
+                  }}
+                >
                   <option value="this_month">This Month</option>
                   <option value="last_month">Last Month</option>
                   <option value="this_week">This Week</option>
@@ -517,23 +565,63 @@ const Reports: React.FC = () => {
 
             {/* Custom Dates Inputs */}
             {dateRangeFilter === 'custom' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>Start Date</label>
-                  <input type="date" className="input-field" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} style={{ padding: '8px' }} />
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Start Date</label>
+                  <input 
+                    type="date" 
+                    className="input-field" 
+                    value={customStartDate} 
+                    onChange={e => setCustomStartDate(e.target.value)} 
+                    style={{ 
+                      borderRadius: '12px',
+                      border: '1.5px solid var(--color-border)',
+                      background: 'var(--color-bg)',
+                      height: '48px',
+                      paddingTop: 0,
+                      paddingBottom: 0
+                    }} 
+                  />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>End Date</label>
-                  <input type="date" className="input-field" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} style={{ padding: '8px' }} />
+                  <label style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>End Date</label>
+                  <input 
+                    type="date" 
+                    className="input-field" 
+                    value={customEndDate} 
+                    onChange={e => setCustomEndDate(e.target.value)} 
+                    style={{ 
+                      borderRadius: '12px',
+                      border: '1.5px solid var(--color-border)',
+                      background: 'var(--color-bg)',
+                      height: '48px',
+                      paddingTop: 0,
+                      paddingBottom: 0
+                    }} 
+                  />
                 </div>
               </div>
             )}
 
             {/* Category Filter */}
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Category</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
               <div style={{ position: 'relative' }}>
-                <select className="input-field" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                <select 
+                  className="input-field" 
+                  value={categoryFilter} 
+                  onChange={e => setCategoryFilter(e.target.value)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: 0,
+                    paddingBottom: 0
+                  }}
+                >
                   <option value="all">All Categories</option>
                   {categories.map(c => (
                     <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
@@ -544,10 +632,24 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Account Filter */}
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Account</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</label>
               <div style={{ position: 'relative' }}>
-                <select className="input-field" value={accountFilter} onChange={e => setAccountFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
+                <select 
+                  className="input-field" 
+                  value={accountFilter} 
+                  onChange={e => setAccountFilter(e.target.value)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: 0,
+                    paddingBottom: 0
+                  }}
+                >
                   <option value="all">All Accounts</option>
                   {visibleAccounts.map(a => (
                     <option key={a.id} value={a.id}>{a.icon} {a.name}</option>
@@ -558,9 +660,9 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-              <button className="btn-ghost" style={{ flex: 1, height: '46px', borderRadius: '23px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 700, cursor: 'pointer' }} onClick={() => setShowExportOptions(false)}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '23px', fontWeight: 700 }} onClick={handleGenerateExport}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button className="btn-ghost" style={{ flex: 1, height: '46px', borderRadius: '16px', border: '1.5px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, cursor: 'pointer' }} onClick={() => setShowExportOptions(false)}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '16px', fontWeight: 800 }} onClick={handleGenerateExport}>
                 Generate Report
               </button>
             </div>

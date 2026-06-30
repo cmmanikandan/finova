@@ -95,11 +95,20 @@ const Settings: React.FC<SettingsProps> = ({ onLogout: _onLogout, deferredPrompt
               alignItems: 'center',
               gap: '16px',
               cursor: 'pointer',
-              background: 'var(--color-card)',
-              transition: 'background-color 0.15s',
+              background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+              transition: 'transform 0.15s ease',
+              padding: '24px 20px',
+              borderRadius: '24px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-elevated)',
+              color: '#fff'
             }}
           >
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border)', flexShrink: 0 }}>
+            {/* Decorative soft glow */}
+            <div style={{ position: 'absolute', right: '-10px', top: '-10px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(37,99,235,0.2)', filter: 'blur(20px)', pointerEvents: 'none' }} />
+
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', border: '2.5px solid rgba(255,255,255,0.2)', flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
               {user?.photoURL ? (
                 <img src={user.photoURL} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -107,24 +116,24 @@ const Settings: React.FC<SettingsProps> = ({ onLogout: _onLogout, deferredPrompt
                   width: '100%', height: '100%',
                   background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-light))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontWeight: 700, fontSize: '1.125rem',
+                  color: '#fff', fontWeight: 800, fontSize: '1.25rem',
                 }}>
                   {user?.name?.charAt(0) || 'U'}
                 </div>
               )}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{user?.name || 'User'}</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{user?.email}</p>
+            <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 900, color: '#fff' }}>{user?.name || 'User'}</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{user?.email}</p>
             </div>
-            <ChevronRight size={18} color="var(--color-text-muted)" style={{ marginRight: '-4px' }} />
+            <ChevronRight size={20} color="rgba(255, 255, 255, 0.7)" style={{ marginRight: '-4px', zIndex: 1 }} />
           </div>
         </div>
         {groups.map(g => (
-          <div key={g.title}>
-            <p className="section-header">{g.title}</p>
-            <div className="list-group">
-              {g.items.map((item) => (
+          <div key={g.title} style={{ padding: '0 16px', marginTop: '16px' }}>
+            <p style={{ margin: '0 4px 8px 4px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{g.title}</p>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '18px', boxShadow: 'var(--shadow-card)' }}>
+              {g.items.map((item, idx) => (
                 <button
                   key={item.id}
                   id={`settings-${item.id}`}
@@ -136,6 +145,10 @@ const Settings: React.FC<SettingsProps> = ({ onLogout: _onLogout, deferredPrompt
                     }
                   }}
                   className="list-row"
+                  style={{
+                    borderBottom: idx === g.items.length - 1 ? 'none' : '1px solid var(--color-border)',
+                    padding: '14px 16px',
+                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                     <div style={{
@@ -444,49 +457,65 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
           </button>
         </div>
 
-        {/* Categories List Cards (Flat list group) */}
-        <div className="list-group">
+        {/* Categories List Cards */}
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {processedCats.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
+            <div style={{ padding: '32px 24px', background: 'var(--color-card)', borderRadius: '18px', border: '1px solid var(--color-border)', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
               No categories found
             </div>
           ) : (
             processedCats.map((c) => {
               const isHidden = hiddenCats.includes(c.id);
               return (
-                <div key={c.id} className="list-row" style={{ opacity: isHidden ? 0.5 : 1, cursor: 'default' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem', flexShrink: 0 }}>
+                <div
+                  key={c.id}
+                  className="card"
+                  style={{
+                    opacity: isHidden ? 0.6 : 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px',
+                    borderRadius: '18px',
+                    border: '1.5px solid var(--color-border)',
+                    boxShadow: 'var(--shadow-card)',
+                    background: 'var(--color-card)',
+                    transition: 'all 0.2s ease',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${c.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
                       {c.icon}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {c.name} {isHidden && <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>(Hidden)</span>}
                       </div>
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
-                        <span style={{ fontSize: '0.625rem', color: c.type === 'income' ? '#22C55E' : '#EF4444', background: c.type === 'income' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'uppercase' }}>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.625rem', color: c.type === 'income' ? '#22C55E' : '#EF4444', background: c.type === 'income' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, textTransform: 'uppercase' }}>
                           {c.type === 'both' ? 'Both' : c.type}
                         </span>
-                        <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', background: 'var(--color-bg)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--color-border)' }}>
                           {c.isCustom ? 'Custom' : 'System'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {/* Hiding Toggle for all (including System) */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                     <button
                       onClick={() => toggleHideCategory(c.id)}
-                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}
+                      style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)', transition: 'all 0.15s ease' }}
                       title={isHidden ? 'Show Category' : 'Hide Category'}
                     >
                       {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
 
-                    <button onClick={() => startEdit(c)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
+                    <button onClick={() => startEdit(c)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                       <Pencil size={15} />
                     </button>
-                    <button onClick={() => handleDeleteTrigger(c.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
+                    <button onClick={() => handleDeleteTrigger(c.id)} style={{ border: 'none', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#EF4444' }}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -809,39 +838,56 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
           />
         </div>
 
-        {/* Accounts List Cards (Flat list group) */}
-        <div className="list-group">
+        {/* Accounts List Cards */}
+        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {processedAccs.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
+            <div style={{ padding: '32px 24px', background: 'var(--color-card)', borderRadius: '18px', border: '1px solid var(--color-border)', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
               No accounts found
             </div>
           ) : (
             processedAccs.map((a) => {
               const isHidden = hiddenAccs.includes(a.id);
               return (
-                <div key={a.id} className="list-row" style={{ opacity: isHidden ? 0.5 : 1, cursor: 'default' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: `${a.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem', flexShrink: 0 }}>
+                <div
+                  key={a.id}
+                  className="card"
+                  style={{
+                    opacity: isHidden ? 0.6 : 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px',
+                    borderRadius: '18px',
+                    border: '1.5px solid var(--color-border)',
+                    boxShadow: 'var(--shadow-card)',
+                    background: 'var(--color-card)',
+                    transition: 'all 0.2s ease',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${a.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>
                       {a.icon}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {a.name} {isHidden && <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>(Hidden)</span>}
                       </div>
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '2px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: a.color || 'var(--color-text)' }}>
                           ₹{a.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
-                        <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', background: 'var(--color-bg)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid var(--color-border)' }}>
                           {a.isCustom ? 'Custom' : 'System'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                     <button
                       onClick={() => toggleHideAccount(a.id)}
-                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}
+                      style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)', transition: 'all 0.15s ease' }}
                       title={isHidden ? 'Show Account' : 'Hide Account'}
                     >
                       {isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -849,19 +895,19 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
 
                     {a.isCustom ? (
                       <>
-                        <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }}>
+                        <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', padding: '6px' }}>
+                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#EF4444' }}>
                           <Trash2 size={15} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }} title="Edit Balance">
+                        <button onClick={() => startEdit(a)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }} title="Edit Balance">
                           <Pencil size={15} />
                         </button>
-                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '6px' }} title="Hide Account">
+                        <button onClick={() => handleDeleteTrigger(a.id)} style={{ border: 'none', background: 'var(--color-bg)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }} title="Hide Account">
                           <EyeOff size={15} />
                         </button>
                       </>
@@ -944,12 +990,13 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Notifications" onBack={onBack} />
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
-        <div className="list-group" style={{ marginTop: '16px' }}>
-          <div className="list-row" style={{ cursor: 'default' }}>
+      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '18px', boxShadow: 'var(--shadow-card)', background: 'var(--color-card)' }}>
+          <div className="list-row" style={{ cursor: 'default', borderBottom: '1px solid var(--color-border)', padding: '16px' }}>
             <div>
-              <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Budget Limit Alerts</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Notify when category spends reach 80% and 100%</div>
+              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Budget Limit Alerts</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '4px' }}>Notify when category spends reach 80% and 100%</div>
             </div>
             <label className="m3-switch">
               <input type="checkbox" checked={budgetAlerts} onChange={toggleBudget} />
@@ -957,10 +1004,10 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
             </label>
           </div>
 
-          <div className="list-row" style={{ cursor: 'default' }}>
+          <div className="list-row" style={{ cursor: 'default', borderBottom: dailyReminder ? '1px solid var(--color-border)' : 'none', padding: '16px' }}>
             <div>
-              <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Daily Summary & Reminders</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Remind to log transactions and goal progress</div>
+              <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>Daily Summary & Reminders</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '4px' }}>Remind to log transactions and goal progress</div>
             </div>
             <label className="m3-switch">
               <input type="checkbox" checked={dailyReminder} onChange={toggleDaily} />
@@ -969,10 +1016,10 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
           </div>
 
           {dailyReminder && (
-            <div className="list-row" style={{ cursor: 'default', background: 'var(--color-bg)' }}>
+            <div className="list-row" style={{ cursor: 'default', background: 'var(--color-bg)', padding: '16px', borderBottom: 'none' }}>
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.875rem' }}>Reminder Time</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Choose what time you'd like to get notified</div>
+                <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.875rem' }}>Reminder Time</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '4px' }}>Choose what time you'd like to get notified</div>
               </div>
               <input
                 type="time"
@@ -980,18 +1027,20 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ onBack, settings,
                 onChange={handleTimeChange}
                 style={{
                   padding: '8px 12px',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   border: '1.5px solid var(--color-border)',
                   fontSize: '0.875rem',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   color: 'var(--color-text)',
                   background: 'var(--color-card)',
-                  fontFamily: "'Sora', sans-serif"
+                  fontFamily: 'var(--font-sans)',
+                  outline: 'none'
                 }}
               />
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
@@ -1047,15 +1096,19 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
   return (
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="App Security" onBack={onBack} />
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {step === 'toggle' && (
-          <div className="list-group" style={{ marginTop: '16px' }}>
-            <div className="list-row" style={{ cursor: 'default' }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '18px', boxShadow: 'var(--shadow-card)', background: 'var(--color-card)' }}>
+            <div className="list-row" style={{ cursor: 'default', padding: '16px', borderBottom: 'none' }}>
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>PIN Lock Screen</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>Ask for a 4-digit PIN when launching FINOVA</div>
+                <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9375rem' }}>PIN Lock Screen</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '4px' }}>Ask for a 4-digit PIN when launching FINOVA</div>
               </div>
-              <button className={pinEnabled ? 'btn-ghost' : 'btn-primary'} style={{ padding: '8px 16px', fontSize: '0.8125rem' }} onClick={handleToggle}>
+              <button 
+                className={pinEnabled ? 'btn-ghost' : 'btn-primary'} 
+                style={{ padding: '8px 16px', fontSize: '0.8125rem', borderRadius: '10px' }} 
+                onClick={handleToggle}
+              >
                 {pinEnabled ? 'Disable PIN' : 'Enable PIN'}
               </button>
             </div>
@@ -1063,23 +1116,59 @@ const SecurityView: React.FC<SecurityViewProps> = ({ onBack, settings, saveSetti
         )}
 
         {step === 'setup_pin' && (
-          <div style={{ padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-            <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)' }}>Set 4-Digit PIN</h4>
-            <input type="password" maxLength={4} className="input-field" placeholder="Enter new PIN" value={pinInput} onChange={e => setPinInput(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('toggle')}>Cancel</button>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={handleSetup}>Next</button>
+          <div className="card" style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '18px', border: '1px solid var(--color-border)', borderRadius: '24px', boxShadow: 'var(--shadow-elevated)', background: 'var(--color-card)' }}>
+            <h4 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Set 4-Digit PIN</h4>
+            <input 
+              type="password" 
+              maxLength={4} 
+              className="input-field" 
+              placeholder="Enter new PIN" 
+              value={pinInput} 
+              onChange={e => setPinInput(e.target.value)} 
+              style={{ 
+                textAlign: 'center', 
+                fontSize: '1.5rem', 
+                letterSpacing: '0.5rem',
+                borderRadius: '12px',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-bg)',
+                height: '52px',
+                paddingTop: 0,
+                paddingBottom: 0
+              }} 
+            />
+            <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+              <button className="btn-ghost" style={{ flex: 1, borderRadius: '12px', height: '42px', fontWeight: 800 }} onClick={() => setStep('toggle')}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, borderRadius: '12px', height: '42px', fontWeight: 800 }} onClick={handleSetup}>Next</button>
             </div>
           </div>
         )}
 
         {step === 'confirm_pin' && (
-          <div style={{ padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-            <h4 style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)' }}>Confirm PIN</h4>
-            <input type="password" maxLength={4} className="input-field" placeholder="Confirm PIN" value={pinConfirm} onChange={e => setPinConfirm(e.target.value)} style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.5rem' }} />
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setStep('setup_pin')}>Back</button>
-              <button className="btn-primary" style={{ flex: 1 }} onClick={handleConfirm}>Enable PIN</button>
+          <div className="card" style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '18px', border: '1px solid var(--color-border)', borderRadius: '24px', boxShadow: 'var(--shadow-elevated)', background: 'var(--color-card)' }}>
+            <h4 style={{ margin: 0, fontWeight: 900, color: 'var(--color-text)', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirm PIN</h4>
+            <input 
+              type="password" 
+              maxLength={4} 
+              className="input-field" 
+              placeholder="Confirm PIN" 
+              value={pinConfirm} 
+              onChange={e => setPinConfirm(e.target.value)} 
+              style={{ 
+                textAlign: 'center', 
+                fontSize: '1.5rem', 
+                letterSpacing: '0.5rem',
+                borderRadius: '12px',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-bg)',
+                height: '52px',
+                paddingTop: 0,
+                paddingBottom: 0
+              }} 
+            />
+            <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+              <button className="btn-ghost" style={{ flex: 1, borderRadius: '12px', height: '42px', fontWeight: 800 }} onClick={() => setStep('setup_pin')}>Back</button>
+              <button className="btn-primary" style={{ flex: 1, borderRadius: '12px', height: '42px', fontWeight: 800 }} onClick={handleConfirm}>Enable PIN</button>
             </div>
           </div>
         )}
@@ -1331,7 +1420,6 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
       <BackHeader title="Recurring Bills" onBack={onBack} />
       
       <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        
         {recurringList.length === 0 ? (
           <div style={{ padding: '40px 24px', textAlign: 'center', background: 'var(--color-card)', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔄</div>
@@ -1350,15 +1438,23 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
             
             return (
               <div key={rt.id} className="card" style={{
-                padding: '16px', border: '1.5px solid var(--color-border)', borderRadius: '18px',
-                opacity: rt.active ? 1 : 0.6, gap: '14px', position: 'relative'
+                padding: '18px',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '20px',
+                opacity: rt.active ? 1 : 0.6,
+                gap: '14px',
+                position: 'relative',
+                boxShadow: 'var(--shadow-card)',
+                background: 'var(--color-card)',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
-                      width: '40px', height: '40px', borderRadius: '12px',
+                      width: '44px', height: '44px', borderRadius: '12px',
                       background: `${cat?.color || '#2563EB'}15`, display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem'
+                      alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
                     }}>
                       {cat?.icon || '📦'}
                     </div>
@@ -1366,14 +1462,14 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
                       <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--color-text)' }}>
                         {rt.note || cat?.name || 'Auto Expense'}
                       </div>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
                         <span style={{
                           fontSize: '0.625rem', fontWeight: 800, color: rt.type === 'expense' ? '#DC2626' : '#16A34A',
-                          background: rt.type === 'expense' ? '#FEF2F2' : '#F0FDF4', padding: '1px 6px', borderRadius: '4px'
+                          background: rt.type === 'expense' ? 'rgba(220,38,38,0.1)' : 'rgba(22,163,74,0.1)', padding: '2px 8px', borderRadius: '6px'
                         }}>
                           {rt.type.toUpperCase()}
                         </span>
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
                           • {rt.frequency.toUpperCase()}
                         </span>
                       </div>
@@ -1381,10 +1477,10 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
                   </div>
                   
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 900, fontSize: '1.0625rem', color: rt.type === 'expense' ? '#DC2626' : '#16A34A' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.125rem', color: rt.type === 'expense' ? '#DC2626' : '#16A34A' }}>
                       {rt.type === 'expense' ? '-' : '+'}₹{rt.amount.toLocaleString()}
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: '4px' }}>
                       Via: {acc?.name || 'Unknown'}
                     </div>
                   </div>
@@ -1393,14 +1489,14 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   background: 'var(--color-bg)', padding: '10px 14px', borderRadius: '12px',
-                  fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--color-border)'
+                  fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--color-border)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-secondary)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-muted)' }}>
                     <Clock size={12} />
                     <span>Next Due: <strong>{rt.nextDueDate}</strong></span>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     {/* Toggle Active status */}
                     <button
                       onClick={() => toggleActive(rt)}
@@ -1408,27 +1504,32 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
                         padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--color-border)',
                         background: rt.active ? 'rgba(34,197,94,0.1)' : 'transparent',
                         color: rt.active ? '#16A34A' : 'var(--color-text-muted)',
-                        fontSize: '0.6875rem', fontWeight: 700, cursor: 'pointer'
+                        fontSize: '0.6875rem', fontWeight: 800, cursor: 'pointer',
+                        transition: 'all 0.15s ease'
                       }}
                     >
                       {rt.active ? 'Active' : 'Paused'}
                     </button>
                     
-                    <button onClick={() => startEdit(rt)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '0.6875rem', fontWeight: 700 }}>
+                    <button 
+                      onClick={() => startEdit(rt)} 
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '0.6875rem', fontWeight: 800 }}
+                    >
                       Edit
                     </button>
                     
-                    <button onClick={() => handleDelete(rt.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', fontSize: '0.6875rem', fontWeight: 700 }}>
+                    <button 
+                      onClick={() => handleDelete(rt.id)} 
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#EF4444', fontSize: '0.6875rem', fontWeight: 800 }}
+                    >
                       Delete
                     </button>
                   </div>
                 </div>
-
               </div>
             );
           })
         )}
-
       </div>
 
       {/* FAB to Add Custom Recurring Bill */}
@@ -1660,31 +1761,58 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Theme Selector" onBack={onBack} />
-        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
-          <div className="list-group" style={{ marginTop: '16px' }}>
-            {(['light', 'dark', 'system'] as const).map((t) => (
-              <button key={t} onClick={() => saveSettings({ ...settings, theme: t })}
-                className="list-row"
-                style={{
-                  background: settings.theme === t ? 'rgba(37,99,235,0.05)' : 'transparent',
-                }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(124,58,237,0.1)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Palette size={20} />
+        <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            {([
+              { key: 'light', label: 'Light', desc: 'Clean layout', bg: '#FFFFFF', border: '#E2E8F0', icon: '☀️' },
+              { key: 'dark', label: 'Dark', desc: 'Sleek dark', bg: '#0F172A', border: '#1E293B', icon: '🌙' },
+              { key: 'system', label: 'System', desc: 'Auto match', bg: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 50%, #0F172A 50%, #0F172A 100%)', border: '#E2E8F0', icon: '🤖' }
+            ] as const).map((t) => {
+              const active = settings.theme === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => saveSettings({ ...settings, theme: t.key })}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '20px 10px',
+                    borderRadius: '20px',
+                    border: `2px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    background: 'var(--color-card)',
+                    cursor: 'pointer',
+                    boxShadow: active ? 'var(--shadow-elevated)' : 'var(--shadow-card)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {/* Theme Preview Box */}
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '16px',
+                    background: t.bg,
+                    border: `1.5px solid ${t.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.5rem',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.06)'
+                  }}>
+                    {t.icon}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--color-text)', textTransform: 'capitalize' }}>{t} Mode</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      {t === 'light' && 'Always light layout'}
-                      {t === 'dark' && 'Always sleek dark theme'}
-                      {t === 'system' && 'Match device system preferences'}
-                    </div>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--color-text)' }}>{t.label}</div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: '2px' }}>{t.desc}</div>
                   </div>
-                </div>
-                {settings.theme === t && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
+
         </div>
       </div>
     );

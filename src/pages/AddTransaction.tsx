@@ -263,8 +263,9 @@ const AddTransaction: React.FC = () => {
           borderBottom: '1px solid var(--color-border)',
         }}>
           <div style={{
-            display: 'flex', background: '#F1F5F9',
+            display: 'flex', background: 'var(--color-bg)',
             borderRadius: '14px', padding: '4px', gap: '4px',
+            border: '1px solid var(--color-border)'
           }}>
             {TYPES.map(t => (
               <button
@@ -273,11 +274,11 @@ const AddTransaction: React.FC = () => {
                 onClick={() => { setType(t.id); setCategory(''); }}
                 style={{
                   flex: 1, padding: '10px 0', border: 'none', borderRadius: '10px',
-                  fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  background: type === t.id ? '#fff' : 'transparent',
-                  color: type === t.id ? t.color : '#94A3B8',
-                  boxShadow: type === t.id ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                  fontWeight: 800, fontSize: '0.875rem', cursor: 'pointer',
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  background: type === t.id ? 'var(--color-card)' : 'transparent',
+                  color: type === t.id ? t.color : 'var(--color-text-muted)',
+                  boxShadow: type === t.id ? 'var(--shadow-card)' : 'none',
                 }}
               >
                 {t.label}
@@ -316,17 +317,22 @@ const AddTransaction: React.FC = () => {
         {/* ── Amount Card ── */}
         <div style={{
           margin: '16px 16px 0',
-          background: activeType.color,
+          background: type === 'expense'
+            ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+            : type === 'income'
+            ? 'linear-gradient(135deg, #10B981 0%, #047857 100%)'
+            : 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
           borderRadius: '24px',
           padding: '28px 24px',
           position: 'relative',
           overflow: 'hidden',
+          boxShadow: 'var(--shadow-elevated)',
         }}>
           {/* Decorative circles */}
           <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }} />
           <div style={{ position: 'absolute', bottom: '-32px', left: '-16px', width: '100px', height: '100px', background: 'rgba(255,255,255,0.07)', borderRadius: '50%' }} />
 
-          <p style={{ margin: '0 0 8px', fontSize: '0.8125rem', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
+          <p style={{ margin: '0 0 8px', fontSize: '0.8125rem', color: 'rgba(255,255,255,0.75)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {type === 'expense' ? 'Amount Spent' : type === 'income' ? 'Amount Received' : 'Transfer Amount'}
           </p>
 
@@ -334,7 +340,7 @@ const AddTransaction: React.FC = () => {
             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'text' }}
             onClick={() => amountRef.current?.focus()}
           >
-            <span style={{ fontSize: '2.25rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)', lineHeight: 1 }}>₹</span>
+            <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'rgba(255,255,255,0.95)', lineHeight: 1 }}>₹</span>
             <input
               ref={amountRef}
               id="add-txn-amount"
@@ -347,15 +353,15 @@ const AddTransaction: React.FC = () => {
               placeholder="0.00"
               style={{
                 flex: 1, border: 'none', background: 'transparent',
-                fontSize: '2.75rem', fontWeight: 800, color: '#fff',
-                outline: 'none', width: '100%', caretColor: 'rgba(255,255,255,0.8)',
-                fontFamily: 'Inter, sans-serif',
+                fontSize: '2.75rem', fontWeight: 900, color: '#fff',
+                outline: 'none', width: '100%', caretColor: '#fff',
+                fontFamily: 'var(--font-sans)',
               }}
             />
           </div>
 
           {!amtFocused && amount && (
-            <p style={{ margin: '8px 0 0', fontSize: '0.8125rem', color: 'rgba(255,255,255,0.7)' }}>
+            <p style={{ margin: '8px 0 0', fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', fontWeight: 700 }}>
               ₹{formattedAmount}
             </p>
           )}
@@ -376,6 +382,7 @@ const AddTransaction: React.FC = () => {
                   border: `1.5px solid ${showCatGrid && !category ? '#EF4444' : 'var(--color-border)'}`,
                   borderRadius: '16px', background: 'var(--color-card)',
                   cursor: 'pointer', gap: '12px',
+                  boxShadow: 'var(--shadow-card)'
                 }}
               >
                 {selectedCat ? (
@@ -385,10 +392,10 @@ const AddTransaction: React.FC = () => {
                       background: `${selectedCat.color}18`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
                     }}>{selectedCat.icon}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{selectedCat.name}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.9375rem' }}>{selectedCat.name}</span>
                   </div>
                 ) : (
-                  <span style={{ color: '#94A3B8', fontWeight: 500, fontSize: '0.9375rem' }}>
+                  <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '0.9375rem' }}>
                     {showCatGrid && !category ? '⚠️ Select a category' : 'Select category…'}
                   </span>
                 )}
@@ -410,14 +417,15 @@ const AddTransaction: React.FC = () => {
                       onClick={() => { setCategory(c.id); setShowCatGrid(false); }}
                       style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        gap: '4px', padding: '10px 4px', border: 'none', borderRadius: '12px',
-                        background: category === c.id ? `${c.color}18` : 'var(--color-bg)',
-                        cursor: 'pointer', transition: 'all 0.15s',
-                        outline: category === c.id ? `2px solid ${c.color}` : 'none',
+                        gap: '6px', padding: '12px 4px', borderRadius: '16px',
+                        background: category === c.id ? `${c.color}15` : 'var(--color-bg)',
+                        cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        border: `1.5px solid ${category === c.id ? c.color : 'transparent'}`,
+                        boxShadow: 'var(--shadow-card)',
                       }}
                     >
-                      <span style={{ fontSize: '1.375rem' }}>{c.icon}</span>
-                      <span style={{ fontSize: '0.625rem', fontWeight: 600, color: '#64748B', textAlign: 'center', lineHeight: 1.2 }}>{c.name}</span>
+                      <span style={{ fontSize: '1.5rem', filter: category === c.id ? 'none' : 'grayscale(15%)' }}>{c.icon}</span>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: category === c.id ? 'var(--color-text)' : 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.2 }}>{c.name}</span>
                     </button>
                   ))}
                 </div>
@@ -435,7 +443,14 @@ const AddTransaction: React.FC = () => {
                 placeholder="e.g. Starbucks, Amazon, School Fee…"
                 value={subcategory}
                 onChange={e => setSubcategory(e.target.value)}
-                style={{ minHeight: '56px' }}
+                style={{ 
+                  borderRadius: '16px', 
+                  border: '1.5px solid var(--color-border)', 
+                  background: 'var(--color-card)', 
+                  height: '56px', 
+                  paddingTop: 0, 
+                  paddingBottom: 0 
+                }}
               />
             </FieldCard>
           )}
@@ -448,7 +463,16 @@ const AddTransaction: React.FC = () => {
                 className="input-field"
                 value={account}
                 onChange={e => setAccount(e.target.value)}
-                style={{ appearance: 'none', paddingRight: '2.5rem', minHeight: '56px' }}
+                style={{ 
+                  appearance: 'none', 
+                  paddingRight: '2.5rem', 
+                  borderRadius: '16px', 
+                  border: '1.5px solid var(--color-border)', 
+                  background: 'var(--color-card)', 
+                  height: '56px', 
+                  paddingTop: 0, 
+                  paddingBottom: 0 
+                }}
               >
                 {visibleAccounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
               </select>
@@ -465,7 +489,16 @@ const AddTransaction: React.FC = () => {
                   className="input-field"
                   value={toAccount}
                   onChange={e => setToAccount(e.target.value)}
-                  style={{ appearance: 'none', paddingRight: '2.5rem', minHeight: '56px' }}
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem', 
+                    borderRadius: '16px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-card)', 
+                    height: '56px', 
+                    paddingTop: 0, 
+                    paddingBottom: 0 
+                  }}
                 >
                   <option value="">Select account…</option>
                   {visibleAccounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
@@ -483,7 +516,14 @@ const AddTransaction: React.FC = () => {
               className="input-field"
               value={date}
               onChange={e => setDate(e.target.value)}
-              style={{ minHeight: '56px' }}
+              style={{ 
+                borderRadius: '16px', 
+                border: '1.5px solid var(--color-border)', 
+                background: 'var(--color-card)', 
+                height: '56px', 
+                paddingTop: 0, 
+                paddingBottom: 0 
+              }}
             />
           </FieldCard>
 
@@ -496,7 +536,14 @@ const AddTransaction: React.FC = () => {
               placeholder="What was this for?"
               value={note}
               onChange={e => setNote(e.target.value)}
-              style={{ minHeight: '56px' }}
+              style={{ 
+                borderRadius: '16px', 
+                border: '1.5px solid var(--color-border)', 
+                background: 'var(--color-card)', 
+                height: '56px', 
+                paddingTop: 0, 
+                paddingBottom: 0 
+              }}
             />
           </FieldCard>
 
@@ -513,29 +560,29 @@ const AddTransaction: React.FC = () => {
             />
 
             {receipt ? (
-              <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+              <div style={{ position: 'relative', borderRadius: '20px', overflow: 'hidden', border: '1.5px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}>
                 <img src={receipt} alt="Receipt" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
                 <button
                   onClick={() => setReceipt(null)}
                   style={{
                     position: 'absolute', top: '10px', right: '10px',
                     width: '32px', height: '32px', borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)', border: 'none',
+                    background: 'rgba(15, 23, 42, 0.75)', border: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', color: '#fff',
+                    cursor: 'pointer', color: '#fff', backdropFilter: 'blur(4px)'
                   }}
                 >
                   <X size={16} />
                 </button>
-                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Receipt size={14} color="#64748B" />
-                  <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>Receipt attached</span>
+                <div style={{ padding: '12px 16px', background: 'var(--color-card)', display: 'flex', alignItems: 'center', gap: '8px', borderTop: '1px solid var(--color-border)' }}>
+                  <Receipt size={16} color="var(--color-primary)" />
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text)', fontWeight: 700 }}>Receipt attached</span>
                   <span style={{ fontSize: '0.8125rem', color: '#2563EB', fontWeight: 600, marginLeft: 'auto', cursor: 'pointer' }}
                     onClick={() => fileRef.current?.click()}>Change</span>
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {/* Camera */}
                 <button
                   id="receipt-camera"
@@ -549,14 +596,14 @@ const AddTransaction: React.FC = () => {
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: '8px', padding: '20px', border: '1.5px dashed var(--color-border)',
                     borderRadius: '16px', background: 'var(--color-card)', cursor: 'pointer',
-                    transition: 'border-color 0.15s', fontFamily: 'Inter, sans-serif',
+                    transition: 'all 0.15s ease', fontFamily: 'var(--font-sans)',
                   }}
                 >
                   <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(37,99,235,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Camera size={22} color="#2563EB" />
                   </div>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)' }}>Camera</span>
-                  <span style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>Take photo</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Camera</span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Take photo</span>
                 </button>
 
                 {/* Gallery */}
@@ -572,14 +619,14 @@ const AddTransaction: React.FC = () => {
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: '8px', padding: '20px', border: '1.5px dashed var(--color-border)',
                     borderRadius: '16px', background: 'var(--color-card)', cursor: 'pointer',
-                    transition: 'border-color 0.15s', fontFamily: 'Inter, sans-serif',
+                    transition: 'all 0.15s ease', fontFamily: 'var(--font-sans)',
                   }}
                 >
                   <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ImageIcon size={22} color="#7C3AED" />
                   </div>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)' }}>Gallery</span>
-                  <span style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>Choose image</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>Gallery</span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Choose image</span>
                 </button>
               </div>
             )}
@@ -646,9 +693,10 @@ const FieldCard: React.FC<{
 }> = ({ label, required, error, children }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
     <label style={{
-      fontSize: '0.8125rem', fontWeight: 600,
-      color: error ? '#EF4444' : '#64748B',
-      letterSpacing: '0.01em',
+      fontSize: '0.8125rem', fontWeight: 800,
+      color: error ? '#EF4444' : 'var(--color-text-muted)',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
     }}>
       {label}{required && <span style={{ color: '#EF4444', marginLeft: '3px' }}>*</span>}
     </label>

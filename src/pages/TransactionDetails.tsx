@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit2, Trash2, Calendar, CreditCard, Tag, FileText, Receipt, ArrowRight, Copy } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Receipt, Copy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
@@ -123,78 +123,113 @@ const TransactionDetails: React.FC = () => {
       </div>
 
       {/* Scrollable Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 40px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 40px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {/* Amount Box (Full bleed) */}
-          <div style={{
+          {/* Receipt Card Wrapper */}
+          <div className="card" style={{
             background: 'var(--color-card)',
-            padding: '24px 16px',
-            borderBottom: '1px solid var(--color-border)',
-            textAlign: 'center',
+            borderRadius: '24px',
+            border: '1px solid var(--color-border)',
+            boxShadow: 'var(--shadow-elevated)',
+            padding: '24px 20px',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
+            {/* Header / Amount Block */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '20px',
+                background: isIncome ? 'rgba(34,197,94,0.12)' : txn.type === 'transfer' ? 'rgba(37,99,235,0.12)' : 'rgba(239,68,68,0.12)',
+                color: isIncome ? '#22C55E' : txn.type === 'transfer' ? '#2563EB' : '#EF4444',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem',
+                margin: '0 auto 12px',
+                boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
+              }}>{cat?.icon || (isIncome ? '💰' : '💸')}</div>
+
+              <h2 style={{
+                margin: 0, fontSize: '2.5rem', fontWeight: 900,
+                color: isIncome ? '#22C55E' : txn.type === 'transfer' ? '#2563EB' : '#EF4444',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                {isIncome ? '+' : txn.type === 'transfer' ? '' : '-'}{formatCurrency(txn.amount)}
+              </h2>
+
+              <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {txn.type}
+              </p>
+            </div>
+
+            {/* Dotted Tear Line Divider */}
             <div style={{
-              width: '56px', height: '56px', borderRadius: '18px',
-              background: isIncome ? 'rgba(34,197,94,0.1)' : txn.type === 'transfer' ? 'rgba(37,99,235,0.1)' : 'rgba(239,68,68,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem',
-              margin: '0 auto 12px',
-            }}>{cat?.icon || (isIncome ? '💰' : '💸')}</div>
-
-            <h2 style={{
-              margin: 0, fontSize: '2.25rem', fontWeight: 800,
-              color: isIncome ? '#22C55E' : txn.type === 'transfer' ? '#2563EB' : '#EF4444',
+              height: '1px',
+              borderTop: '2px dashed var(--color-border)',
+              margin: '0 -20px 24px -20px',
+              position: 'relative'
             }}>
-              {isIncome ? '+' : txn.type === 'transfer' ? '' : '-'}{formatCurrency(txn.amount)}
-            </h2>
+              {/* Punch-out side notches to look like ticket/receipt */}
+              <div style={{ position: 'absolute', left: '-10px', top: '-10px', width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-bg)', borderRight: '1px solid var(--color-border)' }} />
+              <div style={{ position: 'absolute', right: '-10px', top: '-10px', width: '20px', height: '20px', borderRadius: '50%', background: 'var(--color-bg)', borderLeft: '1px solid var(--color-border)' }} />
+            </div>
 
-            <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {txn.type}
-            </p>
-          </div>
-
-          {/* Details (Flat list group) */}
-          <div className="list-group" style={{ marginTop: '16px' }}>
-            <DetailRow icon={<Calendar size={18} />} label="Date & Time">
-              <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{formatDate(txn.date)} · {formatTime(txn.date)}</span>
-            </DetailRow>
-
-            <DetailRow icon={<CreditCard size={18} />} label={txn.type === 'transfer' ? 'From Account' : 'Account'}>
-              <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{acc?.icon} {acc?.name}</span>
-            </DetailRow>
-
-            {txn.type === 'transfer' && toAcc && (
-              <DetailRow icon={<ArrowRight size={18} />} label="To Account">
-                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{toAcc?.icon} {toAcc?.name}</span>
-              </DetailRow>
-            )}
-
-            {txn.type !== 'transfer' && (
-              <DetailRow icon={<Tag size={18} />} label="Category">
-                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{cat?.icon} {cat?.name}</span>
-              </DetailRow>
-            )}
-
-            {txn.subcategory && (
-              <DetailRow icon={<Tag size={18} />} label="Subcategory">
-                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{txn.subcategory}</span>
-              </DetailRow>
-            )}
-
-            {txn.note && (
-              <DetailRow icon={<FileText size={18} />} label="Note">
-                <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{txn.note}</span>
-              </DetailRow>
-            )}
-          </div>
-
-          {/* Receipt Image */}
-          {txn.receiptUrl && (
-            <div style={{ padding: '24px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
-                <Receipt size={18} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Attached Receipt</span>
+            {/* Info Table */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>DATE & TIME</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{formatDate(txn.date)} · {formatTime(txn.date)}</span>
               </div>
-              <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{txn.type === 'transfer' ? 'FROM ACCOUNT' : 'ACCOUNT'}</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{acc?.icon} {acc?.name}</span>
+              </div>
+
+              {txn.type === 'transfer' && toAcc && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>TO ACCOUNT</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{toAcc?.icon} {toAcc?.name}</span>
+                </div>
+              )}
+
+              {txn.type !== 'transfer' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>CATEGORY</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-text)' }}>{cat?.icon} {cat?.name}</span>
+                </div>
+              )}
+
+              {txn.subcategory && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>SUBCATEGORY</span>
+                  <span style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 800,
+                    background: 'rgba(37, 99, 235, 0.08)',
+                    border: '1px solid rgba(37, 99, 235, 0.15)',
+                    color: 'var(--color-primary)',
+                    padding: '2px 10px',
+                    borderRadius: '99px'
+                  }}>{txn.subcategory}</span>
+                </div>
+              )}
+
+              {txn.note && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--color-bg)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border)', marginTop: '6px' }}>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>NOTE</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.45 }}>{txn.note}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Attached Receipt section */}
+          {txn.receiptUrl && (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px', border: '1px solid var(--color-border)', borderRadius: '24px', padding: '18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)' }}>
+                <Receipt size={18} color="var(--color-primary)" />
+                <span style={{ fontSize: '0.8125rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Attached Receipt</span>
+              </div>
+              <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--color-border)', background: 'var(--color-bg)', boxShadow: 'var(--shadow-card)' }}>
                 <img src={txn.receiptUrl} alt="Receipt" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '320px' }} />
               </div>
             </div>
@@ -220,21 +255,7 @@ const TransactionDetails: React.FC = () => {
   );
 };
 
-interface DetailRowProps {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}
 
-const DetailRow: React.FC<DetailRowProps> = ({ icon, label, children }) => (
-  <div className="list-row" style={{ cursor: 'default', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '12px' }}>
-    <div style={{ color: 'var(--color-text-muted)', flexShrink: 0, width: '20px', display: 'flex', justifyContent: 'center' }}>{icon}</div>
-    <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-      <div style={{ fontSize: '0.875rem', marginTop: '2px' }}>{children}</div>
-    </div>
-  </div>
-);
 
 export default TransactionDetails;
 

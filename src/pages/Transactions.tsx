@@ -73,13 +73,13 @@ const SwipeableTransactionItem: React.FC<{
   };
 
   return (
-    <div style={{ position: 'relative', background: '#F87171', overflow: 'hidden', minHeight: '64px', borderBottom: '1px solid var(--color-border)' }}>
+    <div style={{ position: 'relative', background: 'var(--color-bg)', overflow: 'hidden', minHeight: '64px' }}>
       {/* Left swipe reveal (Edit Action) */}
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
-        background: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
       }}>
-        <button onClick={(e) => { e.stopPropagation(); onEdit(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+        <button onClick={(e) => { e.stopPropagation(); onEdit(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
           <Edit2 size={16} /> Edit
         </button>
       </div>
@@ -87,9 +87,9 @@ const SwipeableTransactionItem: React.FC<{
       {/* Right swipe reveal (Delete Action) */}
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0, width: '100px',
-        background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+        background: 'linear-gradient(135deg, #EF4444, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
       }}>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
           <Trash2 size={16} /> Delete
         </button>
       </div>
@@ -102,7 +102,7 @@ const SwipeableTransactionItem: React.FC<{
         onClick={() => swipeOffset === 0 ? onClick() : setSwipeOffset(0)}
         style={{
           display: 'flex', alignItems: 'center', gap: '0.875rem',
-          padding: '14px 16px',
+          padding: '16px',
           background: 'var(--color-card)',
           transform: `translateX(${swipeOffset}px)`,
           transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -112,23 +112,37 @@ const SwipeableTransactionItem: React.FC<{
         }}
       >
         <div style={{
-          width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-          background: isIncome ? 'rgba(34,197,94,0.1)' : t.type === 'transfer' ? 'rgba(37,99,235,0.1)' : `${cat?.color || '#EF4444'}15`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem',
+          width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0,
+          background: isIncome ? 'rgba(34,197,94,0.15)' : t.type === 'transfer' ? 'rgba(37,99,235,0.15)' : `${cat?.color || '#EF4444'}20`,
+          color: isIncome ? '#22C55E' : t.type === 'transfer' ? '#2563EB' : cat?.color || '#EF4444',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
         }}>{cat?.icon || '📦'}</div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
-            {t.subcategory && <span style={{ fontSize: '0.6875rem', background: 'var(--color-bg)', padding: '1px 6px', borderRadius: '4px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t.subcategory}</span>}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
+            {t.subcategory && (
+              <span style={{
+                fontSize: '0.6875rem',
+                background: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.15)',
+                color: 'var(--color-primary)',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                fontWeight: 700
+              }}>
+                {t.subcategory}
+              </span>
+            )}
           </div>
-          {t.note && <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
-          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{formatTime(t.date)}</div>
+          {t.note && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>{formatTime(t.date)}</div>
         </div>
 
         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{
-            fontSize: '0.9375rem', fontWeight: 800,
+            fontSize: '1rem', fontWeight: 900,
             color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
           }}>
             {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
@@ -179,6 +193,11 @@ const Transactions: React.FC = () => {
   }, []);
 
   const allTxns = transactions;
+
+  const currentMonthStats = useMemo(() => {
+    const now = new Date();
+    return db.getMonthlyStats(now.getFullYear(), now.getMonth());
+  }, [transactions]);
 
   const isFilterActive = useMemo(() => {
     return selectedCategory !== 'all' ||
@@ -281,72 +300,171 @@ const Transactions: React.FC = () => {
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-bg)' }}>
         {/* App Bar */}
         <div className="app-bar" style={{ display: 'flex', alignItems: 'center', height: '64px', padding: '0 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
-          <button onClick={() => setShowFiltersPage(false)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+          <button onClick={() => setShowFiltersPage(false)} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ArrowLeft size={22} />
           </button>
-          <h2 style={{ margin: '0 0 0 12px', fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>Filter Transactions</h2>
-          <button className="btn-ghost" style={{ marginLeft: 'auto', height: '36px', borderRadius: '18px', padding: '0 16px', fontSize: '0.8125rem' }} onClick={clearAllFilters}>
+          <h2 style={{ margin: '0 0 0 12px', fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>Filter Transactions</h2>
+          <button className="btn-ghost" style={{ marginLeft: 'auto', height: '36px', borderRadius: '18px', padding: '0 16px', fontSize: '0.8125rem', border: '1.5px solid var(--color-border)' }} onClick={clearAllFilters}>
             Clear
           </button>
         </div>
 
-        {/* Delete Dialog */}
+        {/* Filters Body */}
         <div style={{ flex: 1, padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
-          <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                <option value="all">All Categories</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
-              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                <option value="all">All Accounts</option>
-                {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
-              </select>
-              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount Range</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input type="number" className="input-field" placeholder="Min Amount (₹)" value={minAmount} onChange={e => setMinAmount(e.target.value)} />
-              <input type="number" className="input-field" placeholder="Max Amount (₹)" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date Filter Mode</label>
-            <div style={{ position: 'relative' }}>
-              <select className="input-field" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={{ appearance: 'none', paddingRight: '2.5rem' }}>
-                {DATE_FILTERS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-              <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
-            </div>
-          </div>
-
-          {dateFilter === 'Custom Date' && (
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', border: '1px solid var(--color-border)', borderRadius: '18px', padding: '18px' }}>
+            
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Dates</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <input type="date" className="input-field" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                <input type="date" className="input-field" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category</label>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  className="input-field" 
+                  value={selectedCategory} 
+                  onChange={e => setSelectedCategory(e.target.value)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem', 
+                    borderRadius: '12px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: '0',
+                    paddingBottom: '0'
+                  }}
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
               </div>
             </div>
-          )}
+
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</label>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  className="input-field" 
+                  value={selectedAccount} 
+                  onChange={e => setSelectedAccount(e.target.value)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem', 
+                    borderRadius: '12px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: '0',
+                    paddingBottom: '0'
+                  }}
+                >
+                  <option value="all">All Accounts</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount Range</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <input 
+                  type="number" 
+                  className="input-field" 
+                  placeholder="Min Amount (₹)" 
+                  value={minAmount} 
+                  onChange={e => setMinAmount(e.target.value)} 
+                  style={{ 
+                    borderRadius: '12px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: '0',
+                    paddingBottom: '0'
+                  }}
+                />
+                <input 
+                  type="number" 
+                  className="input-field" 
+                  placeholder="Max Amount (₹)" 
+                  value={maxAmount} 
+                  onChange={e => setMaxAmount(e.target.value)} 
+                  style={{ 
+                    borderRadius: '12px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: '0',
+                    paddingBottom: '0'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date Filter Mode</label>
+              <div style={{ position: 'relative' }}>
+                <select 
+                  className="input-field" 
+                  value={dateFilter} 
+                  onChange={e => setDateFilter(e.target.value)} 
+                  style={{ 
+                    appearance: 'none', 
+                    paddingRight: '2.5rem', 
+                    borderRadius: '12px', 
+                    border: '1.5px solid var(--color-border)', 
+                    background: 'var(--color-bg)',
+                    height: '52px',
+                    paddingTop: '0',
+                    paddingBottom: '0'
+                  }}
+                >
+                  {DATE_FILTERS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <ChevronDown size={18} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {dateFilter === 'Custom Date' && (
+              <div>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Custom Dates</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <input 
+                    type="date" 
+                    className="input-field" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    style={{ 
+                      borderRadius: '12px', 
+                      border: '1.5px solid var(--color-border)', 
+                      background: 'var(--color-bg)',
+                      height: '52px',
+                      paddingTop: '0',
+                      paddingBottom: '0'
+                    }}
+                  />
+                  <input 
+                    type="date" 
+                    className="input-field" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                    style={{ 
+                      borderRadius: '12px', 
+                      border: '1.5px solid var(--color-border)', 
+                      background: 'var(--color-bg)',
+                      height: '52px',
+                      paddingTop: '0',
+                      paddingBottom: '0'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Action buttons (sticky footer) */}
         <div style={{ padding: '16px', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '12px' }}>
-          <button className="btn-ghost" style={{ flex: 1 }} onClick={() => { clearAllFilters(); setShowFiltersPage(false); }}>Reset</button>
-          <button className="btn-primary" style={{ flex: 1 }} onClick={() => setShowFiltersPage(false)}>Apply Filters</button>
+          <button className="btn-ghost" style={{ flex: 1, borderRadius: '16px' }} onClick={() => { clearAllFilters(); setShowFiltersPage(false); }}>Reset</button>
+          <button className="btn-primary" style={{ flex: 1, borderRadius: '16px' }} onClick={() => setShowFiltersPage(false)}>Apply Filters</button>
         </div>
       </div>
     );
@@ -499,6 +617,57 @@ const Transactions: React.FC = () => {
 
       {/* List */}
       <div onScroll={handleScroll} style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+        {/* Month Summary Gradient Banner */}
+        {sortedAndFiltered.length > 0 && (
+          <div style={{ padding: '16px 16px 8px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+              borderRadius: '20px',
+              padding: '16px 20px',
+              border: '1px solid var(--color-border)',
+              boxShadow: 'var(--shadow-elevated)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              color: '#fff',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative glows */}
+              <div style={{ position: 'absolute', right: '-20px', top: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(37, 99, 235, 0.15)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', left: '-20px', bottom: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7 }}>Month's Cashflow Summary</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, background: 'rgba(255, 255, 255, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                  {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, opacity: 0.6, marginBottom: '2px' }}>Inflow</span>
+                  <span style={{ fontSize: '0.9375rem', fontWeight: 900, color: '#4ADE80' }}>+{formatCurrency(currentMonthStats.income)}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '12px' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, opacity: 0.6, marginBottom: '2px' }}>Outflow</span>
+                  <span style={{ fontSize: '0.9375rem', fontWeight: 900, color: '#F87171' }}>-{formatCurrency(currentMonthStats.expense)}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '12px' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, opacity: 0.6, marginBottom: '2px' }}>Net</span>
+                  <span style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: 900,
+                    color: currentMonthStats.savings >= 0 ? '#38BDF8' : '#F87171'
+                  }}>
+                    {currentMonthStats.savings >= 0 ? '+' : ''}{formatCurrency(currentMonthStats.savings)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {sortedAndFiltered.length === 0 ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', gap: '12px', padding: '24px 32px', textAlign: 'center' }}>
             <div style={{ fontSize: '4rem', marginBottom: '4px' }}>📭</div>
@@ -526,27 +695,28 @@ const Transactions: React.FC = () => {
           </div>
         ) : (
           Array.from(grouped.entries()).map(([dateLabel, txns]) => (
-            <div key={dateLabel} style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px 6px', background: 'var(--color-bg)' }}>
+            <div key={dateLabel} style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', marginTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{dateLabel}</span>
-                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                  {txns.length} transaction{txns.length > 1 ? 's' : ''}
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', background: 'var(--color-border)', padding: '2px 8px', borderRadius: '8px' }}>
+                  {txns.length} txn{txns.length > 1 ? 's' : ''}
                 </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-card)', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
-                {txns.map(t => {
+              <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+                {txns.map((t, idx) => {
                   const cat = getCat(t.category);
                   const isIncome = t.type === 'income';
                   return (
-                    <SwipeableTransactionItem
-                      key={t.id}
-                      t={t}
-                      cat={cat}
-                      isIncome={isIncome}
-                      onEdit={(id) => navigate(`/transactions/${id}/edit`)}
-                      onDelete={handleDeleteTrigger}
-                      onClick={() => navigate(`/transactions/${t.id}`)}
-                    />
+                    <div key={t.id} style={{ borderBottom: idx === txns.length - 1 ? 'none' : '1px solid var(--color-border)' }}>
+                      <SwipeableTransactionItem
+                        t={t}
+                        cat={cat}
+                        isIncome={isIncome}
+                        onEdit={(id) => navigate(`/transactions/${id}/edit`)}
+                        onDelete={handleDeleteTrigger}
+                        onClick={() => navigate(`/transactions/${t.id}`)}
+                      />
+                    </div>
                   );
                 })}
               </div>
