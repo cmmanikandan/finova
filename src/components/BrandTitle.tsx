@@ -46,14 +46,13 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', ...style }}>
-      {/* Redesigned Premium Bold Geometric FinTech Wordmark Vector Logo (Tight Spacing) */}
       <svg
         width={config.logoWidth}
-        viewBox="0 0 338 100"
+        viewBox="0 0 324 100"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ display: 'block', overflow: 'visible', color: 'currentColor' }}
+        style={{ display: 'block', overflow: 'visible' }}
       >
         <defs>
           <linearGradient id="finova-premium-bold-o" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -64,22 +63,22 @@ export const BrandTitle: React.FC<BrandTitleProps> = ({
         </defs>
         
         {/* Letter F */}
-        <path d="M 22,20 V 80 M 22,20 H 48 M 22,46.5 H 41" stroke="currentColor" strokeWidth="12" />
+        <path d="M 20,22 V 78 M 20,22 H 56 M 20,50 H 46" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
         
         {/* Letter I */}
-        <path d="M 68,20 V 80" stroke="currentColor" strokeWidth="12" />
+        <path d="M 71,22 V 78" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
         
         {/* Letter N */}
-        <path d="M 88,80 V 20 L 124,80 V 20" stroke="currentColor" strokeWidth="12" />
+        <path d="M 86,78 V 22 L 126,78 V 22" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
         
         {/* Signature 'O' (Visually balanced bold weight, tight kerning) */}
-        <circle cx="174" cy="50" r="30" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
+        <circle cx="168" cy="50" r="28" stroke="url(#finova-premium-bold-o)" strokeWidth="12" />
         
         {/* Letter V */}
-        <path d="M 224,20 L 242,80 L 260,20" stroke="currentColor" strokeWidth="12" />
+        <path d="M 210,22 L 230,78 L 250,22" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
         
         {/* Letter A */}
-        <path d="M 280,80 L 298,20 L 316,80 M 288,56 H 308" stroke="currentColor" strokeWidth="12" />
+        <path d="M 264,78 L 284,22 L 304,78 M 272,58 H 296" stroke="var(--color-logo-text, #081A45)" strokeWidth="12" />
       </svg>
 
       {showTagline && (

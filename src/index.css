@@ -14,6 +14,8 @@
   --color-text-muted: #64748B;
   --color-border: #E2E8F0;
 
+  --color-logo-text: #081A45;
+
   --font-sans: 'Sora', 'Inter', system-ui, -apple-system, sans-serif;
 
   --radius-sm: 8px;
@@ -35,6 +37,7 @@
   --color-text:       #F1F5F9;
   --color-text-muted: #94A3B8;
   --color-border:     #334155;
+  --color-logo-text:  #FFFFFF;
 }
 
 [data-theme="dark"] body        { background-color: #0F172A; color: #F1F5F9; }
