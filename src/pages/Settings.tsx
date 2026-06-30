@@ -1574,12 +1574,36 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
 
 const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, onBack }) => {
   const { user, settings, saveSettings, refresh, categories, accounts } = useApp();
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const FAQS = [
+    {
+      q: "What is FINOVA?",
+      a: "FINOVA is a privacy-first smart personal finance planner designed to help you track expenses, split bills with friends, manage budgets, and achieve savings goals."
+    },
+    {
+      q: "How does Split Bills work?",
+      a: "When you split a bill, only your personal share is logged as your personal expense (to keep your budgets accurate). Friends' shares are tracked as pending settlements and do not skew your spending reports. Repayments directly settle outstanding balances without inflating your income."
+    },
+    {
+      q: "Where is my data stored?",
+      a: "Your data is stored securely in your personal cloud workspace (Supabase) and is fully synchronized across your devices. No third-party tracking or ads ever touch your financial data."
+    },
+    {
+      q: "How do I build habits and earn XP?",
+      a: "Complete your daily routine tasks in the Daily Planner and complete active savings challenges to level up and earn XP badges."
+    },
+    {
+      q: "How do I export my data?",
+      a: "Go to the Reports tab, tap the Export button in the header, and download your statement instantly in PDF, Excel, CSV, or JSON format."
+    }
+  ];
 
   if (view === 'currency') {
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Currency" onBack={onBack} />
-        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+        <div className="pb-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
           <div className="list-group" style={{ marginTop: '16px' }}>
             {CURRENCIES.map((c) => (
               <button key={c.code} onClick={() => saveSettings({ ...settings, currency: c.code, currencySymbol: c.symbol })}
@@ -1659,7 +1683,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Backup & Restore" onBack={onBack} />
-        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+        <div className="pb-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
           <div style={{ textAlign: 'center', padding: '24px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
             <img src={logoUrl} alt="FINOVA" style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'contain', margin: '0 auto' }} />
             <p style={{ margin: '12px 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 600, lineHeight: 1.4 }}>Keep your data safe by exporting regular backups.</p>
@@ -1713,7 +1737,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="About FINOVA" onBack={onBack} />
-        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="pb-safe" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, overflowY: 'auto' }}>
           <div style={{ width: '100%', textAlign: 'center', padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <img src={logoUrl} alt="FINOVA" style={{ width: '80px', height: '80px', borderRadius: '20px', objectFit: 'contain' }} />
             <BrandTitle size="medium" showTagline={true} taglineColor="#1E293B" />
@@ -1734,10 +1758,47 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
             ))}
           </div>
 
-          <div style={{ padding: '24px 16px' }}>
+          <div style={{ padding: '24px 16px 8px' }}>
             <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-muted)', textAlign: 'center', lineHeight: 1.6, fontWeight: 600 }}>
               FINOVA is a personal finance management app built to help you track money and build better financial habits. Your data never leaves your device.
             </p>
+          </div>
+
+          {/* FAQ Accordion Section */}
+          <div style={{ width: '100%', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h3 style={{ margin: '8px 0 4px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Frequently Asked Questions</h3>
+            {FAQS.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '16px', boxShadow: 'var(--shadow-card)', background: 'var(--color-card)', transition: 'all 0.2s ease' }}>
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      fontWeight: 800,
+                      fontSize: '0.875rem',
+                      color: 'var(--color-text)'
+                    }}
+                  >
+                    <span>{faq.q}</span>
+                    <span style={{ fontSize: '1.25rem', color: 'var(--color-primary)', transition: 'transform 0.2s', transform: isOpen ? 'rotate(45deg)' : 'none', display: 'inline-block', lineHeight: 1 }}>＋</span>
+                  </button>
+                  {isOpen && (
+                    <div style={{ padding: '0 16px 16px', fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.5, fontWeight: 500, borderTop: '1px solid var(--color-border)', paddingTop: '12px', background: 'var(--color-bg)' }}>
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1748,7 +1809,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Profile" onBack={onBack} />
-        <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="pb-safe" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, overflowY: 'auto' }}>
           <div style={{ width: '100%', textAlign: 'center', padding: '32px 16px', background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--color-border)' }}>
               {user?.photoURL
@@ -1793,7 +1854,7 @@ const SubView: React.FC<{ view: SettingsView; onBack: () => void }> = ({ view, o
     return (
       <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
         <BackHeader title="Theme Selector" onBack={onBack} />
-        <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="pb-safe" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, overflowY: 'auto' }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
             {([
