@@ -38,6 +38,7 @@ const DailyPlanner: React.FC = () => {
     categories,
     xpHistory,
     accounts,
+    goals,
     refresh
   } = useApp();
 
@@ -65,6 +66,22 @@ const DailyPlanner: React.FC = () => {
   const [habitSpendAmount, setHabitSpendAmount] = useState('');
   const [habitSpendAccount, setHabitSpendAccount] = useState('');
   const [celebrationSavings, setCelebrationSavings] = useState<{ title: string; limit: number; spent: number; saved: number } | null>(null);
+  const [selectedGoalId, setSelectedGoalId] = useState<string>('');
+
+  // Set default goal when celebrationSavings is populated
+  useEffect(() => {
+    if (celebrationSavings && goals && goals.length > 0) {
+      const activeGoals = goals.filter(g => g.status === 'active');
+      if (activeGoals.length > 0) {
+        setSelectedGoalId(activeGoals[0].id);
+      }
+    }
+  }, [celebrationSavings, goals]);
+
+  const triggerToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(''), 3500);
+  };
 
   // Auto set default account ID when habitToLog changes
   useEffect(() => {
@@ -313,6 +330,75 @@ const DailyPlanner: React.FC = () => {
   const analytics = useMemo(() => {
     return db.getPlannerAnalytics();
   }, [dailyTaskLogs, dailyTasks, plannerSchedules, xpHistory]);
+
+  const weeklySavings = useMemo(() => {
+    const dates = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - idx);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    return dates.map(dateStr => {
+      const d = new Date(dateStr);
+      const dayOfWeek = d.getDay();
+      const schedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+      const scheduledTaskIds = schedule ? schedule.taskIds : [];
+      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
+      
+      let savings = 0;
+      logs.forEach(log => {
+        const task = dailyTasks.find(t => t.id === log.taskId);
+        if (task && log.status === 'completed' && task.budgetLimit > 0) {
+          if (log.spentAmount < task.budgetLimit) {
+            savings += (task.budgetLimit - log.spentAmount);
+          }
+        }
+      });
+
+      return {
+        name: d.toLocaleDateString(undefined, { weekday: 'short' }),
+        savings
+      };
+    });
+  }, [dailyTaskLogs, dailyTasks, plannerSchedules]);
+
+  const routineForecast = useMemo(() => {
+    const dates = Array.from({ length: 7 }).map((_, idx) => {
+      const d = new Date();
+      d.setDate(d.getDate() - idx);
+      return d.toISOString().split('T')[0];
+    });
+
+    let totalSpent7Days = 0;
+    let totalBudget7Days = 0;
+
+    dates.forEach(dateStr => {
+      const d = new Date(dateStr);
+      const dayOfWeek = d.getDay();
+      const schedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+      const scheduledTaskIds = schedule ? schedule.taskIds : [];
+      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
+      
+      logs.forEach(log => {
+        const task = dailyTasks.find(t => t.id === log.taskId);
+        if (task && log.status === 'completed' && task.budgetLimit > 0) {
+          totalSpent7Days += log.spentAmount;
+          totalBudget7Days += task.budgetLimit;
+        }
+      });
+    });
+
+    const monthlyForecastSpent = Math.round(totalSpent7Days * 4.28);
+    const monthlyForecastBudget = Math.round(totalBudget7Days * 4.28);
+    const potentialMonthlySavings = Math.max(0, monthlyForecastBudget - monthlyForecastSpent);
+
+    return {
+      totalSpent7Days,
+      monthlyForecastSpent,
+      monthlyForecastBudget,
+      potentialMonthlySavings
+    };
+  }, [dailyTaskLogs, dailyTasks, plannerSchedules]);
 
   const badgesList = [
     { name: 'Planner Pro', desc: 'Complete your first planner routine', icon: '🎯', goal: 1 },
@@ -1257,6 +1343,74 @@ const DailyPlanner: React.FC = () => {
                 })}
               </div>
             </div>
+
+            {/* Weekly Savings Trends card */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+            }}>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 800 }}>Weekly Savings Trends</h4>
+              <p style={{ margin: '0 0 16px', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>How much money you saved by staying under routine budgets this week.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', height: '140px', alignItems: 'flex-end', paddingTop: '10px' }}>
+                {weeklySavings.map((day, idx) => {
+                  const maxSavings = Math.max(...weeklySavings.map(s => s.savings), 100);
+                  const pct = Math.min(100, Math.round((day.savings / maxSavings) * 100));
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
+                      <span style={{ fontSize: '0.625rem', fontWeight: 800, color: day.savings > 0 ? '#10B981' : 'var(--color-text-muted)' }}>
+                        {day.savings > 0 ? `₹${day.savings}` : '₹0'}
+                      </span>
+                      <div style={{ position: 'relative', width: '20px', height: '80px', background: 'var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          width: '100%',
+                          height: `${pct}%`,
+                          background: '#10B981',
+                          borderRadius: '10px',
+                          transition: 'height 0.5s ease'
+                        }} />
+                      </div>
+                      <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{day.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Monthly Routine Forecast card */}
+            <div className="card-elevated" style={{
+              background: 'var(--color-card)',
+              borderRadius: '24px',
+              border: '1px solid var(--color-border)',
+              padding: '20px',
+            }}>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 800 }}>Routine Expense Forecast</h4>
+              <p style={{ margin: '0 0 16px', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Projections for the next 30 days based on your weekly habit logs.</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.08)', borderRadius: '16px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>7-Day Routine Spent</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{routineForecast.totalSpent7Days.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>30-Day Project Spent</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹{routineForecast.monthlyForecastSpent.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(16,185,129,0.04)', border: '1.5px dashed rgba(16,185,129,0.2)', padding: '14px', borderRadius: '18px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block' }}>Potential Monthly Savings (Forecasted)</span>
+                  <span style={{ fontSize: '1.375rem', fontWeight: 900, color: '#10B981' }}>₹{routineForecast.potentialMonthlySavings.toLocaleString()}</span>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.6875rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    If you complete all routines within budget limits, you can bank these savings!
+                  </p>
+                </div>
+              </div>
+            </div>
           </>
         )}
 
@@ -1494,12 +1648,74 @@ const DailyPlanner: React.FC = () => {
               </div>
             </div>
 
+            {goals && goals.filter(g => g.status === 'active').length > 0 && (
+              <div style={{
+                background: 'rgba(37,99,235,0.04)',
+                border: '1px solid rgba(37,99,235,0.15)',
+                borderRadius: '20px',
+                padding: '16px',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                textAlign: 'left'
+              }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block' }}>
+                  🎯 Transfer Savings to Financial Goal:
+                </label>
+                <select
+                  value={selectedGoalId}
+                  onChange={e => setSelectedGoalId(e.target.value)}
+                  className="input-field"
+                  style={{ fontWeight: 600, fontSize: '0.8125rem', height: '38px', padding: '0 8px' }}
+                >
+                  {goals.filter(g => g.status === 'active').map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.icon} {g.name} (Saved: ₹{g.currentAmount} / ₹{g.targetAmount})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={async () => {
+                    const targetGoal = goals.find(g => g.id === selectedGoalId);
+                    if (!targetGoal) return;
+                    
+                    try {
+                      const newAmount = targetGoal.currentAmount + celebrationSavings.saved;
+                      const nextStatus = newAmount >= targetGoal.targetAmount ? 'completed' as const : 'active' as const;
+                      await db.updateGoal(targetGoal.id, { currentAmount: newAmount, status: nextStatus });
+                      
+                      await db.addTransaction({
+                        type: 'expense',
+                        amount: celebrationSavings.saved,
+                        category: 'savings',
+                        account: habitSpendAccount || 'cash',
+                        date: new Date().toISOString(),
+                        note: `Deposited habit savings to Goal: ${targetGoal.name}`
+                      });
+
+                      triggerToast(`Deposited ₹${celebrationSavings.saved} into "${targetGoal.name}"! 🎯`);
+                      setCelebrationSavings(null);
+                      refresh();
+                    } catch (err) {
+                      console.error('Failed to deposit savings to goal:', err);
+                      triggerToast('Failed to save to Goal.');
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ height: '38px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  🚀 Transfer ₹{celebrationSavings.saved} to Goal
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setCelebrationSavings(null)}
-              className="btn-primary"
-              style={{ width: '100%', height: '46px', borderRadius: '16px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+              className="btn-ghost"
+              style={{ width: '100%', height: '44px', borderRadius: '16px', fontWeight: 800, border: '1px solid var(--color-border)', cursor: 'pointer' }}
             >
-              Awesome! Keep it Up! 👍
+              Just Complete Routine 👍
             </button>
           </div>
         </div>

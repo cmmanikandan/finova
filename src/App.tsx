@@ -25,7 +25,7 @@ import { to24h } from './utils/format';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, refresh } = useApp();
+  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, goals, refresh } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
   const [showReminderToast, setShowReminderToast] = useState(false);
@@ -38,13 +38,23 @@ const AppContent: React.FC = () => {
   const [habitSpendAmount, setHabitSpendAmount] = useState('');
   const [habitSpendAccount, setHabitSpendAccount] = useState('');
   const [celebrationSavings, setCelebrationSavings] = useState<{ title: string; limit: number; spent: number; saved: number } | null>(null);
+  const [selectedGoalId, setSelectedGoalId] = useState<string>('');
 
-  // Auto set default account ID when habitToLog changes in App
+  // Auto set default account and goal ID when habitToLog or celebrationSavings changes
   useEffect(() => {
     if (habitToLog && accounts && accounts.length > 0) {
       setHabitSpendAccount(accounts[0].id);
     }
   }, [habitToLog, accounts]);
+
+  useEffect(() => {
+    if (celebrationSavings && goals && goals.length > 0) {
+      const activeGoals = goals.filter(g => g.status === 'active');
+      if (activeGoals.length > 0) {
+        setSelectedGoalId(activeGoals[0].id);
+      }
+    }
+  }, [celebrationSavings, goals]);
 
   // Routine Alert background check (runs every minute)
   useEffect(() => {
@@ -586,12 +596,74 @@ const AppContent: React.FC = () => {
               </div>
             </div>
 
+            {goals && goals.filter(g => g.status === 'active').length > 0 && (
+              <div style={{
+                background: 'rgba(37,99,235,0.04)',
+                border: '1px solid rgba(37,99,235,0.15)',
+                borderRadius: '20px',
+                padding: '16px',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                textAlign: 'left'
+              }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block' }}>
+                  🎯 Transfer Savings to Financial Goal:
+                </label>
+                <select
+                  value={selectedGoalId}
+                  onChange={e => setSelectedGoalId(e.target.value)}
+                  className="input-field"
+                  style={{ fontWeight: 600, fontSize: '0.8125rem', height: '38px', padding: '0 8px' }}
+                >
+                  {goals.filter(g => g.status === 'active').map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.icon} {g.name} (Saved: ₹{g.currentAmount} / ₹{g.targetAmount})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={async () => {
+                    const targetGoal = goals.find(g => g.id === selectedGoalId);
+                    if (!targetGoal) return;
+                    
+                    try {
+                      const newAmount = targetGoal.currentAmount + celebrationSavings.saved;
+                      const nextStatus = newAmount >= targetGoal.targetAmount ? 'completed' as const : 'active' as const;
+                      await db.updateGoal(targetGoal.id, { currentAmount: newAmount, status: nextStatus });
+                      
+                      await db.addTransaction({
+                        type: 'expense',
+                        amount: celebrationSavings.saved,
+                        category: 'savings',
+                        account: habitSpendAccount || 'cash',
+                        date: new Date().toISOString(),
+                        note: `Deposited habit savings to Goal: ${targetGoal.name}`
+                      });
+
+                      alert(`Deposited ₹${celebrationSavings.saved} into "${targetGoal.name}"! 🎯`);
+                      setCelebrationSavings(null);
+                      refresh();
+                    } catch (err) {
+                      console.error('Failed to deposit savings to goal:', err);
+                      alert('Failed to save to Goal.');
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{ height: '38px', borderRadius: '10px', fontSize: '0.78rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                >
+                  🚀 Transfer ₹{celebrationSavings.saved} to Goal
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setCelebrationSavings(null)}
-              className="btn-primary"
-              style={{ width: '100%', height: '46px', borderRadius: '16px', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+              className="btn-ghost"
+              style={{ width: '100%', height: '44px', borderRadius: '16px', fontWeight: 800, border: '1px solid var(--color-border)', cursor: 'pointer' }}
             >
-              Awesome! Keep it Up! 👍
+              Just Complete Routine 👍
             </button>
           </div>
         </div>

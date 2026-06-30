@@ -136,6 +136,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           await db.auditStreaksLaunch();
           // Update React UI state from freshly-fetched Supabase data
           refresh();
+
+          // Trigger PWA notifications after sync is successful!
+          import('../services/notifications').then(({ checkBudgetAlerts, checkGoalReminders, checkSplitBillReminders }) => {
+            checkBudgetAlerts();
+            checkGoalReminders();
+            checkSplitBillReminders();
+          }).catch(err => console.error('Failed to run notifications check:', err));
         } catch (e) {
           console.error('Failed to sync Supabase data on login:', e);
           refresh();

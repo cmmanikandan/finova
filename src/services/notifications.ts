@@ -1,5 +1,5 @@
 // Notifications service
-import { getBudgets, getGoals, getSettings } from './db';
+import { getBudgets, getGoals, getSettings, getSplitBills } from './db';
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) return false;
@@ -47,3 +47,26 @@ export function checkGoalReminders() {
     }
   });
 }
+
+export function checkSplitBillReminders() {
+  const splits = getSplitBills().filter(s => s.status === 'pending');
+  let pendingCount = 0;
+  let totalPendingAmount = 0;
+
+  splits.forEach(s => {
+    s.members.forEach(m => {
+      if (m.id !== 'you' && m.status === 'pending') {
+        pendingCount++;
+        totalPendingAmount += m.share;
+      }
+    });
+  });
+
+  if (pendingCount > 0) {
+    sendNotification(
+      `👥 Unsettled Split Bills`,
+      `You have ${pendingCount} pending split requests from friends total ₹${totalPendingAmount.toLocaleString()}.`
+    );
+  }
+}
+
