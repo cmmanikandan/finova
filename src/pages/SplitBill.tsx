@@ -107,6 +107,57 @@ const SplitBill: React.FC = () => {
     return { toReceive, toPay, pendingRequests };
   }, [splits]);
 
+  const analyticsData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    
+    const last3Months = Array.from({ length: 3 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (2 - i), 1);
+      return {
+        monthKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: monthNames[d.getMonth()],
+        amount: 0
+      };
+    });
+
+    splits.forEach(s => {
+      if (!s.date) return;
+      const parts = s.date.split('-');
+      if (parts.length < 2) return;
+      const key = `${parts[0]}-${parts[1]}`; // YYYY-MM
+      
+      const match = last3Months.find(m => m.monthKey === key);
+      if (match) {
+        match.amount += s.amount;
+      }
+    });
+
+    const maxAmount = Math.max(...last3Months.map(m => m.amount), 100);
+
+    const contactMap: Record<string, { name: string; avatar: string; amount: number }> = {};
+    splits.forEach(s => {
+      s.members.forEach(m => {
+        if (m.id === 'you') return;
+        if (!contactMap[m.name]) {
+          contactMap[m.name] = { name: m.name, avatar: m.avatar || '👤', amount: 0 };
+        }
+        contactMap[m.name].amount += m.share;
+      });
+    });
+
+    const topContacts = Object.values(contactMap)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    return {
+      monthlyData: last3Months.map(m => ({
+        ...m,
+        height: Math.max(10, Math.round((m.amount / maxAmount) * 120))
+      })),
+      topContacts
+    };
+  }, [splits]);
+
   // Handle live calculation based on method
   const totalAmountNum = Number(amount) || 0;
   
@@ -244,7 +295,7 @@ const SplitBill: React.FC = () => {
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '120px' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '120px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Sticky App Bar */}
       <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => {
@@ -685,42 +736,42 @@ const SplitBill: React.FC = () => {
       {/* ─── Share Analytics View ─── */}
       {viewMode === 'analytics' && (
         <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="card" style={{ padding: '18px', borderRadius: '24px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Shared Amount</h3>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '140px', paddingTop: '10px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '40px', background: 'var(--color-primary)', borderRadius: '6px 6px 0 0' }} />
-                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Apr</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '70px', background: 'var(--color-primary)', borderRadius: '6px 6px 0 0' }} />
-                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>May</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ width: '28px', height: '110px', background: 'var(--color-primary)', borderRadius: '6px 6px 0 0' }} />
-                <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>Jun</span>
-              </div>
+          <div className="card" style={{ padding: '22px', borderRadius: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Shared Amount</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Total volume of split bills generated in the last 3 months.</p>
+            
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '160px', paddingTop: '10px', maxWidth: '320px', margin: '0 auto' }}>
+              {analyticsData.monthlyData.map((m, idx) => (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{Math.round(m.amount).toLocaleString()}</span>
+                  <div style={{ width: '36px', height: `${m.height}px`, background: 'linear-gradient(180deg, var(--color-primary-light) 0%, var(--color-primary) 100%)', borderRadius: '8px 8px 0 0', transition: 'height 0.4s ease-out' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{m.label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '18px', borderRadius: '24px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Shared Contacts</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="flex-between">
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span>👨‍💻</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Manikandan</span>
-                </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹3,500</span>
+          <div className="card" style={{ padding: '22px', borderRadius: '24px' }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Top Shared Contacts</h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Your friends with the highest split transaction volume.</p>
+            
+            {analyticsData.topContacts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                No contact share data available yet.
               </div>
-              <div className="flex-between" style={{ borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span>👨</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Prabhu</span>
-                </div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹2,100</span>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {analyticsData.topContacts.map((c, idx) => (
+                  <div key={idx} className="flex-between" style={{ paddingBottom: idx < analyticsData.topContacts.length - 1 ? '12px' : '0', borderBottom: idx < analyticsData.topContacts.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.25rem' }}>{c.avatar}</span>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>{c.name}</span>
+                    </div>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--color-primary)' }}>₹{c.amount.toLocaleString()}</span>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
