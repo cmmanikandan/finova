@@ -270,6 +270,7 @@ const AppContent: React.FC = () => {
           <Route path="/debts" element={<DebtTracker />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/split-bill" element={<SplitBill />} />
+          <Route path="/split-bill/:subview" element={<SplitBill />} />
           <Route path="/forecast" element={<Forecast />} />
           
           {/* Settings Sub-Routing */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Plus, Share2, Clipboard, Users, 
   ArrowLeft, FileText, Camera, 
@@ -19,7 +19,12 @@ const RECENT_CONTACTS = [
 
 const SplitBill: React.FC = () => {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'dashboard' | 'create' | 'history' | 'analytics'>('dashboard');
+  const { subview } = useParams<{ subview: string }>();
+  const viewMode = (subview || 'dashboard') as 'dashboard' | 'create' | 'history' | 'analytics';
+  const setViewMode = (mode: 'dashboard' | 'create' | 'history' | 'analytics') => {
+    if (mode === 'dashboard') navigate('/split-bill');
+    else navigate(`/split-bill/${mode}`);
+  };
   const [splits, setSplits] = useState<SplitBillItem[]>([]);
   const [selectedSplit, setSelectedSplit] = useState<SplitBillItem | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
