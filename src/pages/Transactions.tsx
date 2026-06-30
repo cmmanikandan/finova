@@ -578,24 +578,51 @@ const Transactions: React.FC = () => {
         <Plus size={28} strokeWidth={2.5} />
       </button>
 
+      {/* Success Toast (Transaction saved / updated) */}
+      {toastMsg && (
+        <div style={{
+          position: 'fixed',
+          bottom: '84px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'calc(100% - 32px)',
+          maxWidth: '360px',
+          background: '#0F4C2A',
+          color: '#fff',
+          borderRadius: '14px',
+          padding: '13px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
+          zIndex: 9999,
+          animation: 'slideUpFadeIn 0.28s cubic-bezier(0.4,0,0.2,1)',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          <CheckCircle size={18} style={{ flexShrink: 0, color: '#4ADE80' }} />
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>{toastMsg}</span>
+        </div>
+      )}
+
       {/* Undo Delete Snackbar */}
       {snackbarMessage && (
         <div style={{
           position: 'fixed',
-          bottom: '96px',
+          bottom: '84px',
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'calc(100% - 32px)',
           maxWidth: '448px',
           background: '#1E293B',
           color: '#fff',
-          borderRadius: '12px',
-          padding: '14px 16px',
+          borderRadius: '14px',
+          padding: '13px 16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          zIndex: 99
+          boxShadow: '0 6px 24px rgba(0,0,0,0.2)',
+          zIndex: 9999,
         }}>
           <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{snackbarMessage}</span>
           {deletedBackup && snackbarMessage.includes('deleted') && (

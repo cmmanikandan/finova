@@ -473,8 +473,8 @@ const DailyPlanner: React.FC = () => {
                   }}
                 >
                   <option value="custom">No category (General activity)</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id.split('_')[0]}>{cat.name}</option>
+                  {categories.filter(c => c.type === 'expense' || c.type === 'both').map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
                   ))}
                 </select>
               </div>
@@ -929,9 +929,15 @@ const DailyPlanner: React.FC = () => {
                                   {task.title}
                                 </h4>
                                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
-                                  <span style={{ fontSize: '0.625rem', padding: '2px 6px', borderRadius: '6px', background: 'var(--color-border)', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 700 }}>
-                                    {task.category}
-                                  </span>
+                                  {task.category && task.category !== 'custom' && (() => {
+                                    const taskCat = categories.find(c => c.id === task.category);
+                                    const catLabel = taskCat ? `${taskCat.icon} ${taskCat.name}` : task.category.replace(/_/g, ' ');
+                                    return (
+                                      <span style={{ fontSize: '0.625rem', padding: '2px 6px', borderRadius: '6px', background: 'var(--color-border)', color: 'var(--color-text-muted)', textTransform: 'capitalize', fontWeight: 700 }}>
+                                        {catLabel}
+                                      </span>
+                                    );
+                                  })()}
                                   {task.reminderTime && (
                                     <span style={{ fontSize: '0.625rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                                       ⏰ {task.reminderTime}
@@ -1485,10 +1491,15 @@ const DailyPlanner: React.FC = () => {
                   }
                   const todayStr = new Date().toISOString().split('T')[0];
                   
+                  // Resolve category ID: prefer the task's linked category if it's a valid category ID
+                  const resolvedCat = categories.find(c => c.id === habitToLog.category);
+                  const fallbackCat = categories.find(c => c.type === 'expense' || c.type === 'both');
+                  const txnCategoryId = resolvedCat?.id || fallbackCat?.id || 'food';
+
                   await db.addTransaction({
                     type: 'expense',
                     amount: spentVal,
-                    category: habitToLog.category || 'food',
+                    category: txnCategoryId,
                     account: habitSpendAccount || 'cash',
                     date: new Date().toISOString(),
                     note: `${habitToLog.title} Habit Log (Budget: ₹${habitToLog.budgetLimit})`

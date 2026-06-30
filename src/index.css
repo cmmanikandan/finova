@@ -875,3 +875,34 @@ select.input-field {
 .animate-enter {
   animation: slide-in-from-bottom 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+/* ─── Toast Slide-Up Animation ─────────────────────────────────────────────── */
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ─── Android Back-press Toast ─────────────────────────────────────────────── */
+.android-toast {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: 12px;
+  white-space: nowrap;
+  z-index: 9999;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  animation: slideUpFadeIn 0.25s ease-out;
+  pointer-events: none;
+}
