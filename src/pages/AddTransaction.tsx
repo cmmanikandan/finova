@@ -177,6 +177,9 @@ const AddTransaction: React.FC = () => {
 
       refresh();
       navigate(-1);
+    } catch (err: any) {
+      console.error('Failed to save transaction:', err);
+      alert(`Failed to save transaction: ${err.message || JSON.stringify(err)}`);
     } finally {
       setSaving(false);
     }

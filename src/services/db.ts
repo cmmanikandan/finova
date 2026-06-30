@@ -571,7 +571,7 @@ async function autoProvisionUserLevel(uid: string) {
   const { error } = await supabase
     .from('user_levels')
     .insert({ user_id: uid, current_level: 1, current_xp: 0 });
-  if (error) console.error('Failed to auto-provision user level:', error);
+  if (error) console.error('Failed to auto-provision user level:', error.message || JSON.stringify(error));
 }
 
 // ─── Sync provisioning on new user ──────────────────────────────────────────
@@ -583,7 +583,7 @@ async function autoProvisionAccounts(uid: string) {
   _accounts = DEFAULT_ACCOUNTS.map(a => ({ ...a, id: `${a.id}${suffix}`, isCustom: false }));
   const rows = _accounts.map(a => ({ ...mapAccountToDb(a), user_id: uid }));
   const { error } = await supabase.from('accounts').insert(rows);
-  if (error) console.error('Failed to auto-provision accounts:', error);
+  if (error) console.error('Failed to auto-provision accounts:', error.message || JSON.stringify(error));
 }
 
 async function autoProvisionCategories(uid: string) {
@@ -592,7 +592,7 @@ async function autoProvisionCategories(uid: string) {
   _categories = DEFAULT_CATEGORIES.map(c => ({ ...c, id: `${c.id}${suffix}`, isCustom: false }));
   const rows = _categories.map(c => ({ ...mapCategoryToDb(c), user_id: uid }));
   const { error } = await supabase.from('categories').insert(rows);
-  if (error) console.error('Failed to auto-provision categories:', error);
+  if (error) console.error('Failed to auto-provision categories:', error.message || JSON.stringify(error));
 }
 
 async function autoProvisionSettings(uid: string) {
@@ -600,7 +600,7 @@ async function autoProvisionSettings(uid: string) {
   const { error } = await supabase
     .from('settings')
     .insert({ ...mapSettingsToDb(_settings), user_id: uid });
-  if (error) console.error('Failed to auto-provision settings:', error);
+  if (error) console.error('Failed to auto-provision settings:', error.message || JSON.stringify(error));
 }
 
 async function autoProvisionStreak(uid: string) {
@@ -608,7 +608,7 @@ async function autoProvisionStreak(uid: string) {
   const { error } = await supabase
     .from('streaks')
     .insert({ ...mapStreakToDb(_streakData), user_id: uid });
-  if (error) console.error('Failed to auto-provision streaks:', error);
+  if (error) console.error('Failed to auto-provision streaks:', error.message || JSON.stringify(error));
 }
 
 // ─── PULL ALL FROM SUPABASE (Single Source of Truth Load) ────────────────────

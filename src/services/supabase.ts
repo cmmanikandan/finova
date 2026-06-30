@@ -25,10 +25,23 @@ export function getSupabase(): SupabaseClient | null {
             const user = auth.currentUser;
             if (user) {
               const token = await user.getIdToken();
-              options.headers = {
-                ...options.headers,
-                Authorization: `Bearer ${token}`,
-              };
+              let headers = options.headers || {};
+              if (headers instanceof Headers) {
+                headers.set('Authorization', `Bearer ${token}`);
+              } else if (Array.isArray(headers)) {
+                const authIdx = headers.findIndex(([k]) => k.toLowerCase() === 'authorization');
+                if (authIdx !== -1) {
+                  headers[authIdx][1] = `Bearer ${token}`;
+                } else {
+                  headers.push(['Authorization', `Bearer ${token}`]);
+                }
+              } else {
+                headers = {
+                  ...headers,
+                  Authorization: `Bearer ${token}`,
+                };
+              }
+              options.headers = headers;
             }
           } catch (e) {
             console.error('Error injecting Firebase ID token into Supabase request:', e);
