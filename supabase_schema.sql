@@ -19,8 +19,52 @@ AS $$
 $$;
 
 
--- ─── 1. DROP ALL EXISTING FOREIGN KEY CONSTRAINTS ─────────────
--- (This allows column type alterations without schema lock blocks)
+-- ─── 1. DROP ALL EXISTING RLS POLICIES & FOREIGN KEYS ─────────
+-- (RLS policies MUST be dropped first, otherwise column types cannot be altered)
+
+-- Drop RLS policies
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual delete own profile" ON public.profiles;
+
+DROP POLICY IF EXISTS "accounts_all_own" ON public.accounts;
+DROP POLICY IF EXISTS "Allow users to manage own accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Allow individual read own accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Allow individual insert own accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Allow individual update own accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Allow individual delete own accounts" ON public.accounts;
+
+DROP POLICY IF EXISTS "categories_select_own_or_global"     ON public.categories;
+DROP POLICY IF EXISTS "categories_insert_update_delete_own" ON public.categories;
+DROP POLICY IF EXISTS "Allow individual read own categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow individual insert own categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow individual update own categories" ON public.categories;
+DROP POLICY IF EXISTS "Allow individual delete own categories" ON public.categories;
+
+DROP POLICY IF EXISTS "transactions_all_own" ON public.transactions;
+DROP POLICY IF EXISTS "budgets_all_own" ON public.budgets;
+DROP POLICY IF EXISTS "goals_all_own" ON public.goals;
+DROP POLICY IF EXISTS "settings_all_own" ON public.settings;
+DROP POLICY IF EXISTS "streaks_all_own" ON public.streaks;
+DROP POLICY IF EXISTS "recurring_transactions_all_own" ON public.recurring_transactions;
+DROP POLICY IF EXISTS "debts_all_own" ON public.debts;
+DROP POLICY IF EXISTS "challenges_all_own" ON public.challenges;
+DROP POLICY IF EXISTS "split_bills_all_own" ON public.split_bills;
+
+DROP POLICY IF EXISTS "daily_tasks_all_own" ON public.daily_tasks;
+DROP POLICY IF EXISTS "daily_task_logs_all_own" ON public.daily_task_logs;
+DROP POLICY IF EXISTS "planner_schedule_all_own" ON public.planner_schedule;
+DROP POLICY IF EXISTS "planner_reminders_all_own" ON public.planner_reminders;
+DROP POLICY IF EXISTS "xp_history_all_own" ON public.xp_history;
+DROP POLICY IF EXISTS "user_levels_all_own" ON public.user_levels;
+DROP POLICY IF EXISTS "user_badges_all_own" ON public.user_badges;
+DROP POLICY IF EXISTS "planner_statistics_all_own" ON public.planner_statistics;
+
+-- Drop foreign key constraints referencing profiles(id)
 ALTER TABLE IF EXISTS public.accounts DROP CONSTRAINT IF EXISTS accounts_user_id_fkey;
 ALTER TABLE IF EXISTS public.categories DROP CONSTRAINT IF EXISTS categories_user_id_fkey;
 ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions_user_id_fkey;
@@ -49,6 +93,9 @@ ALTER TABLE IF EXISTS public.transactions DROP CONSTRAINT IF EXISTS transactions
 ALTER TABLE IF EXISTS public.budgets DROP CONSTRAINT IF EXISTS budgets_category_id_fkey;
 ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_category_id_fkey;
 ALTER TABLE IF EXISTS public.recurring_transactions DROP CONSTRAINT IF EXISTS recurring_transactions_account_id_fkey;
+
+-- Drop trigger to prevent execution blocks
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 
 -- ─── 2. CONVERT EXISTING TABLE COLUMNS FROM UUID TO TEXT ──────
@@ -524,71 +571,67 @@ ALTER TABLE public.planner_statistics     ENABLE ROW LEVEL SECURITY;
 
 -- ─── 6. RECREATE RLS POLICIES ─────────────────────────────────
 
--- Drop all old RLS policies to prevent duplicate exceptions
-DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
+-- Profiles
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (public.auth_uid_text() = id);
 CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (public.auth_uid_text() = id);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (public.auth_uid_text() = id);
 
-DROP POLICY IF EXISTS "accounts_all_own" ON public.accounts;
+-- Accounts
 CREATE POLICY "accounts_all_own" ON public.accounts FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "categories_select_own_or_global"     ON public.categories;
-DROP POLICY IF EXISTS "categories_insert_update_delete_own" ON public.categories;
+-- Categories
 CREATE POLICY "categories_select_own_or_global" ON public.categories FOR SELECT USING (user_id IS NULL OR public.auth_uid_text() = user_id);
 CREATE POLICY "categories_insert_update_delete_own" ON public.categories FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "transactions_all_own" ON public.transactions;
+-- Transactions
 CREATE POLICY "transactions_all_own" ON public.transactions FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "budgets_all_own" ON public.budgets;
+-- Budgets
 CREATE POLICY "budgets_all_own" ON public.budgets FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "goals_all_own" ON public.goals;
+-- Goals
 CREATE POLICY "goals_all_own" ON public.goals FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "settings_all_own" ON public.settings;
+-- Settings
 CREATE POLICY "settings_all_own" ON public.settings FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "streaks_all_own" ON public.streaks;
+-- Streaks
 CREATE POLICY "streaks_all_own" ON public.streaks FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "recurring_transactions_all_own" ON public.recurring_transactions;
+-- Recurring Transactions
 CREATE POLICY "recurring_transactions_all_own" ON public.recurring_transactions FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "debts_all_own" ON public.debts;
+-- Debts
 CREATE POLICY "debts_all_own" ON public.debts FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "challenges_all_own" ON public.challenges;
+-- Challenges
 CREATE POLICY "challenges_all_own" ON public.challenges FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "split_bills_all_own" ON public.split_bills;
+-- Split Bills
 CREATE POLICY "split_bills_all_own" ON public.split_bills FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "daily_tasks_all_own" ON public.daily_tasks;
+-- Daily Tasks
 CREATE POLICY "daily_tasks_all_own" ON public.daily_tasks FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "daily_task_logs_all_own" ON public.daily_task_logs;
+-- Daily Task Logs
 CREATE POLICY "daily_task_logs_all_own" ON public.daily_task_logs FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "planner_schedule_all_own" ON public.planner_schedule;
+-- Planner Schedule
 CREATE POLICY "planner_schedule_all_own" ON public.planner_schedule FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "planner_reminders_all_own" ON public.planner_reminders;
+-- Planner Reminders
 CREATE POLICY "planner_reminders_all_own" ON public.planner_reminders FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "xp_history_all_own" ON public.xp_history;
+-- XP History
 CREATE POLICY "xp_history_all_own" ON public.xp_history FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "user_levels_all_own" ON public.user_levels;
+-- User Levels
 CREATE POLICY "user_levels_all_own" ON public.user_levels FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "user_badges_all_own" ON public.user_badges;
+-- User Badges
 CREATE POLICY "user_badges_all_own" ON public.user_badges FOR ALL USING (public.auth_uid_text() = user_id);
 
-DROP POLICY IF EXISTS "planner_statistics_all_own" ON public.planner_statistics;
+-- Planner Statistics
 CREATE POLICY "planner_statistics_all_own" ON public.planner_statistics FOR ALL USING (public.auth_uid_text() = user_id);
 
 
