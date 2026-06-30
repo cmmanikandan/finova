@@ -61,25 +61,36 @@ export async function exportPDF(
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  // Premium Header Banner
-  doc.setFillColor(8, 26, 69); // #081A45 Dark Navy Brand Color
-  doc.rect(0, 0, 210, 32, 'F');
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(22);
+  // Draw vector logo wordmark
+  drawWordmark(doc, 14, 8, 8);
+
+  // Tagline below logo
   doc.setFont('helvetica', 'bold');
-  doc.text('FINOVA', 14, 14);
-  
-  doc.setFontSize(9);
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.text('TRACK MONEY · BUILD BETTER HABITS', 14, 22);
+
+  // Right-aligned report metadata at x=196mm
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(8, 26, 69); // Dark Navy Brand Color
+  doc.text('OFFICIAL FINANCIAL STATEMENT', 196, 11, { align: 'right' });
+
   doc.setFont('helvetica', 'normal');
-  doc.text('Smart Personal Finance Manager', 14, 21);
-  doc.text('Track Money. Build Better Habits.', 14, 26);
-  
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy hh:mm a')}`, 145, 14);
-  doc.text(`Record Count: ${transactions.length}`, 145, 21);
-  doc.text('Status: Official Statement', 145, 26);
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139); // slate-500
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy hh:mm a')}`, 196, 16, { align: 'right' });
+  doc.text(`Record Count: ${transactions.length} entries`, 196, 21, { align: 'right' });
+  doc.text(`Scope: ${filters?.range || 'All Scope'} | Category: ${filters?.category || 'All'} | Account: ${filters?.account || 'All'}`, 196, 26, { align: 'right' });
+
+  // Dual-color premium dividing accent line at y=30mm
+  doc.setLineWidth(0.6);
+  // Left half (blue)
+  doc.setDrawColor(37, 99, 235);
+  doc.line(14, 30, 105, 30);
+  // Right half (green)
+  doc.setDrawColor(0, 208, 132);
+  doc.line(105, 30, 196, 30);
 
   // Summary Metrics Section
   const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -87,56 +98,43 @@ export async function exportPDF(
   const savings = income - expense;
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
 
-  // Render Filter details if passed
-  doc.setTextColor(8, 26, 69);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Report Filters & Scope:', 14, 40);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105); // slate-600
-  doc.text(`Date Range: ${filters?.range || 'All Transactions'}`, 14, 46);
-  doc.text(`Category: ${filters?.category || 'All'}`, 14, 51);
-  doc.text(`Account: ${filters?.account || 'All'}`, 14, 56);
-
-  // Cashflow summary cards (drawn as boxes)
+  // Cashflow summary cards (drawn as rounded rects)
   // Income Card
   doc.setFillColor(240, 253, 244); // light green
   doc.setDrawColor(187, 247, 208);
-  doc.rect(14, 62, 56, 18, 'FD');
+  doc.roundedRect(14, 36, 56, 18, 3, 3, 'FD');
   doc.setTextColor(22, 163, 74);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('TOTAL INCOME', 18, 67);
+  doc.text('TOTAL INCOME', 18, 41);
   doc.setFontSize(11);
-  doc.text(`₹${income.toLocaleString('en-IN')}`, 18, 75);
+  doc.text(`₹${income.toLocaleString('en-IN')}`, 18, 49);
 
   // Expense Card
   doc.setFillColor(254, 242, 242); // light red
   doc.setDrawColor(254, 202, 202);
-  doc.rect(77, 62, 56, 18, 'FD');
+  doc.roundedRect(77, 36, 56, 18, 3, 3, 'FD');
   doc.setTextColor(220, 38, 38);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('TOTAL EXPENSE', 81, 67);
+  doc.text('TOTAL EXPENSE', 81, 41);
   doc.setFontSize(11);
-  doc.text(`₹${expense.toLocaleString('en-IN')}`, 81, 75);
+  doc.text(`₹${expense.toLocaleString('en-IN')}`, 81, 49);
 
   // Net Savings Card
   doc.setFillColor(239, 246, 255); // light blue
   doc.setDrawColor(191, 219, 254);
-  doc.rect(140, 62, 56, 18, 'FD');
+  doc.roundedRect(140, 36, 56, 18, 3, 3, 'FD');
   doc.setTextColor(37, 99, 235);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text(`SAVINGS (RATE: ${savingsRate}%)`, 144, 67);
+  doc.text(`SAVINGS (RATE: ${savingsRate}%)`, 144, 41);
   doc.setFontSize(11);
-  doc.text(`₹${savings.toLocaleString('en-IN')}`, 144, 75);
+  doc.text(`₹${savings.toLocaleString('en-IN')}`, 144, 49);
 
-  // Table header
+  // Transactions Table
   autoTable(doc, {
-    startY: 86,
+    startY: 60,
     head: [['Date', 'Type', 'Category', 'Account', 'Amount', 'Note']],
     body: transactions.map(t => [
       format(new Date(t.date), 'dd MMM yyyy'),
@@ -166,6 +164,48 @@ export async function exportPDF(
   });
 
   doc.save(`finova-statement-${today()}.pdf`);
+}
+
+// Draw premium wordmark vector logo programmatically in PDF
+function drawWordmark(doc: any, x0: number, y0: number, height: number) {
+  const s = height / 56;
+  doc.setLineCap('round');
+  doc.setLineJoin('round');
+  doc.setLineWidth(12 * s);
+  
+  // Letters F, I, N, V, A in #081A45
+  doc.setDrawColor(8, 26, 69);
+  
+  // F
+  doc.line(x0 + 0*s, y0 + 0*s, x0 + 0*s, y0 + 56*s); // stem
+  doc.line(x0 + 0*s, y0 + 0*s, x0 + 36*s, y0 + 0*s); // top bar
+  doc.line(x0 + 0*s, y0 + 28*s, x0 + 26*s, y0 + 28*s); // mid bar
+  
+  // I
+  doc.line(x0 + 51*s, y0 + 0*s, x0 + 51*s, y0 + 56*s);
+  
+  // N
+  doc.line(x0 + 66*s, y0 + 56*s, x0 + 66*s, y0 + 0*s);
+  doc.line(x0 + 66*s, y0 + 0*s, x0 + 106*s, y0 + 56*s);
+  doc.line(x0 + 106*s, y0 + 56*s, x0 + 106*s, y0 + 0*s);
+  
+  // V
+  doc.line(x0 + 190*s, y0 + 0*s, x0 + 210*s, y0 + 56*s);
+  doc.line(x0 + 210*s, y0 + 56*s, x0 + 230*s, y0 + 0*s);
+  
+  // A
+  doc.line(x0 + 244*s, y0 + 56*s, x0 + 264*s, y0 + 0*s);
+  doc.line(x0 + 264*s, y0 + 0*s, x0 + 284*s, y0 + 56*s);
+  doc.line(x0 + 252*s, y0 + 36*s, x0 + 276*s, y0 + 36*s); // crossbar
+  
+  // O (circle)
+  doc.setDrawColor(0, 208, 132); // #00D084 Teal-Green
+  doc.circle(x0 + 148*s, y0 + 28*s, 28*s, 'S');
+
+  // Reset doc graphics properties
+  doc.setLineWidth(1.0);
+  doc.setLineCap('butt');
+  doc.setLineJoin('miter');
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
