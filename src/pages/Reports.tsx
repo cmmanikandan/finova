@@ -229,7 +229,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Main Content (Flat layout) */}
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
 
         {tab === 'Overview' && (
           <>

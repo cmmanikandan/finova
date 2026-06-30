@@ -765,7 +765,7 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* List */}
-      <div onScroll={handleScroll} style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+      <div onScroll={handleScroll} className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {/* Month Summary Gradient Banner */}
         {sortedAndFiltered.length > 0 && (
           <div style={{ padding: '16px 16px 8px' }}>
@@ -818,24 +818,25 @@ const Transactions: React.FC = () => {
         )}
 
         {sortedAndFiltered.length === 0 ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', gap: '12px', padding: '24px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '4px' }}>📭</div>
-            <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.0625rem' }}>
-              {allTxns.length === 0 ? 'No Transactions Yet' : 'No Results Found'}
-            </p>
-            <p style={{ margin: 0, fontWeight: 500, color: 'var(--color-text-muted)', fontSize: '0.8125rem', lineHeight: 1.5 }}>
-              {allTxns.length === 0
-                ? 'Start tracking your income and expenses to see them here.'
-                : 'Try adjusting your search or clearing filters.'}
-            </p>
+          <div className="empty-state-container">
+            <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))', marginBottom: '16px', display: 'block' }}>📭</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>
+                {allTxns.length === 0 ? 'No Transactions Yet' : 'No Results Found'}
+              </p>
+              <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                {allTxns.length === 0
+                  ? 'Start tracking your income and expenses to see them here.'
+                  : 'Try adjusting your search or clearing filters.'}
+              </p>
+            </div>
             {allTxns.length === 0 && (
               <button
                 onClick={() => navigate('/transactions/new', { state: { defaultType: 'expense' } })}
+                className="btn-primary"
                 style={{
-                  marginTop: '8px', padding: '10px 24px', borderRadius: '20px',
-                  background: 'var(--color-primary)', color: '#fff',
-                  border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem',
-                  display: 'flex', alignItems: 'center', gap: '6px'
+                  padding: '0 28px', height: '48px', borderRadius: '24px', fontWeight: 800,
+                  display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem'
                 }}
               >
                 <Plus size={16} /> Add First Transaction

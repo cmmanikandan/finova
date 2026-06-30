@@ -262,8 +262,8 @@ const Forecast: React.FC = () => {
   };
 
   return (
-    <div className="page-container pb-24">
-      <header className="app-header">
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
+      <header className="app-header" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-card)', borderBottom: '1px solid var(--color-border)' }}>
         <button className="icon-button" onClick={() => navigate('/home')} aria-label="Go back">
           <ChevronLeft size={24} />
         </button>
@@ -271,7 +271,7 @@ const Forecast: React.FC = () => {
         <div style={{ width: 40 }} />
       </header>
 
-      <div style={{ padding: '16px 16px 120px' }}>
+      <div className="pb-safe" style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {/* Deficit Alert Warning */}
         {deficitDate ? (
           <div 

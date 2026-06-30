@@ -432,7 +432,7 @@ const DailyPlanner: React.FC = () => {
         </div>
 
         {/* Scrollable Form Container */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 120px' }}>
+        <div className="pb-nav-safe" style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
           <form onSubmit={handleSaveTask} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px', margin: '0 auto' }}>
             {/* Title field */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -698,7 +698,7 @@ const DailyPlanner: React.FC = () => {
         ))}
       </div>
 
-      <div style={{ padding: '0 16px 120px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="pb-nav-safe" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, overflowY: 'auto' }}>
 
         {/* ─── TODAY TAB ─── */}
         {activeSubTab === 'today' && (
@@ -857,18 +857,19 @@ const DailyPlanner: React.FC = () => {
               </div>
 
               {todayTasks.length === 0 ? (
-                <div style={{
-                  background: 'var(--color-card)',
-                  borderRadius: '24px',
-                  border: '1px solid var(--color-border)',
-                  padding: '40px 20px',
-                  textAlign: 'center'
-                }}>
-                  <Calendar size={36} style={{ color: 'var(--color-text-muted)', marginBottom: '10px' }} />
-                  <h4 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-text)' }}>No tasks set for today</h4>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                    Switch to "Weekly" tab to assign habits, or tap any preset above.
+                <div className="empty-state-container" style={{ minHeight: '300px' }}>
+                  <Calendar size={48} style={{ color: 'var(--color-text-muted)', marginBottom: '16px' }} />
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>No tasks set for today</h4>
+                  <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.45, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                    Switch to "Weekly" tab to assign habits, or tap any preset above to add routines.
                   </p>
+                  <button
+                    onClick={() => openCreateForm()}
+                    className="btn-primary"
+                    style={{ padding: '0 24px', height: '44px', borderRadius: '20px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={14} /> Add First Task
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', position: 'relative', paddingLeft: '24px' }}>

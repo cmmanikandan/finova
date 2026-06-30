@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
-  Trophy, Target, Plus, 
+  Trophy, Plus, 
   CheckCircle2, AlertCircle, 
   ArrowLeft, Flame, Award, ChevronRight, 
   Zap, Clock, Star
@@ -306,7 +306,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── Dashboard View ─── */}
       {viewMode === 'dashboard' && (
-        <div style={{ paddingBottom: '140px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           {/* Hero Performance Card */}
           <div className="card bg-premium-gradient" style={{ margin: '16px 16px 0', padding: '20px', borderRadius: '24px', color: '#fff', border: 'none', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
@@ -354,15 +354,13 @@ const Challenges: React.FC = () => {
           <div style={{ margin: '0 16px' }}>
             <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>Active Challenges</h3>
             {challenges.filter(c => c.status === 'active').length === 0 ? (
-              <div className="card text-center" style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', borderRadius: '20px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(37,99,235,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
-                  <Target size={24} />
-                </div>
+              <div className="empty-state-container" style={{ minHeight: 'auto', background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '20px' }}>
+                <span style={{ fontSize: '4.5rem', marginBottom: '16px', display: 'block' }}>🎯</span>
                 <div>
-                  <h4 style={{ margin: '0 0 2px 0', fontSize: '0.9rem', fontWeight: 800 }}>No Active Challenges</h4>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>Start a challenge to lock down your expenses and earn XP rewards!</p>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 800 }}>No Active Challenges</h4>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.45, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>Start a challenge to lock down your expenses and earn XP rewards!</p>
                 </div>
-                <button onClick={() => setViewMode('create')} className="btn-primary" style={{ padding: '8px 20px', borderRadius: '18px', fontSize: '0.78rem', border: 'none', cursor: 'pointer' }}>
+                <button onClick={() => setViewMode('create')} className="btn-primary" style={{ padding: '0 24px', height: '44px', borderRadius: '20px', fontSize: '0.8125rem', border: 'none', cursor: 'pointer' }}>
                   Create Custom
                 </button>
               </div>
@@ -444,7 +442,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── Create Custom Challenge View ─── */}
       {viewMode === 'create' && (
-        <form onSubmit={handleCreateChallenge} style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleCreateChallenge} className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '24px' }}>
             <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px' }}>Challenge Specifications</h3>
@@ -587,7 +585,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── Challenge Progress Details View ─── */}
       {viewMode === 'details' && selectedChallenge && (
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           <div className="card" style={{ padding: '24px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
             <div>
@@ -672,7 +670,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── Achievements Badges & XP View ─── */}
       {viewMode === 'achievements' && (
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unlocked Badges</span>
@@ -728,7 +726,7 @@ const Challenges: React.FC = () => {
 
       {/* ─── History View ─── */}
       {viewMode === 'history' && (
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '16px', borderRadius: '20px' }}>
             <div style={{ textAlign: 'center', borderRight: '1px solid var(--color-border)' }}>
@@ -781,8 +779,7 @@ const Challenges: React.FC = () => {
           className="fab"
           style={{
             position: 'fixed',
-            bottom: '96px',
-            right: '20px',
+            bottom: 'calc(20px + env(safe-area-inset-bottom))',
             zIndex: 50
           }}
           aria-label="Create Custom Challenge"

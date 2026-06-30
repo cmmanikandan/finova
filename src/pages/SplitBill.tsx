@@ -348,7 +348,7 @@ const SplitBill: React.FC = () => {
   };
 
   return (
-    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', paddingBottom: '140px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100%', maxWidth: '800px', margin: '0 auto' }}>
       {/* Sticky App Bar */}
       <div className="app-bar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <button onClick={() => {
@@ -375,7 +375,7 @@ const SplitBill: React.FC = () => {
 
       {/* ─── Dashboard View ─── */}
       {viewMode === 'dashboard' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-safe" style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           {/* Top Overview Hero Card */}
           <div className="card bg-premium-gradient" style={{ margin: '16px 16px 0', padding: '20px', borderRadius: '24px', color: '#fff', border: 'none', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
             <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.12, transform: 'rotate(15deg)' }}>
@@ -414,18 +414,18 @@ const SplitBill: React.FC = () => {
             <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Active Splits</h3>
             
             {splits.filter(s => s.status === 'pending').length === 0 ? (
-              <div className="card text-center" style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', borderRadius: '24px' }}>
-                <span style={{ fontSize: '3.5rem' }}>🛒</span>
+              <div className="empty-state-container" style={{ minHeight: 'auto', background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '24px' }}>
+                <span style={{ fontSize: '4.5rem', marginBottom: '16px', display: 'block' }}>👥</span>
                 <div>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 800 }}>No Split Bills Yet</h4>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>Split bills with friends and family to easily track shared expenses.</p>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', lineHeight: 1.45, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>Split bills with friends and family to easily track shared expenses.</p>
                 </div>
                 <button 
                   onClick={() => setViewMode('create')}
                   className="btn-primary"
-                  style={{ height: '42px', borderRadius: '21px', padding: '0 24px', fontSize: '0.8125rem', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                  style={{ height: '48px', borderRadius: '24px', padding: '0 28px', fontSize: '0.875rem', border: 'none', cursor: 'pointer', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  Create Split Bill
+                  <Plus size={16} /> Create Split Bill
                 </button>
               </div>
             ) : (
@@ -497,7 +497,7 @@ const SplitBill: React.FC = () => {
 
       {/* ─── Create Split Bill Form View ─── */}
       {viewMode === 'create' && (
-        <form onSubmit={handleCreateSplit} style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleCreateSplit} className="pb-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
           
           <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1100,8 +1100,7 @@ const SplitBill: React.FC = () => {
           className="fab"
           style={{
             position: 'fixed',
-            bottom: '96px',
-            right: '20px',
+            bottom: 'calc(20px + env(safe-area-inset-bottom))',
             zIndex: 50
           }}
           aria-label="Create Split Bill"

@@ -286,7 +286,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Scrollable Form Content */}
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', flex: 1 }}>
           {/* Scrolling Templates */}
           {viewMode === 'create' && (
             <div>
@@ -410,7 +410,7 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Details Scroll Area */}
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', flex: 1 }}>
           <div className="card text-center" style={{ padding: '32px 24px', borderRadius: '24px', position: 'relative' }}>
             <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>{selectedGoal.icon}</div>
             <h3 style={{ margin: 0, fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-text)' }}>{selectedGoal.name}</h3>
@@ -484,7 +484,7 @@ const Goals: React.FC = () => {
           <div style={{ width: '22px' }} />
         </div>
 
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', flex: 1 }}>
           <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
             <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>{selectedGoal.name}</h3>
@@ -521,7 +521,7 @@ const Goals: React.FC = () => {
           <div style={{ width: '22px' }} />
         </div>
 
-        <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="pb-nav-safe" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', flex: 1 }}>
           <div className="card text-center" style={{ padding: '24px', borderRadius: '24px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '8px' }}>{selectedGoal.icon}</div>
             <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 800 }}>{selectedGoal.name}</h3>
@@ -635,7 +635,7 @@ const Goals: React.FC = () => {
       </div>
 
       {/* Savings Info Cards & List */}
-      <div style={{ paddingBottom: '140px', display: 'flex', flexDirection: 'column' }}>
+      <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {/* Savings Performance Overview */}
         <SavingsOverviewCard />
 
@@ -695,18 +695,18 @@ const Goals: React.FC = () => {
 
         {/* Goals lists */}
         {activeGoals.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '16px', padding: '32px', textAlign: 'center' }}>
-            <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))' }}>🎯</span>
+          <div className="empty-state-container">
+            <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))', marginBottom: '16px', display: 'block' }}>🎯</span>
             <div>
               <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>No Goals Yet</p>
-              <p style={{ margin: '6px 0 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5 }}>
+              <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
                 Start building your financial future today. Create your first savings goal.
               </p>
             </div>
             <button
               onClick={() => navigate('/goals/new')}
               className="btn-primary"
-              style={{ padding: '12px 28px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+              style={{ padding: '0 28px', height: '48px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
             >
               <Plus size={16} /> Create Your First Goal
             </button>
@@ -747,8 +747,6 @@ const Goals: React.FC = () => {
         onClick={() => navigate('/goals/new')}
         style={{
           position: 'fixed',
-          bottom: '96px',
-          right: '20px',
           zIndex: 50
         }}
         aria-label="Add Goal"

@@ -262,7 +262,7 @@ const LimitsTab: React.FC = () => {
   const streakColor = getStreakColor(animatedStreak);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '110px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }}>
 
       {/* Floating Toast Notification */}
       {toastMessage && (
@@ -752,11 +752,13 @@ const BudgetsListTab: React.FC = () => {
 
   if (budgets.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: '40px 24px', minHeight: '360px', gap: '12px' }}>
-        <div style={{ fontSize: '4.5rem' }}>⚖️</div>
-        <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>No Budgets Yet</div>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>Create a budget limits tracker to control and audit your spending.</div>
-        <button onClick={() => setShowForm(true)} style={{ marginTop: '8px', padding: '10px 24px', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="empty-state-container" style={{ minHeight: '360px' }}>
+        <span style={{ fontSize: '4.5rem', marginBottom: '16px', display: 'block' }}>⚖️</span>
+        <div>
+          <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--color-text)' }}>No Budgets Yet</div>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>Create a budget limits tracker to control and audit your spending.</div>
+        </div>
+        <button onClick={() => setShowForm(true)} className="btn-primary" style={{ padding: '0 24px', height: '44px', borderRadius: '22px', fontWeight: 800, fontSize: '0.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}>
           <Plus size={16} /> Add Budget
         </button>
         {showForm && <BudgetForm categories={expenseCategories} onSave={handleAdd} onClose={() => setShowForm(false)} />}
@@ -765,7 +767,7 @@ const BudgetsListTab: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '110px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '24px' }}>
       {budgets.map(b => {
         const pct = b.limit > 0 ? (b.spent / b.limit) * 100 : 0;
         const color = ringColor(pct);
@@ -832,8 +834,6 @@ const BudgetsListTab: React.FC = () => {
           onClick={() => { setEditBudget(undefined); setShowForm(true); }}
           style={{
             position: 'fixed',
-            bottom: '96px',
-            right: '20px',
             zIndex: 50
           }}
           aria-label="Add Budget"
@@ -885,7 +885,7 @@ const Budgets: React.FC = () => {
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      <div className="pb-nav-safe" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         {tab === 'limits' ? <LimitsTab /> : <BudgetsListTab />}
       </div>
     </div>

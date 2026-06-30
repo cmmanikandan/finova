@@ -430,7 +430,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Categories" onBack={onBack} />
       
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {/* Search & Sort Row */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '16px 16px 12px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -460,8 +460,21 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
         {/* Categories List Cards */}
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {processedCats.length === 0 ? (
-            <div style={{ padding: '32px 24px', background: 'var(--color-card)', borderRadius: '18px', border: '1px solid var(--color-border)', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
-              No categories found
+            <div className="empty-state-container">
+              <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))', marginBottom: '16px', display: 'block' }}>🏷️</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>No Categories Found</p>
+                <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                  Create custom categories to categorize your dynamic cashflows.
+                </p>
+              </div>
+              <button
+                onClick={startAdd}
+                className="btn-primary"
+                style={{ padding: '0 28px', height: '48px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                <Plus size={16} /> Create Custom Category
+              </button>
             </div>
           ) : (
             processedCats.map((c) => {
@@ -527,7 +540,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ onBack, categories, ref
       </div>
 
       {/* FAB to Add Custom Category */}
-      <button className="fab" onClick={startAdd} aria-label="Add Category" style={{ bottom: '24px' }}>
+      <button className="fab" onClick={startAdd} aria-label="Add Category" style={{ position: 'fixed', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 50 }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
 
@@ -824,7 +837,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <BackHeader title="Accounts" onBack={onBack} />
       
-      <div style={{ padding: '0 0 120px', display: 'flex', flexDirection: 'column' }}>
+      <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {/* Search Row */}
         <div style={{ position: 'relative', width: '100%', padding: '16px 16px 12px' }}>
           <Search size={16} style={{ position: 'absolute', left: '2rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
@@ -841,8 +854,21 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
         {/* Accounts List Cards */}
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {processedAccs.length === 0 ? (
-            <div style={{ padding: '32px 24px', background: 'var(--color-card)', borderRadius: '18px', border: '1px solid var(--color-border)', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 600, fontSize: '0.875rem' }}>
-              No accounts found
+            <div className="empty-state-container">
+              <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))', marginBottom: '16px', display: 'block' }}>💳</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>No Accounts Found</p>
+                <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                  Create custom payment accounts or preset bank accounts to start tracking.
+                </p>
+              </div>
+              <button
+                onClick={startAdd}
+                className="btn-primary"
+                style={{ padding: '0 28px', height: '48px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                <Plus size={16} /> Create Custom Account
+              </button>
             </div>
           ) : (
             processedAccs.map((a) => {
@@ -921,7 +947,7 @@ const AccountsView: React.FC<AccountsViewProps> = ({ onBack, accounts, refresh }
       </div>
 
       {/* FAB to Add Custom Account */}
-      <button className="fab" onClick={startAdd} aria-label="Add Account" style={{ bottom: '24px' }}>
+      <button className="fab" onClick={startAdd} aria-label="Add Account" style={{ position: 'fixed', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 50 }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
 
@@ -1419,16 +1445,22 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
     <div className="page-enter" style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--color-bg)' }}>
       <BackHeader title="Recurring Bills" onBack={onBack} />
       
-      <div style={{ padding: '16px 16px 120px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="pb-nav-safe" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', padding: '16px', gap: '16px' }}>
         {recurringList.length === 0 ? (
-          <div style={{ padding: '40px 24px', textAlign: 'center', background: 'var(--color-card)', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔄</div>
-            <div style={{ fontWeight: 800, color: 'var(--color-text)', marginBottom: '4px' }}>No recurring bills configured</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, lineHeight: 1.45 }}>
-              Create automatic transactions for repeating subscriptions, rent, salaries, or pocket money.
+          <div className="empty-state-container">
+            <span style={{ fontSize: '4.5rem', filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.08))', marginBottom: '16px', display: 'block' }}>🔄</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-text)', fontSize: '1.125rem' }}>No Recurring Bills</p>
+              <p style={{ margin: '6px 0 16px 0', fontSize: '0.8125rem', color: 'var(--color-text-muted)', fontWeight: 500, lineHeight: 1.5, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                Create automatic transactions for repeating subscriptions, rent, salaries, or pocket money.
+              </p>
             </div>
-            <button onClick={startAdd} className="btn-primary" style={{ marginTop: '20px', display: 'inline-flex', alignSelf: 'center', padding: '10px 20px', fontSize: '0.8125rem' }}>
-              Create First Scheduled Bill
+            <button
+              onClick={startAdd}
+              className="btn-primary"
+              style={{ padding: '0 28px', height: '48px', borderRadius: '24px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+            >
+              <Plus size={16} /> Create Scheduled Bill
             </button>
           </div>
         ) : (
@@ -1533,7 +1565,7 @@ const RecurringView: React.FC<RecurringViewProps> = ({ onBack, refresh }) => {
       </div>
 
       {/* FAB to Add Custom Recurring Bill */}
-      <button className="fab" onClick={startAdd} aria-label="Add Recurring" style={{ bottom: '24px' }}>
+      <button className="fab" onClick={startAdd} aria-label="Add Recurring" style={{ position: 'fixed', bottom: 'calc(20px + env(safe-area-inset-bottom))', zIndex: 50 }}>
         <Plus size={28} strokeWidth={2.5} />
       </button>
     </div>
