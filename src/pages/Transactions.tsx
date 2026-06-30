@@ -10,6 +10,11 @@ import { useScrollFAB } from '../hooks/useScrollFAB';
 
 const DATE_FILTERS = ['All', 'Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'];
 
+const getCleanNote = (note?: string) => {
+  if (!note) return '';
+  return note.replace(/\[SplitBillMeta:.*?\]/, '').trim();
+};
+
 function matchDate(txnDate: string, filter: string, startDate?: string, endDate?: string): boolean {
   const d = new Date(txnDate);
   const now = new Date();
@@ -72,34 +77,46 @@ const SwipeableTransactionItem: React.FC<{
     }
   };
 
+  const hasSplit = t.note?.includes('[SplitBillMeta:');
+  const isSettlement = t.type === 'settlement';
+  const cleanNote = isSettlement ? t.note : getCleanNote(t.note);
+
   return (
     <div style={{ position: 'relative', background: 'var(--color-bg)', overflow: 'hidden', minHeight: '64px' }}>
       {/* Left swipe reveal (Edit Action) */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
-        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
-      }}>
-        <button onClick={(e) => { e.stopPropagation(); onEdit(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
-          <Edit2 size={16} /> Edit
-        </button>
-      </div>
+      {!isSettlement && (
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0, width: '100px',
+          background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+        }}>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
+            <Edit2 size={16} /> Edit
+          </button>
+        </div>
+      )}
 
       {/* Right swipe reveal (Delete Action) */}
-      <div style={{
-        position: 'absolute', right: 0, top: 0, bottom: 0, width: '100px',
-        background: 'linear-gradient(135deg, #EF4444, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
-      }}>
-        <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
-          <Trash2 size={16} /> Delete
-        </button>
-      </div>
+      {!isSettlement && (
+        <div style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: '100px',
+          background: 'linear-gradient(135deg, #EF4444, #DC2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1
+        }}>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(t.id); setSwipeOffset(0); }} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', fontSize: '0.6875rem', fontWeight: 800 }}>
+            <Trash2 size={16} /> Delete
+          </button>
+        </div>
+      )}
 
       {/* Main Container */}
       <div
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={() => swipeOffset === 0 ? onClick() : setSwipeOffset(0)}
+        onClick={() => {
+          if (isSettlement) return;
+          if (swipeOffset === 0) onClick();
+          else setSwipeOffset(0);
+        }}
         style={{
           display: 'flex', alignItems: 'center', gap: '0.875rem',
           padding: '16px',
@@ -108,20 +125,22 @@ const SwipeableTransactionItem: React.FC<{
           transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative',
           zIndex: 2,
-          cursor: 'pointer'
+          cursor: isSettlement ? 'default' : 'pointer'
         }}
       >
         <div style={{
           width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0,
-          background: isIncome ? 'rgba(34,197,94,0.15)' : t.type === 'transfer' ? 'rgba(37,99,235,0.15)' : `${cat?.color || '#EF4444'}20`,
-          color: isIncome ? '#22C55E' : t.type === 'transfer' ? '#2563EB' : cat?.color || '#EF4444',
+          background: isSettlement ? 'rgba(16,185,129,0.15)' : isIncome ? 'rgba(34,197,94,0.15)' : t.type === 'transfer' ? 'rgba(37,99,235,0.15)' : `${cat?.color || '#EF4444'}20`,
+          color: isSettlement ? '#10B981' : isIncome ? '#22C55E' : t.type === 'transfer' ? '#2563EB' : cat?.color || '#EF4444',
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.375rem',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
-        }}>{cat?.icon || '📦'}</div>
+        }}>{isSettlement ? '🤝' : cat?.icon || '📦'}</div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>{cat?.name || t.category}</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-text)' }}>
+              {isSettlement ? 'Settlement' : cat?.name || t.category}
+            </span>
             {t.subcategory && (
               <span style={{
                 fontSize: '0.6875rem',
@@ -135,17 +154,43 @@ const SwipeableTransactionItem: React.FC<{
                 {t.subcategory}
               </span>
             )}
+            {hasSplit && (
+              <span style={{
+                fontSize: '0.65rem',
+                background: 'rgba(139, 92, 246, 0.08)',
+                border: '1px solid rgba(139, 92, 246, 0.15)',
+                color: '#8B5CF6',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                fontWeight: 700
+              }}>
+                Split Bill
+              </span>
+            )}
+            {isSettlement && (
+              <span style={{
+                fontSize: '0.65rem',
+                background: 'rgba(16,185,129,0.08)',
+                border: '1px solid rgba(16,185,129,0.15)',
+                color: '#10B981',
+                padding: '2px 8px',
+                borderRadius: '99px',
+                fontWeight: 700
+              }}>
+                Repayment
+              </span>
+            )}
           </div>
-          {t.note && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.note}</div>}
+          {cleanNote && <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cleanNote}</div>}
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>{formatTime(t.date)}</div>
         </div>
 
         <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{
             fontSize: '1rem', fontWeight: 900,
-            color: isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
+            color: isSettlement || isIncome ? '#16A34A' : t.type === 'transfer' ? '#2563EB' : '#DC2626',
           }}>
-            {isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
+            {isSettlement || isIncome ? '+' : t.type === 'transfer' ? '' : '-'}{formatCurrency(t.amount)}
           </div>
         </div>
       </div>
@@ -158,7 +203,7 @@ const Transactions: React.FC = () => {
   const navigate = useNavigate();
   const { fabVisible, handleScroll } = useScrollFAB();
   const [search, setSearch]             = useState('');
-  const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType>('all');
+  const [typeFilter, setTypeFilter]     = useState<'all' | TransactionType | 'split_bill' | 'settlements'>('all');
   const [dateFilter, setDateFilter]     = useState('All');
   const [deleteId, setDeleteId]         = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -208,8 +253,43 @@ const Transactions: React.FC = () => {
   }, [selectedCategory, selectedAccount, minAmount, maxAmount, dateFilter]);
 
   const filtered = useMemo(() => {
+    if (typeFilter === 'settlements') {
+      const repayments = db.getSplitBills().flatMap(s => 
+        s.members.filter(m => m.id !== 'you' && m.status === 'settled').map(m => ({
+          id: `${s.id}-${m.id}`,
+          type: 'settlement' as any,
+          amount: m.share,
+          category: 'settlement',
+          account: m.paymentAccount || 'cash',
+          date: m.settledAt || s.date,
+          note: `Repayment from ${m.name} for "${s.name}"`,
+          createdAt: m.settledAt || s.date,
+          friendName: m.name,
+          billName: s.name,
+          avatar: m.avatar,
+        }))
+      );
+      return repayments.filter(t => {
+        if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
+        if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
+        if (minAmount && t.amount < parseFloat(minAmount)) return false;
+        if (maxAmount && t.amount > parseFloat(maxAmount)) return false;
+
+        if (search) {
+          const q = search.toLowerCase();
+          return t.friendName.toLowerCase().includes(q) || t.billName.toLowerCase().includes(q) || String(t.amount).includes(q);
+        }
+        return true;
+      });
+    }
+
     return allTxns.filter(t => {
-      if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+      if (typeFilter === 'split_bill') {
+        if (!t.note?.includes('[SplitBillMeta:')) return false;
+      } else if (typeFilter !== 'all' && t.type !== typeFilter) {
+        return false;
+      }
+
       if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
       if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
       if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
@@ -219,7 +299,8 @@ const Transactions: React.FC = () => {
       if (search) {
         const cat = categories.find(c => c.id === t.category);
         const q = search.toLowerCase();
-        return (cat?.name || '').toLowerCase().includes(q) || (t.note || '').toLowerCase().includes(q) || String(t.amount).includes(q);
+        const displayNote = getCleanNote(t.note);
+        return (cat?.name || '').toLowerCase().includes(q) || displayNote.toLowerCase().includes(q) || String(t.amount).includes(q);
       }
       return true;
     });
@@ -603,13 +684,19 @@ const Transactions: React.FC = () => {
           msOverflowStyle: 'none',
           paddingBottom: '4px'
         }}>
-          {(['all', 'expense', 'income', 'transfer'] as const).map(t => (
+          {(['all', 'expense', 'income', 'transfer', 'split_bill', 'settlements'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTypeFilter(t)}
               className={`chip ${typeFilter === t ? 'chip-active' : 'chip-inactive'}`}
             >
-              {t === 'all' ? 'All Transactions' : t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'all' 
+                ? 'All Transactions' 
+                : t === 'split_bill' 
+                ? 'Split Bills' 
+                : t === 'settlements' 
+                ? 'Settlements' 
+                : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>

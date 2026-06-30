@@ -380,6 +380,11 @@ function mapChallengeFromDb(row: any): Challenge {
 }
 
 function mapSplitBillToDb(s: SplitBillItem): any {
+  // Ensure the you member has the paymentAccount field populated
+  const youMember = s.members.find(m => m.id === 'you');
+  if (youMember && s.accountId) {
+    youMember.paymentAccount = s.accountId;
+  }
   return {
     id: s.id,
     name: s.name,
@@ -396,6 +401,8 @@ function mapSplitBillToDb(s: SplitBillItem): any {
 }
 
 function mapSplitBillFromDb(row: any): SplitBillItem {
+  const members = row.members || [];
+  const youMember = members.find((m: any) => m.id === 'you');
   return {
     id: row.id,
     name: row.name,
@@ -404,10 +411,11 @@ function mapSplitBillFromDb(row: any): SplitBillItem {
     date: typeof row.date === 'string' ? row.date.split('T')[0] : row.date,
     category: row.category,
     method: row.method,
-    members: row.members || [],
+    members: members,
     upiId: row.upi_id || '',
     receiverName: row.receiver_name || '',
     status: row.status,
+    accountId: youMember?.paymentAccount,
   };
 }
 
@@ -1761,13 +1769,142 @@ export async function addSplitBill(data: Omit<SplitBillItem, 'id'>): Promise<Spl
   if (!uid) throw new Error('User is not authenticated.');
 
   const s: SplitBillItem = { ...data, id: uuidv4() };
+
+  // Ensure the you member has the paymentAccount field populated
+  const youMember = s.members.find(m => m.id === 'you');
+  if (youMember && s.accountId) {
+    youMember.paymentAccount = s.accountId;
+  }
+
   const row = { ...mapSplitBillToDb(s), user_id: uid };
   const { error } = await supabase.from('split_bills').insert(row);
   if (error) throw error;
 
+  // Deduct friends' share from account balance (addTransaction will deduct my share)
+  const myShare = youMember ? youMember.share : s.amount;
+  const friendsShare = s.amount - myShare;
+
+  if (s.accountId && friendsShare > 0) {
+    const acc = _accounts.find(a => a.id === s.accountId);
+    if (acc) {
+      const updatedAcc = { ...acc, balance: acc.balance - friendsShare };
+      const { error: accError } = await supabase
+        .from('accounts')
+        .update({ balance: updatedAcc.balance })
+        .eq('id', acc.id);
+      if (!accError) {
+        const idx = _accounts.findIndex(a => a.id === acc.id);
+        if (idx !== -1) _accounts[idx] = updatedAcc;
+      }
+    }
+  }
+
+  // Create personal transaction for user's share
+  const metaString = `[SplitBillMeta:${JSON.stringify({
+    id: s.id,
+    total: s.amount,
+    myShare: myShare,
+    friendsShare: friendsShare,
+    recovered: 0,
+    accountId: s.accountId
+  })}]`;
+  const noteContent = s.description ? `${s.description} ${metaString}` : metaString;
+
+  await addTransaction({
+    type: 'expense',
+    amount: myShare,
+    category: s.category,
+    account: s.accountId || 'cash',
+    date: new Date(s.date).toISOString(),
+    note: noteContent,
+  });
+
   _splitBills.unshift(s);
   notifyWrite();
   return s;
+}
+
+export async function settleMemberShare(splitId: string, memberId: string, accountId: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase is not configured. Cannot settle member share.');
+  }
+
+  const idx = _splitBills.findIndex(s => s.id === splitId);
+  if (idx === -1) return;
+
+  const split = _splitBills[idx];
+  const nextMembers = split.members.map(m => {
+    if (m.id === memberId) {
+      return {
+        ...m,
+        status: 'settled' as const,
+        paymentAccount: accountId,
+        settledAt: new Date().toISOString()
+      };
+    }
+    return m;
+  });
+
+  const allSettled = nextMembers.every(m => m.status === 'settled');
+  const nextStatus = (allSettled ? 'completed' : 'pending') as 'pending' | 'completed';
+
+  const updatedSplit = { ...split, members: nextMembers, status: nextStatus };
+
+  const { error: splitErr } = await supabase
+    .from('split_bills')
+    .update(mapSplitBillToDb(updatedSplit))
+    .eq('id', splitId);
+  if (splitErr) throw splitErr;
+
+  _splitBills[idx] = updatedSplit;
+
+  // Increase target account balance
+  const targetMember = split.members.find(m => m.id === memberId);
+  const shareAmount = targetMember ? targetMember.share : 0;
+
+  if (shareAmount > 0) {
+    const acc = _accounts.find(a => a.id === accountId);
+    if (acc) {
+      const updatedAcc = { ...acc, balance: acc.balance + shareAmount };
+      const { error: accError } = await supabase
+        .from('accounts')
+        .update({ balance: updatedAcc.balance })
+        .eq('id', acc.id);
+      if (!accError) {
+        const accIdx = _accounts.findIndex(a => a.id === acc.id);
+        if (accIdx !== -1) _accounts[accIdx] = updatedAcc;
+      }
+    }
+  }
+
+  // Update personal transaction recovered amount
+  const txnIdx = _transactions.findIndex(t => t.note?.includes(`"id":"${splitId}"`));
+  if (txnIdx !== -1) {
+    const txn = _transactions[txnIdx];
+    const match = txn.note?.match(/\[SplitBillMeta:(.*?)\]/);
+    if (match) {
+      try {
+        const metaObj = JSON.parse(match[1]);
+        metaObj.recovered = (metaObj.recovered || 0) + shareAmount;
+        const newMetaString = `[SplitBillMeta:${JSON.stringify(metaObj)}]`;
+        const nextNote = txn.note!.replace(/\[SplitBillMeta:.*?\]/, newMetaString);
+
+        const nextTxn = { ...txn, note: nextNote };
+        const { error: txnErr } = await supabase
+          .from('transactions')
+          .update({ note: nextNote })
+          .eq('id', txn.id);
+        
+        if (!txnErr) {
+          _transactions[txnIdx] = nextTxn;
+        }
+      } catch (e) {
+        console.error('Failed to update split transaction metadata note:', e);
+      }
+    }
+  }
+
+  notifyWrite();
 }
 
 export async function updateSplitBill(id: string, data: Partial<SplitBillItem>): Promise<void> {

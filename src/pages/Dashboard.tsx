@@ -113,6 +113,27 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
     });
   }, [transactions]);
 
+  // Settlements Overview
+  const settlementsOverview = useMemo(() => {
+    let pendingToReceive = 0;
+    let pendingToPay = 0;
+    const activeSplits = db.getSplitBills().filter(s => s.status === 'pending');
+    
+    activeSplits.forEach(s => {
+      s.members.forEach(m => {
+        if (m.id !== 'you' && m.status === 'pending') {
+          pendingToReceive += m.share;
+        }
+      });
+    });
+
+    return {
+      pendingToReceive,
+      pendingToPay,
+      openBills: activeSplits.length
+    };
+  }, [transactions]);
+
   // Daily Planner widget calculations
   const todayWeekday = new Date().getDay();
   const todaySchedule = useMemo(() => {
@@ -830,6 +851,63 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
                 💡 Click to build your schedule and earn bonus XP!
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Friend Settlements Widget */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <div
+            onClick={() => navigate('/split-bill')}
+            className="card-elevated clickable-card"
+            style={{
+              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '20px',
+              padding: '16px',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  background: 'rgba(236,72,153,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#EC4899'
+                }}>
+                  <Users size={16} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--color-text)' }}>Friend Settlements</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(236,72,153,0.1)', padding: '4px 8px', borderRadius: '10px', color: '#EC4899', fontSize: '0.6875rem', fontWeight: 800 }}>
+                <span>{settlementsOverview.openBills} Open Bills</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '1px dashed var(--color-border)', paddingTop: '12px' }}>
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>PENDING TO RECEIVE</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: '#10B981', display: 'block', marginTop: '2px' }}>
+                  ₹{settlementsOverview.pendingToReceive.toLocaleString()}
+                </span>
+              </div>
+              <div style={{ textAlign: 'left', borderLeft: '1px solid var(--color-border)', paddingLeft: '16px' }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', display: 'block', fontWeight: 700 }}>PENDING TO PAY</span>
+                <span style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-text)', display: 'block', marginTop: '2px' }}>
+                  ₹{settlementsOverview.pendingToPay.toLocaleString()}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

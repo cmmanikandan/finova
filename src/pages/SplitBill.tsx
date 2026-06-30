@@ -29,6 +29,30 @@ const SplitBill: React.FC = () => {
   const [selectedSplit, setSelectedSplit] = useState<SplitBillItem | null>(null);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
+  // Visible accounts logic
+  const accounts = useMemo(() => db.getAccounts(), [splits]);
+  const visibleAccounts = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      return accounts.filter(a => !hiddenIds.includes(a.id));
+    } catch {
+      return accounts;
+    }
+  }, [accounts]);
+
+  const [selectedAccount, setSelectedAccount] = useState('cash');
+  const [settlingMember, setSettlingMember] = useState<{ splitId: string; member: Member } | null>(null);
+  const [settleAccount, setSettleAccount] = useState('cash');
+
+  // Set default account selections
+  useEffect(() => {
+    if (visibleAccounts.length > 0) {
+      setSelectedAccount(visibleAccounts[0].id);
+      setSettleAccount(visibleAccounts[0].id);
+    }
+  }, [visibleAccounts]);
+
   // Creation Form State
   const [billName, setBillName] = useState('');
   const [amount, setAmount] = useState('');
@@ -125,18 +149,43 @@ const SplitBill: React.FC = () => {
       };
     });
 
+    let totalBills = splits.length;
+    let mySpending = 0;
+    let friendsSpending = 0;
+    let pendingAmount = 0;
+    let recoveredAmount = 0;
+    let totalFriendsCount = 0;
+    let settledFriendsCount = 0;
+
     splits.forEach(s => {
       if (!s.date) return;
       const parts = s.date.split('-');
-      if (parts.length < 2) return;
-      const key = `${parts[0]}-${parts[1]}`; // YYYY-MM
-      
-      const match = last3Months.find(m => m.monthKey === key);
-      if (match) {
-        match.amount += s.amount;
+      if (parts.length >= 2) {
+        const key = `${parts[0]}-${parts[1]}`; // YYYY-MM
+        const match = last3Months.find(m => m.monthKey === key);
+        if (match) {
+          match.amount += s.amount;
+        }
       }
+
+      s.members.forEach(m => {
+        if (m.id === 'you') {
+          mySpending += m.share;
+        } else {
+          friendsSpending += m.share;
+          totalFriendsCount++;
+          if (m.status === 'settled') {
+            recoveredAmount += m.share;
+            settledFriendsCount++;
+          } else {
+            pendingAmount += m.share;
+          }
+        }
+      });
     });
 
+    const averageBill = totalBills > 0 ? splits.reduce((sum, s) => sum + s.amount, 0) / totalBills : 0;
+    const settlementSuccessRate = totalFriendsCount > 0 ? Math.round((settledFriendsCount / totalFriendsCount) * 100) : 100;
     const maxAmount = Math.max(...last3Months.map(m => m.amount), 100);
 
     const contactMap: Record<string, { name: string; avatar: string; amount: number }> = {};
@@ -159,7 +208,14 @@ const SplitBill: React.FC = () => {
         ...m,
         height: Math.max(10, Math.round((m.amount / maxAmount) * 120))
       })),
-      topContacts
+      topContacts,
+      totalBills,
+      mySpending,
+      friendsSpending,
+      pendingAmount,
+      recoveredAmount,
+      averageBill,
+      settlementSuccessRate
     };
   }, [splits]);
 
@@ -232,6 +288,7 @@ const SplitBill: React.FC = () => {
       upiId,
       receiverName,
       status: 'pending' as const,
+      accountId: selectedAccount,
     };
 
     await db.addSplitBill(payload);
@@ -260,16 +317,7 @@ const SplitBill: React.FC = () => {
     setSelectedMember(member);
   };
 
-  const markAsSettled = async (splitId: string, memberId: string) => {
-    const split = splits.find(s => s.id === splitId);
-    if (!split) return;
-    const nextMembers = split.members.map(m => m.id === memberId ? { ...m, status: 'settled' as const } : m);
-    const allSettled = nextMembers.every(m => m.status === 'settled');
-    const nextStatus = (allSettled ? 'completed' : 'pending') as 'pending' | 'completed';
-    
-    await db.updateSplitBill(splitId, { members: nextMembers, status: nextStatus });
-    loadData();
-  };
+
 
   const handleDeleteSplit = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -427,7 +475,7 @@ const SplitBill: React.FC = () => {
                                     Request
                                   </button>
                                   <button 
-                                    onClick={() => markAsSettled(s.id, m.id)}
+                                    onClick={() => setSettlingMember({ splitId: s.id, member: m })}
                                     style={{ background: 'rgba(16,185,129,0.1)', border: 'none', borderRadius: '6px', padding: '4px 8px', color: '#10B981', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer' }}
                                   >
                                     Settle
@@ -467,6 +515,22 @@ const SplitBill: React.FC = () => {
             <div className="form-group">
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Bill Name</label>
               <input type="text" value={billName} onChange={e => setBillName(e.target.value)} placeholder="e.g. Lunch with team" className="input-field" required />
+            </div>
+
+            <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Payment Source (Paid Entire Bill)</label>
+              <select 
+                className="input-field" 
+                value={selectedAccount} 
+                onChange={e => setSelectedAccount(e.target.value)} 
+                style={{ height: '44px', fontWeight: 600 }}
+              >
+                {visibleAccounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.icon} {acc.name} (Bal: ₹{acc.balance})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -741,8 +805,26 @@ const SplitBill: React.FC = () => {
       {/* ─── Share Analytics View ─── */}
       {viewMode === 'analytics' && (
         <div style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Analytics Key Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            {[
+              { label: 'Total Bills', value: analyticsData.totalBills, color: 'var(--color-text)' },
+              { label: 'My Spending', value: `₹${Math.round(analyticsData.mySpending).toLocaleString()}`, color: 'var(--color-text)' },
+              { label: 'Friends Spending', value: `₹${Math.round(analyticsData.friendsSpending).toLocaleString()}`, color: '#2563EB' },
+              { label: 'Recovered Amount', value: `₹${Math.round(analyticsData.recoveredAmount).toLocaleString()}`, color: '#10B981' },
+              { label: 'Pending Amount', value: `₹${Math.round(analyticsData.pendingAmount).toLocaleString()}`, color: '#F59E0B' },
+              { label: 'Average Bill', value: `₹${Math.round(analyticsData.averageBill).toLocaleString()}`, color: 'var(--color-text)' },
+              { label: 'Settlement Rate', value: `${analyticsData.settlementSuccessRate}%`, color: '#8B5CF6' }
+            ].map((stat, i) => (
+              <div key={i} className="card-elevated" style={{ padding: '14px 16px', borderRadius: '18px', background: 'var(--color-card)', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid var(--color-border)' }}>
+                <span style={{ fontSize: '0.625rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{stat.label}</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: stat.color }}>{stat.value}</span>
+              </div>
+            ))}
+          </div>
+
           <div className="card" style={{ padding: '22px', borderRadius: '24px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Shared Amount</h3>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Shared Spending</h3>
             <p style={{ margin: '0 0 20px 0', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Total volume of split bills generated in the last 3 months.</p>
             
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '160px', paddingTop: '10px', maxWidth: '320px', margin: '0 auto' }}>
@@ -861,6 +943,109 @@ const SplitBill: React.FC = () => {
                   style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: '14px', height: '44px', gap: '8px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', width: '100%' }}
                 >
                   <Share2 size={16} /> Share via WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Friend Settle Prompt Modal ─── */}
+      {settlingMember && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px',
+          animation: 'fadeIn 0.22s ease-out',
+        }}>
+          <div 
+            className="card animate-scale-up" 
+            style={{
+              width: '100%',
+              maxWidth: '380px',
+              padding: '24px',
+              borderRadius: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              boxShadow: 'var(--shadow-modal)',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-card)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex-between">
+              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Confirm Settle Share</h4>
+              <button 
+                onClick={() => setSettlingMember(null)} 
+                style={{ border: 'none', background: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.12)', padding: '16px', borderRadius: '18px', textAlign: 'center' }}>
+                <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>💰</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block' }}>Friend Repayment</span>
+                <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#10B981', display: 'block', marginTop: '2px' }}>
+                  ₹{settlingMember.member.share.toFixed(2)}
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text)', display: 'block', marginTop: '4px' }}>
+                  from {settlingMember.member.name}
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '6px', color: 'var(--color-text-muted)' }}>Received To Account</label>
+                <select 
+                  className="input-field" 
+                  value={settleAccount} 
+                  onChange={e => setSettleAccount(e.target.value)} 
+                  style={{ height: '44px', fontWeight: 600 }}
+                >
+                  {visibleAccounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.icon} {acc.name} (Bal: ₹{acc.balance})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button 
+                  type="button"
+                  onClick={() => setSettlingMember(null)}
+                  className="btn-ghost"
+                  style={{ flex: 1, borderRadius: '14px', height: '44px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    await db.settleMemberShare(settlingMember.splitId, settlingMember.member.id, settleAccount);
+                    setSettlingMember(null);
+                    loadData();
+                  }}
+                  className="btn-primary"
+                  style={{ flex: 2, background: '#10B981', border: 'none', color: '#fff', borderRadius: '14px', height: '44px', fontWeight: 800 }}
+                >
+                  Confirm Settlement
                 </button>
               </div>
             </div>

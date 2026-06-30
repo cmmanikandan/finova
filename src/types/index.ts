@@ -21,6 +21,12 @@ export interface Transaction {
   note?: string;
   receiptUrl?: string;
   createdAt: string;
+  isSplit?: boolean;
+  splitBillId?: string;
+  totalBill?: number;
+  myShare?: number;
+  friendsShare?: number;
+  recovered?: number;
 }
 
 export interface Category {
@@ -161,6 +167,8 @@ export interface Member {
   percentage?: number;
   sharesCount?: number;
   status: 'pending' | 'paid' | 'settled';
+  paymentAccount?: string;
+  settledAt?: string;
 }
 
 export interface SplitBillItem {
@@ -175,6 +183,7 @@ export interface SplitBillItem {
   upiId: string;
   receiverName: string;
   status: 'pending' | 'completed';
+  accountId?: string;
 }
 
 export interface DailyTask {

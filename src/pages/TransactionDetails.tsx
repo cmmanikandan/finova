@@ -5,6 +5,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as db from '../services/db';
 import { formatCurrency, formatDate, formatTime } from '../utils/format';
 
+const parseSplitMeta = (note?: string) => {
+  if (!note) return null;
+  const match = note.match(/\[SplitBillMeta:(.*?)\]/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+};
+
+const getCleanNote = (note?: string) => {
+  if (!note) return '';
+  return note.replace(/\[SplitBillMeta:.*?\]/, '').trim();
+};
+
 const TransactionDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -33,6 +49,8 @@ const TransactionDetails: React.FC = () => {
   const acc = accounts.find(a => a.id === txn.account);
   const toAcc = txn.toAccount ? accounts.find(a => a.id === txn.toAccount) : null;
   const isIncome = txn.type === 'income';
+  const splitMeta = parseSplitMeta(txn.note);
+  const splitBill = splitMeta ? db.getSplitBills().find(s => s.id === splitMeta.id) : null;
 
   const handleDelete = () => {
     db.deleteTransaction(txn.id);
@@ -213,10 +231,89 @@ const TransactionDetails: React.FC = () => {
                 </div>
               )}
 
-              {txn.note && (
+              {getCleanNote(txn.note) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--color-bg)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border)', marginTop: '6px' }}>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>NOTE</span>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.45 }}>{txn.note}</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.45 }}>{getCleanNote(txn.note)}</span>
+                </div>
+              )}
+
+              {/* Split Bill Metadata Card */}
+              {splitMeta && (
+                <div style={{
+                  marginTop: '20px',
+                  background: 'rgba(139, 92, 246, 0.03)',
+                  border: '1.5px solid rgba(139, 92, 246, 0.15)',
+                  borderRadius: '20px',
+                  padding: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>👥</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Split Bill Details</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>TOTAL BILL</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{splitMeta.total}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>MY SHARE</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{splitMeta.myShare}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>FRIENDS SHARE</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text)' }}>₹{splitMeta.friendsShare}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>RECOVERED</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10B981' }}>
+                        ₹{splitBill ? splitBill.members.filter(m => m.id !== 'you' && m.status === 'settled').reduce((sum, m) => sum + m.share, 0) : splitMeta.recovered}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>PENDING</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#F59E0B' }}>
+                        ₹{splitMeta.friendsShare - (splitBill ? splitBill.members.filter(m => m.id !== 'you' && m.status === 'settled').reduce((sum, m) => sum + m.share, 0) : splitMeta.recovered)}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>SETTLEMENT STATUS</span>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        background: (splitBill ? splitBill.status : 'pending') === 'completed' ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+                        color: (splitBill ? splitBill.status : 'pending') === 'completed' ? '#10B981' : '#F59E0B',
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        textTransform: 'uppercase'
+                      }}>
+                        {splitBill ? splitBill.status : 'pending'}
+                      </span>
+                    </div>
+
+                    {splitBill && splitBill.members.length > 1 && (
+                      <div style={{ marginTop: '8px', borderTop: '1px dashed var(--color-border)', paddingTop: '10px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Friend Settlements</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {splitBill.members.filter(m => m.id !== 'you').map(m => (
+                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '4px 0' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span>{m.avatar}</span>
+                                <div>
+                                  <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{m.name}</span>
+                                  <span style={{ fontSize: '0.65rem', color: m.status === 'settled' ? '#10B981' : '#F59E0B', display: 'block', fontWeight: 600 }}>
+                                    {m.status === 'settled' ? `Settled to ${accounts.find(a => a.id === m.paymentAccount)?.name || 'Account'}` : 'Pending'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span style={{ fontWeight: 800, color: m.status === 'settled' ? '#10B981' : 'var(--color-text)' }}>₹{m.share.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
