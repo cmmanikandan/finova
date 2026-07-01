@@ -107,7 +107,7 @@ const WeeklyChart: React.FC<{ limit: number; currencySymbol: string }> = ({ limi
 const MILESTONES = [3, 7, 15, 30, 50, 100, 365];
 
 const LimitsTab: React.FC = () => {
-  const { settings, saveSettings, transactions, budgets, refresh } = useApp();
+  const { settings, saveSettings, transactions, budgets } = useApp();
   const cs = settings.currencySymbol;
 
   const daily  = useMemo(() => db.getDailyLimitStatus(settings),  [settings, transactions, budgets]);
