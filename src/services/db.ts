@@ -702,14 +702,18 @@ export async function pullAllFromSupabase(): Promise<void> {
 
   if (settingsRes.data) {
     _settings = mapSettingsFromDb(settingsRes.data);
-  } else {
+  } else if (!settingsRes.error) {
     await autoProvisionSettings(uid);
+  } else {
+    console.error('Failed to fetch settings from Supabase:', settingsRes.error);
   }
 
   if (streaksRes.data) {
     _streakData = mapStreakFromDb(streaksRes.data);
-  } else {
+  } else if (!streaksRes.error) {
     await autoProvisionStreak(uid);
+  } else {
+    console.error('Failed to fetch streaks from Supabase:', streaksRes.error);
   }
 
   if (recRes.data) {
@@ -742,8 +746,10 @@ export async function pullAllFromSupabase(): Promise<void> {
   }
   if (levelsRes.data) {
     _userLevels = mapUserLevelFromDb(levelsRes.data);
-  } else {
+  } else if (!levelsRes.error) {
     await autoProvisionUserLevel(uid);
+  } else {
+    console.error('Failed to fetch user levels from Supabase:', levelsRes.error);
   }
   if (badgesRes.data) {
     _userBadges = badgesRes.data.map(mapUserBadgeFromDb);
@@ -1246,10 +1252,20 @@ export async function saveSettings(settings: AppSettings): Promise<void> {
     return;
   }
 
-  const { error } = await supabase
+  // Try clean UPDATE first
+  const { data, error: updateErr } = await supabase
     .from('settings')
-    .upsert({ ...mapSettingsToDb(settings), user_id: uid });
-  if (error) throw error;
+    .update(mapSettingsToDb(settings))
+    .eq('user_id', uid)
+    .select();
+
+  if (updateErr || !data || data.length === 0) {
+    // Fallback to upsert with explicit onConflict targets
+    const { error: upsertErr } = await supabase
+      .from('settings')
+      .upsert({ ...mapSettingsToDb(settings), user_id: uid }, { onConflict: 'user_id' });
+    if (upsertErr) throw upsertErr;
+  }
 
   _settings = settings;
   notifyWrite();
@@ -1264,7 +1280,20 @@ export async function saveStreakData(streak: Partial<StreakData>): Promise<void>
     const auth = getAuth(app);
     const uid = auth.currentUser?.uid;
     if (uid) {
-      await supabase.from('streaks').upsert({ ...mapStreakToDb(merged), user_id: uid });
+      // Try clean UPDATE first
+      const { data, error: updateErr } = await supabase
+        .from('streaks')
+        .update(mapStreakToDb(merged))
+        .eq('user_id', uid)
+        .select();
+
+      if (updateErr || !data || data.length === 0) {
+        // Fallback to upsert with explicit target targets
+        const { error: upsertErr } = await supabase
+          .from('streaks')
+          .upsert({ ...mapStreakToDb(merged), user_id: uid }, { onConflict: 'user_id' });
+        if (upsertErr) throw upsertErr;
+      }
     }
   }
 
@@ -2499,7 +2528,7 @@ export async function savePlannerSchedule(dayOfWeek: number, taskIds: string[]):
 
   const { error } = await supabase
     .from('planner_schedule')
-    .upsert({ ...mapPlannerScheduleToDb(payload), user_id: uid });
+    .upsert({ ...mapPlannerScheduleToDb(payload), user_id: uid }, { onConflict: 'id' });
   if (error) throw error;
 
   if (existingIdx !== -1) {
