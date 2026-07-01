@@ -110,9 +110,9 @@ const LimitsTab: React.FC = () => {
   const { settings, saveSettings, transactions, budgets, refresh } = useApp();
   const cs = settings.currencySymbol;
 
-  const daily  = useMemo(() => db.getDailyLimitStatus(),  [settings, transactions, budgets]);
-  const weekly = useMemo(() => db.getWeeklyLimitStatus(), [settings, transactions, budgets]);
-  const monthly = useMemo(() => db.getMonthlyLimitStatus(), [settings, transactions, budgets]);
+  const daily  = useMemo(() => db.getDailyLimitStatus(settings),  [settings, transactions, budgets]);
+  const weekly = useMemo(() => db.getWeeklyLimitStatus(settings), [settings, transactions, budgets]);
+  const monthly = useMemo(() => db.getMonthlyLimitStatus(settings), [settings, transactions, budgets]);
   const streakData = useMemo(() => db.getStreakData(), [settings, transactions]);
   const now = new Date();
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), [transactions]);
@@ -223,26 +223,22 @@ const LimitsTab: React.FC = () => {
   const toggleDailyLimit = () => {
     const updated = { ...settings, dailyLimitEnabled: !settings.dailyLimitEnabled };
     saveSettings(updated);
-    refresh();
   };
 
   const toggleWeeklyLimit = () => {
     const updated = { ...settings, weeklyLimitEnabled: !settings.weeklyLimitEnabled };
     saveSettings(updated);
-    refresh();
   };
 
   const toggleMonthlyLimit = () => {
     const updated = { ...settings, monthlyLimitEnabled: !settings.monthlyLimitEnabled };
     saveSettings(updated);
-    refresh();
   };
 
   const saveDailyLimit = () => {
     const val = parseFloat(dailyInput);
     if (!isNaN(val) && val > 0) {
       saveSettings({ ...settings, dailyLimit: val, dailyLimitEnabled: true });
-      refresh();
     }
     setEditingDaily(false);
   };
@@ -251,7 +247,6 @@ const LimitsTab: React.FC = () => {
     const val = parseFloat(weeklyInput);
     if (!isNaN(val) && val > 0) {
       saveSettings({ ...settings, weeklyLimit: val, weeklyLimitEnabled: true });
-      refresh();
     }
     setEditingWeekly(false);
   };
@@ -260,7 +255,6 @@ const LimitsTab: React.FC = () => {
     const val = parseFloat(monthlyInput);
     if (!isNaN(val) && val > 0) {
       saveSettings({ ...settings, monthlyLimit: val, monthlyLimitEnabled: true });
-      refresh();
     }
     setEditingMonthly(false);
   };

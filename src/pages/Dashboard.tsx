@@ -289,7 +289,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
   const getCatInfo = (catId: string) => categories.find(c => c.id === catId);
 
   // Daily limit status
-  const dailyStatus = useMemo(() => db.getDailyLimitStatus(), [transactions, contextBudgets]);
+  const dailyStatus = useMemo(() => db.getDailyLimitStatus(settings), [settings, transactions, contextBudgets]);
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), [transactions]);
 
   // Last month stats for insights

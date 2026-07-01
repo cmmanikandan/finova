@@ -91,7 +91,7 @@ const AddTransaction: React.FC = () => {
     : '0.00';
 
   // Daily limit check
-  const dailyStatus = db.getDailyLimitStatus();
+  const dailyStatus = db.getDailyLimitStatus(settings);
   const newAmount = parseFloat(amount) || 0;
   const projectedSpend = dailyStatus.spent + newAmount;
   const willExceedLimit = settings.dailyLimitEnabled && settings.dailyLimit > 0 && type === 'expense' && !editId && projectedSpend > settings.dailyLimit;

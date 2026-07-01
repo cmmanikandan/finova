@@ -1535,9 +1535,9 @@ export function getWeeklyExpenses(): number {
     .reduce((s, t) => s + t.amount, 0);
 }
 
-export function getDailyLimitStatus(): LimitStatus {
+export function getDailyLimitStatus(settings?: AppSettings): LimitStatus {
   const spent = getDailyExpenses(new Date().toISOString());
-  const limit = _settings.dailyLimit || 0;
+  const limit = (settings ?? _settings).dailyLimit || 0;
   const pct = limit > 0 ? (spent / limit) * 100 : 0;
   return {
     spent,
@@ -1549,9 +1549,9 @@ export function getDailyLimitStatus(): LimitStatus {
   };
 }
 
-export function getWeeklyLimitStatus(): LimitStatus {
+export function getWeeklyLimitStatus(settings?: AppSettings): LimitStatus {
   const spent = getWeeklyExpenses();
-  const limit = _settings.weeklyLimit || 0;
+  const limit = (settings ?? _settings).weeklyLimit || 0;
   const pct = limit > 0 ? (spent / limit) * 100 : 0;
   return {
     spent,
@@ -1563,10 +1563,10 @@ export function getWeeklyLimitStatus(): LimitStatus {
   };
 }
 
-export function getMonthlyLimitStatus(): LimitStatus {
+export function getMonthlyLimitStatus(settings?: AppSettings): LimitStatus {
   const now = new Date();
   const spent = getMonthlyStats(now.getFullYear(), now.getMonth()).expense;
-  const limit = _settings.monthlyLimit || 0;
+  const limit = (settings ?? _settings).monthlyLimit || 0;
   const pct = limit > 0 ? (spent / limit) * 100 : 0;
   return {
     spent,
