@@ -525,14 +525,7 @@ function mapPlannerReminderFromDb(row: any): PlannerReminder {
   };
 }
 
-function mapXPHistoryToDb(x: XPHistory): any {
-  return {
-    id: x.id,
-    amount: x.amount,
-    reason: x.reason,
-    reference_id: x.referenceId || null,
-  };
-}
+
 
 function mapXPHistoryFromDb(row: any): XPHistory {
   return {
@@ -544,12 +537,7 @@ function mapXPHistoryFromDb(row: any): XPHistory {
   };
 }
 
-function mapUserLevelToDb(l: UserLevel): any {
-  return {
-    current_level: l.currentLevel,
-    current_xp: l.currentXP,
-  };
-}
+
 
 function mapUserLevelFromDb(row: any): UserLevel {
   return {
@@ -2594,14 +2582,9 @@ export function getXPHistory(): XPHistory[] {
   return _xpHistory;
 }
 
-export async function addXP(amount: number, reason: string, referenceId?: string): Promise<void> {
+export async function addXP(_amount: number, _reason: string, _referenceId?: string): Promise<void> {
   // XP features disabled
   return;
-}
-
-function triggerFloatingXPNotification(amount: number) {
-  const event = new CustomEvent('finova_xp_earned', { detail: { amount } });
-  window.dispatchEvent(event);
 }
 
 // ─── Badges Engine ────────────────────────────────────────────────────────────

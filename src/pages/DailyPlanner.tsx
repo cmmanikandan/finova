@@ -298,7 +298,7 @@ const DailyPlanner: React.FC = () => {
       // It is recurring ('daily', 'weekdays', 'weekends')
       // 1. Convert task to 'custom'
       const updatedTask = { ...task, repeatSchedule: 'custom' as const };
-      await db.saveDailyTask(updatedTask);
+      await db.updateDailyTask(task.id, updatedTask);
 
       // 2. Populate other days with the task ID based on the old recurrence schedule
       for (let day = 0; day < 7; day++) {
@@ -419,6 +419,7 @@ const DailyPlanner: React.FC = () => {
     const potentialMonthlySavings = Math.max(0, monthlyForecastBudget - monthlyForecastSpent);
 
     return {
+      totalSpent7Days,
       monthlyForecastSpent,
       monthlyForecastBudget,
       potentialMonthlySavings
