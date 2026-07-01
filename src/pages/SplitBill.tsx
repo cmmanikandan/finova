@@ -69,6 +69,7 @@ const SplitBill: React.FC = () => {
 
   // OCR state
   const [scanning, setScanning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [qrUrl, setQrUrl] = useState('');
   const [upiUrl, setUpiUrl] = useState('');
@@ -362,7 +363,7 @@ const SplitBill: React.FC = () => {
 
   const handleCreateSplit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!billName.trim() || totalAmountNum <= 0) return;
+    if (!billName.trim() || totalAmountNum <= 0 || isSubmitting) return;
 
     const payload = {
       name: billName.trim(),
@@ -378,15 +379,22 @@ const SplitBill: React.FC = () => {
       accountId: selectedAccount,
     };
 
-    await db.addSplitBill(payload);
-    loadData();
-    
-    // Clear state
-    setBillName('');
-    setAmount('');
-    setDescription('');
-    setSelectedContacts([{ id: 'you', name: 'You', avatar: '👤', share: 0, status: 'settled' }]);
-    setViewMode('dashboard');
+    setIsSubmitting(true);
+    try {
+      await db.addSplitBill(payload);
+      // Clear form state
+      setBillName('');
+      setAmount('');
+      setDescription('');
+      setSelectedContacts([{ id: 'you', name: 'You', avatar: '👤', share: 0, status: 'settled' }]);
+      // Navigate to dashboard — loadData() is triggered by notifyWrite() inside db.addSplitBill
+      setViewMode('dashboard');
+    } catch (err: any) {
+      console.error('Failed to create split bill:', err);
+      alert('Failed to create split bill. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const generatePaymentRequest = (item: SplitBillItem, member: Member) => {
@@ -895,16 +903,16 @@ const SplitBill: React.FC = () => {
             <button 
               type="submit" 
               className="btn-primary" 
-              disabled={!validationWarning.isValid}
+              disabled={!validationWarning.isValid || isSubmitting}
               style={{ 
                 flex: 2, 
                 height: '46px', 
                 borderRadius: '16px', 
-                opacity: validationWarning.isValid ? 1 : 0.5, 
-                cursor: validationWarning.isValid ? 'pointer' : 'not-allowed' 
+                opacity: (validationWarning.isValid && !isSubmitting) ? 1 : 0.5, 
+                cursor: (validationWarning.isValid && !isSubmitting) ? 'pointer' : 'not-allowed' 
               }}
             >
-              Generate Split 🚀
+              {isSubmitting ? 'Saving...' : 'Generate Split 🚀'}
             </button>
           </div>
         </form>
