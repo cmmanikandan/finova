@@ -276,7 +276,53 @@ const Transactions: React.FC = () => {
     }
   }, []);
 
-  const allTxns = transactions;
+  const allTxns = useMemo(() => {
+    // 1. Base transactions, excluding the raw expense transaction created by addSplitBill for the user's share,
+    // since we represent that via the virtual 'split_bill_entry' items
+    const base = transactions.filter(t => !t.note?.includes('[SplitBillMeta:'));
+
+    // 2. Virtual settlement transactions (repayments)
+    const repayments = db.getSplitBills().flatMap(s => 
+      s.members.filter(m => m.id !== 'you' && m.status === 'settled').map(m => ({
+        id: `${s.id}-${m.id}`,
+        type: 'settlement' as any,
+        amount: m.share,
+        category: 'settlement',
+        account: m.paymentAccount || 'cash',
+        date: m.settledAt || s.date,
+        note: `Repayment from ${m.name} for "${s.name}"`,
+        createdAt: m.settledAt || s.date,
+        friendName: m.name,
+        billName: s.name,
+        avatar: m.avatar,
+      }))
+    );
+
+    // 3. Virtual split bill entries
+    const allSplits = db.getSplitBills();
+    const splitItems = allSplits.map(s => {
+      const myMember = s.members.find(m => m.id === 'you');
+      const myShare = myMember ? myMember.share : s.amount / s.members.length;
+      const friendCount = s.members.filter(m => m.id !== 'you').length;
+      return {
+        id: `split-${s.id}`,
+        type: 'split_bill_entry' as any,
+        amount: myShare,
+        category: s.category,
+        account: s.accountId || 'cash',
+        date: s.date,
+        note: s.description || '',
+        createdAt: s.date,
+        billName: s.name,
+        billStatus: s.status,
+        friendCount,
+        totalAmount: s.amount,
+        splitId: s.id,
+      };
+    });
+
+    return [...base, ...repayments, ...splitItems];
+  }, [transactions]);
 
   const currentMonthStats = useMemo(() => {
     const now = new Date();
@@ -292,74 +338,12 @@ const Transactions: React.FC = () => {
   }, [selectedCategory, selectedAccount, minAmount, maxAmount, dateFilter]);
 
   const filtered = useMemo(() => {
-    if (typeFilter === 'settlements') {
-      const repayments = db.getSplitBills().flatMap(s => 
-        s.members.filter(m => m.id !== 'you' && m.status === 'settled').map(m => ({
-          id: `${s.id}-${m.id}`,
-          type: 'settlement' as any,
-          amount: m.share,
-          category: 'settlement',
-          account: m.paymentAccount || 'cash',
-          date: m.settledAt || s.date,
-          note: `Repayment from ${m.name} for "${s.name}"`,
-          createdAt: m.settledAt || s.date,
-          friendName: m.name,
-          billName: s.name,
-          avatar: m.avatar,
-        }))
-      );
-      return repayments.filter(t => {
-        if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
-        if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
-        if (minAmount && t.amount < parseFloat(minAmount)) return false;
-        if (maxAmount && t.amount > parseFloat(maxAmount)) return false;
-
-        if (search) {
-          const q = search.toLowerCase();
-          return t.friendName.toLowerCase().includes(q) || t.billName.toLowerCase().includes(q) || String(t.amount).includes(q);
-        }
-        return true;
-      });
-    }
-
-    if (typeFilter === 'split_bill') {
-      // Build virtual items directly from all split bills (works for old & new)
-      const allSplits = db.getSplitBills();
-      const splitItems = allSplits.map(s => {
-        const myMember = s.members.find(m => m.id === 'you');
-        const myShare = myMember ? myMember.share : s.amount / s.members.length;
-        const friendCount = s.members.filter(m => m.id !== 'you').length;
-        return {
-          id: `split-${s.id}`,
-          type: 'split_bill_entry' as any,
-          amount: myShare,
-          category: s.category,
-          account: s.accountId || 'cash',
-          date: s.date,
-          note: s.description || '',
-          createdAt: s.date,
-          billName: s.name,
-          billStatus: s.status,
-          friendCount,
-          totalAmount: s.amount,
-          splitId: s.id,
-        };
-      });
-      return splitItems.filter(t => {
-        if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
-        if (selectedAccount !== 'all' && t.account !== selectedAccount) return false;
-        if (minAmount && t.amount < parseFloat(minAmount)) return false;
-        if (maxAmount && t.amount > parseFloat(maxAmount)) return false;
-        if (search) {
-          const q = search.toLowerCase();
-          return t.billName.toLowerCase().includes(q) || (t.note || '').toLowerCase().includes(q) || String(t.amount).includes(q);
-        }
-        return true;
-      });
-    }
-
     return allTxns.filter(t => {
-      if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+      if (typeFilter !== 'all') {
+        if (typeFilter === 'settlements' && t.type !== 'settlement') return false;
+        if (typeFilter === 'split_bill' && t.type !== 'split_bill_entry') return false;
+        if (typeFilter !== 'settlements' && typeFilter !== 'split_bill' && t.type !== typeFilter) return false;
+      }
 
       if (!matchDate(t.date, dateFilter, startDate, endDate)) return false;
       if (selectedCategory !== 'all' && t.category !== selectedCategory) return false;
@@ -370,8 +354,14 @@ const Transactions: React.FC = () => {
       if (search) {
         const cat = categories.find(c => c.id === t.category);
         const q = search.toLowerCase();
-        const displayNote = getCleanNote(t.note);
-        return (cat?.name || '').toLowerCase().includes(q) || displayNote.toLowerCase().includes(q) || String(t.amount).includes(q);
+        const displayNote = t.type === 'settlement' || t.type === 'split_bill_entry' ? t.note || '' : getCleanNote(t.note);
+        const friendName = (t as any).friendName || '';
+        const billName = (t as any).billName || '';
+        return (cat?.name || '').toLowerCase().includes(q) || 
+               displayNote.toLowerCase().includes(q) || 
+               friendName.toLowerCase().includes(q) || 
+               billName.toLowerCase().includes(q) || 
+               String(t.amount).includes(q);
       }
       return true;
     });

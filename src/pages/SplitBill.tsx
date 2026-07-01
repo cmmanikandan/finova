@@ -234,6 +234,93 @@ const SplitBill: React.FC = () => {
     return selectedContacts;
   }, [selectedContacts, method, totalAmountNum]);
 
+  // Synchronize/distribute shares in selectedContacts state when dependencies change
+  useEffect(() => {
+    if (selectedContacts.length === 0) return;
+
+    if (method === 'equal') {
+      const share = Number((totalAmountNum / selectedContacts.length).toFixed(2));
+      const hasChanges = selectedContacts.some(c => c.share !== share);
+      if (hasChanges) {
+        setSelectedContacts(prev => prev.map(m => ({ ...m, share })));
+      }
+    } else if (method === 'percentage') {
+      const count = selectedContacts.length;
+      const allZero = selectedContacts.every(m => !m.percentage);
+      if (allZero && count > 0) {
+        const defaultPct = Number((100 / count).toFixed(2));
+        setSelectedContacts(prev => prev.map((m, idx) => {
+          const pct = idx === count - 1 ? Number((100 - defaultPct * (count - 1)).toFixed(2)) : defaultPct;
+          const val = Number(((pct / 100) * totalAmountNum).toFixed(2));
+          return { ...m, percentage: pct, share: val };
+        }));
+      } else {
+        const hasChanges = selectedContacts.some(m => {
+          const expectedShare = Number((((m.percentage || 0) / 100) * totalAmountNum).toFixed(2));
+          return m.share !== expectedShare;
+        });
+        if (hasChanges) {
+          setSelectedContacts(prev => prev.map(m => {
+            const val = Number((((m.percentage || 0) / 100) * totalAmountNum).toFixed(2));
+            return { ...m, share: val };
+          }));
+        }
+      }
+    } else if (method === 'shares') {
+      const totalSharesCount = selectedContacts.reduce((sum, m) => sum + (m.sharesCount || 1), 0);
+      const hasChanges = selectedContacts.some(m => {
+        const sCount = m.sharesCount || 1;
+        const expectedShare = totalSharesCount > 0 ? Number(((sCount / totalSharesCount) * totalAmountNum).toFixed(2)) : 0;
+        return m.share !== expectedShare || !m.sharesCount;
+      });
+
+      if (hasChanges) {
+        setSelectedContacts(prev => prev.map(m => {
+          const sCount = m.sharesCount || 1;
+          const val = totalSharesCount > 0 ? Number(((sCount / totalSharesCount) * totalAmountNum).toFixed(2)) : 0;
+          return { ...m, sharesCount: sCount, share: val };
+        }));
+      }
+    } else if (method === 'custom') {
+      const allZero = selectedContacts.every(m => (m.share || 0) === 0);
+      if (allZero && totalAmountNum > 0) {
+        const count = selectedContacts.length;
+        const share = Number((totalAmountNum / count).toFixed(2));
+        setSelectedContacts(prev => prev.map((m, idx) => {
+          const val = idx === count - 1 ? Number((totalAmountNum - share * (count - 1)).toFixed(2)) : share;
+          return { ...m, share: val };
+        }));
+      }
+    }
+  }, [method, totalAmountNum, selectedContacts.length]);
+
+  const validationWarning = useMemo(() => {
+    if (method === 'custom') {
+      const sum = selectedContacts.reduce((s, m) => s + (m.share || 0), 0);
+      const diff = Number((totalAmountNum - sum).toFixed(2));
+      if (Math.abs(diff) > 0.02) {
+        return {
+          isValid: false,
+          message: diff > 0 
+            ? `₹${diff.toFixed(2)} remaining to allocate` 
+            : `Over-allocated by ₹${Math.abs(diff).toFixed(2)}`
+        };
+      }
+    } else if (method === 'percentage') {
+      const sum = selectedContacts.reduce((s, m) => s + (m.percentage || 0), 0);
+      const diff = Number((100 - sum).toFixed(2));
+      if (Math.abs(diff) > 0.02) {
+        return {
+          isValid: false,
+          message: diff > 0 
+            ? `${diff.toFixed(2)}% remaining to allocate` 
+            : `Over-allocated by ${Math.abs(diff).toFixed(2)}%`
+        };
+      }
+    }
+    return { isValid: true, message: '' };
+  }, [selectedContacts, method, totalAmountNum]);
+
   // Adjust custom share values
   const handleUpdateShare = (id: string, value: number) => {
     setSelectedContacts(prev => prev.map(m => m.id === id ? { ...m, share: value } : m));
@@ -745,6 +832,11 @@ const SplitBill: React.FC = () => {
                 </div>
               ))}
             </div>
+            {!validationWarning.isValid && (
+              <div style={{ color: '#EF4444', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(239,68,68,0.06)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+                ⚠️ {validationWarning.message}
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderRadius: '24px' }}>
@@ -800,7 +892,20 @@ const SplitBill: React.FC = () => {
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button type="button" onClick={() => setViewMode('dashboard')} className="btn-ghost" style={{ flex: 1, height: '46px', borderRadius: '16px' }}>Cancel</button>
-            <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '16px' }}>Generate Split 🚀</button>
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={!validationWarning.isValid}
+              style={{ 
+                flex: 2, 
+                height: '46px', 
+                borderRadius: '16px', 
+                opacity: validationWarning.isValid ? 1 : 0.5, 
+                cursor: validationWarning.isValid ? 'pointer' : 'not-allowed' 
+              }}
+            >
+              Generate Split 🚀
+            </button>
           </div>
         </form>
       )}

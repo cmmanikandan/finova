@@ -31,6 +31,7 @@ const AppContent: React.FC = () => {
   const [showReminderToast, setShowReminderToast] = useState(false);
 
   const pageContentRef = useRef<HTMLDivElement>(null);
+  const lastHiddenTimeRef = useRef<number | null>(null);
 
   // Routine Habit background alert & log states
   const [routineAlert, setRoutineAlert] = useState<{ task: any; message: string } | null>(null);
@@ -183,6 +184,30 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     setUnlocked(!settings.pinEnabled);
+  }, [settings.pinEnabled]);
+
+  useEffect(() => {
+    if (!settings.pinEnabled) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        lastHiddenTimeRef.current = Date.now();
+      } else if (document.visibilityState === 'visible') {
+        if (lastHiddenTimeRef.current) {
+          const elapsed = Date.now() - lastHiddenTimeRef.current;
+          // If backgrounded for more than 15 seconds, lock it!
+          if (elapsed > 15000) {
+            setUnlocked(false);
+          }
+          lastHiddenTimeRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [settings.pinEnabled]);
 
   useEffect(() => {

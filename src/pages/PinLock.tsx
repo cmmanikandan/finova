@@ -98,6 +98,7 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
         {DIGITS.map((d, i) => (
           <button key={i} onClick={() => handleDigit(d)}
             disabled={d === ''}
+            className="pin-btn"
             style={{
               height: '68px', borderRadius: '20px', border: 'none',
               background: d === '⌫' ? 'rgba(239,68,68,0.08)' : d === '' ? 'transparent' : '#fff',
@@ -105,11 +106,11 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
               fontSize: d === '⌫' ? '1.25rem' : '1.625rem',
               fontWeight: 700, cursor: d === '' ? 'default' : 'pointer',
               boxShadow: d && d !== '⌫' ? '0 2px 8px rgba(0,0,0,0.07)' : 'none',
-              transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+              transition: 'transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease',
               fontFamily: 'Inter, sans-serif',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
             }}
-            onMouseDown={e => { if (d) e.currentTarget.style.transform = 'scale(0.92)'; }}
-            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
             {d}
           </button>
@@ -129,6 +130,13 @@ const PinLock: React.FC<PinLockProps> = ({ onUnlock }) => {
           40%      { transform: translateX(10px); }
           60%      { transform: translateX(-6px); }
           80%      { transform: translateX(6px); }
+        }
+        .pin-btn {
+          transition: transform 0.08s ease, background-color 0.08s ease !important;
+        }
+        .pin-btn:active {
+          transform: scale(0.9) !important;
+          background-color: #F1F5F9 !important;
         }
       `}</style>
     </div>
