@@ -75,8 +75,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  // Start with DEFAULT_SETTINGS — never read from localStorage
-  const [settings, setSettings] = useState<AppSettings>({ ...DEFAULT_SETTINGS });
+  // Initialize settings from localStorage for instant theme on refresh (before Supabase loads)
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try {
+      const stored = localStorage.getItem('finova_settings');
+      if (stored) {
+        const parsed = JSON.parse(stored) as AppSettings;
+        // Apply the saved theme immediately to avoid flash
+        applyTheme(parsed.theme);
+        return { ...DEFAULT_SETTINGS, ...parsed };
+      }
+    } catch {}
+    return { ...DEFAULT_SETTINGS };
+  });
 
   const [activeTab, setActiveTab] = useState<NavTab>('home');
 
@@ -96,7 +107,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Track previous user to avoid redundant cache resets and pulls on token refresh
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Apply theme on initial mount
+  // Apply theme on initial mount (also handled in useState initializer above)
   useEffect(() => {
     applyTheme(settings.theme);
   }, []);
@@ -118,9 +129,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserBadges([...db.getUserBadges()]);
     setStreakData({ ...db.getStreakData() });
 
-    const s = db.getSettings();
-    setSettings({ ...s });
-    applyTheme(s.theme);
+    const supabaseSettings = db.getSettings();
+
+    // localStorage is the user's last EXPLICIT choice — it always wins over Supabase.
+    // If they differ (e.g. Supabase has stale 'dark' from a failed save), keep localStorage.
+    let merged = { ...supabaseSettings };
+    try {
+      const stored = localStorage.getItem('finova_settings');
+      if (stored) {
+        const local = JSON.parse(stored) as AppSettings;
+        // Override theme (and any other locally-preferred fields) with localStorage value
+        merged = { ...supabaseSettings, theme: local.theme };
+      }
+    } catch {}
+
+    setSettings({ ...merged });
+    applyTheme(merged.theme);
+    // Persist the winning merged settings back to localStorage
+    try { localStorage.setItem('finova_settings', JSON.stringify(merged)); } catch {}
   }, []);
 
   // Register database write listener to update React UI state on CRUD actions
@@ -143,10 +169,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         prevUserIdRef.current = u.uid;
         try {
-          // Clear in-memory state for the new user (no localStorage reads)
+          // Clear in-memory state for the new user
           db.setUserIdForCache(u.uid);
-          // Pull ALL financial data from Supabase — this is the ONLY data source
+          // Pull ALL financial data from Supabase
           await db.pullAllFromSupabase();
+
+          // THEME SYNC: If localStorage has a different theme than what Supabase returned,
+          // localStorage wins (it reflects the user's last explicit choice).
+          // Push it to Supabase so both are in sync going forward.
+          try {
+            const stored = localStorage.getItem('finova_settings');
+            if (stored) {
+              const local = JSON.parse(stored) as AppSettings;
+              const fromSupabase = db.getSettings();
+              if (local.theme !== fromSupabase.theme) {
+                // Push the user's last chosen theme to Supabase
+                await db.saveSettings({ ...fromSupabase, theme: local.theme });
+              }
+            }
+          } catch (e) {
+            console.error('Theme sync local→Supabase failed:', e);
+          }
+
           // Process any overdue recurring bills
           await db.processRecurringTransactions();
           // Audit streaks on launch
@@ -229,13 +273,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user, refresh]);
 
   const saveSettings = useCallback(async (s: AppSettings) => {
+    // Always persist to localStorage immediately as a reliable local fallback.
+    // This ensures theme and other settings survive page refreshes even if Supabase is unavailable.
     try {
-      await db.saveSettings(s);
-    } catch (e) {
-      console.error('Failed to save settings to Supabase:', e);
-    }
+      localStorage.setItem('finova_settings', JSON.stringify(s));
+    } catch {}
+    // Update React state and apply theme immediately (optimistic UI)
     setSettings(s);
     applyTheme(s.theme);
+    // Attempt to persist to Supabase (best-effort, non-blocking for UX)
+    try {
+      await db.saveSettings(s);
+    } catch (e: any) {
+      console.error('Failed to save settings to Supabase (saved to localStorage as fallback):', e);
+    }
   }, []);
 
   return (

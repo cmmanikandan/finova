@@ -234,8 +234,9 @@ function mapSettingsToDb(s: AppSettings): any {
     daily_limit: s.dailyLimit,
     weekly_limit_enabled: s.weeklyLimitEnabled,
     weekly_limit: s.weeklyLimit,
-    monthly_limit_enabled: s.monthlyLimitEnabled,
-    monthly_limit: s.monthlyLimit,
+    // NOTE: monthly_limit_enabled and monthly_limit columns are not yet in the DB.
+    // Run the schema migration (supabase_schema.sql) to add them.
+    // These values are persisted in localStorage in the meantime.
     savings_goal_percent: s.savingsGoalPercent,
     upi_id: s.upiId || null,
   };
