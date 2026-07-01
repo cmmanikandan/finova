@@ -98,10 +98,17 @@ const DailyPlanner: React.FC = () => {
 
   // Auto set default account ID when habitToLog changes
   useEffect(() => {
-    if (habitToLog && visibleAccounts && visibleAccounts.length > 0) {
-      setHabitSpendAccount(visibleAccounts[0].id);
+    if (habitToLog) {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      const filtered = accounts.filter(a => !hiddenIds.includes(a.id));
+      if (filtered.length > 0) {
+        setHabitSpendAccount(filtered[0].id);
+      } else if (accounts.length > 0) {
+        setHabitSpendAccount(accounts[0].id);
+      }
     }
-  }, [habitToLog, visibleAccounts]);
+  }, [habitToLog, accounts]);
 
   // Success / Error Alerts
   const [toastMsg, setToastMsg] = useState('');
@@ -163,7 +170,19 @@ const DailyPlanner: React.FC = () => {
   const openCreateForm = (preset?: typeof PRESETS[0]) => {
     setEditingTask(null);
     setFormTitle(preset?.title || '');
-    setFormCategory(preset?.category || 'custom');
+    
+    // Resolve preset category ID correctly
+    let resolvedCategory = 'custom';
+    if (preset?.category) {
+      const found = categories.find(c => c.id === preset.category || c.id.startsWith(preset.category + '_'));
+      if (found) {
+        resolvedCategory = found.id;
+      } else {
+        resolvedCategory = preset.category;
+      }
+    }
+    setFormCategory(resolvedCategory);
+    
     setFormIcon(preset?.icon || '🎯');
     setFormBudgetLimit(preset?.budgetLimit ? String(preset.budgetLimit) : '0');
     setFormPriority('medium');
@@ -176,7 +195,19 @@ const DailyPlanner: React.FC = () => {
   const openEditForm = (task: DailyTask) => {
     setEditingTask(task);
     setFormTitle(task.title);
-    setFormCategory(task.category);
+    
+    // Resolve saved category ID correctly
+    let resolvedCategory = 'custom';
+    if (task.category) {
+      const found = categories.find(c => c.id === task.category || c.id.startsWith(task.category + '_'));
+      if (found) {
+        resolvedCategory = found.id;
+      } else {
+        resolvedCategory = task.category;
+      }
+    }
+    setFormCategory(resolvedCategory);
+    
     setFormIcon(task.icon);
     setFormBudgetLimit(String(task.budgetLimit));
     setFormPriority(task.priority);
@@ -1547,7 +1578,7 @@ const DailyPlanner: React.FC = () => {
                   const todayStr = new Date().toISOString().split('T')[0];
                   
                   // Resolve category ID: prefer the task's linked category if it's a valid category ID
-                  const resolvedCat = categories.find(c => c.id === habitToLog.category);
+                  const resolvedCat = categories.find(c => c.id === habitToLog.category || c.id.startsWith(habitToLog.category + '_'));
                   const fallbackCat = categories.find(c => c.type === 'expense' || c.type === 'both');
                   const txnCategoryId = resolvedCat?.id || fallbackCat?.id || 'food';
 

@@ -2265,16 +2265,18 @@ export async function recalculateTaskBudgetSpent(category: string, dateStr: stri
   // Find tasks whose category matches by ID OR by name (slug fallback)
   const tasksWithCategory = _dailyTasks.filter(t => {
     if (t.category === category) return true;
+    if (category.startsWith(t.category + '_') || t.category.startsWith(category + '_')) return true;
     // Fallback: match by category name slug (e.g. 'food' matches category named 'Food')
     if (catName && t.category.toLowerCase().replace(/_/g, ' ') === catName) return true;
     // Also match if the category object for task's stored slug matches the uuid passed
-    const taskCatObj = _categories.find(c => c.id === t.category);
+    const taskCatObj = _categories.find(c => c.id === t.category || c.id.startsWith(t.category + '_'));
     return taskCatObj?.id === category;
   });
 
   const dayTxns = _transactions.filter(t => {
     const tDateStr = t.date.split('T')[0];
-    return tDateStr === dateStr && t.type === 'expense' && t.category === category;
+    const isCatMatch = t.category === category || category.startsWith(t.category + '_') || t.category.startsWith(category + '_');
+    return tDateStr === dateStr && t.type === 'expense' && isCatMatch;
   });
   const totalSpent = dayTxns.reduce((sum, t) => sum + t.amount, 0);
 
@@ -2329,6 +2331,7 @@ export async function recalculateAllTaskBudgetsForDate(dateStr: string): Promise
     // Find category UUID for this task (handle slug → UUID resolution)
     const taskCatObj = _categories.find(c =>
       c.id === task.category ||
+      c.id.startsWith(task.category + '_') ||
       c.name.toLowerCase() === task.category.toLowerCase().replace(/_/g, ' ')
     );
     const taskCatId = taskCatObj?.id || task.category;
@@ -2338,7 +2341,16 @@ export async function recalculateAllTaskBudgetsForDate(dateStr: string): Promise
     // 2) Category matches the resolved category ID
     const matchingTxns = dayTxns.filter(t => {
       const noteMatch = t.note && t.note.includes(task.title);
-      const catMatch = t.category === taskCatId || t.category === task.category;
+      const cleanTaskCat = task.category.toLowerCase().replace(/_/g, ' ');
+      const cleanTxCat = t.category.toLowerCase().replace(/_/g, ' ');
+      
+      const catMatch = 
+        t.category === taskCatId || 
+        t.category === task.category ||
+        cleanTxCat === cleanTaskCat ||
+        t.category.startsWith(task.category + '_') ||
+        task.category.startsWith(t.category + '_') ||
+        (taskCatObj && (t.category === taskCatObj.id || cleanTxCat === taskCatObj.name.toLowerCase()));
       return noteMatch || catMatch;
     });
 

@@ -12,6 +12,9 @@ function applyTheme(theme: 'light' | 'dark' | 'system') {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  try {
+    localStorage.setItem('finova_theme', theme);
+  } catch {}
 }
 
 export type NavTab = 'home' | 'transactions' | 'budgets' | 'planner' | 'reports' | 'goals' | 'settings';
@@ -89,6 +92,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Ref to debounce rapid realtime events
   const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Track previous user to avoid redundant cache resets and pulls on token refresh
+  const prevUserIdRef = useRef<string | null>(null);
+
+  // Apply theme on initial mount
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, []);
 
   const refresh = useCallback(() => {
     setTransactions([...db.getTransactions()]);
@@ -125,6 +136,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsub = onAuthStateChanged(async (u) => {
       setUser(u);
       if (u) {
+        if (prevUserIdRef.current === u.uid) {
+          refresh();
+          setLoading(false);
+          return;
+        }
+        prevUserIdRef.current = u.uid;
         try {
           // Clear in-memory state for the new user (no localStorage reads)
           db.setUserIdForCache(u.uid);
@@ -150,6 +167,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setLoading(false);
         }
       } else {
+        prevUserIdRef.current = null;
         // User logged out — clear all in-memory state
         db.setUserIdForCache(null);
         setTransactions([]);

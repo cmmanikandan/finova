@@ -30,10 +30,18 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   { id: 'wallet',      name: 'Wallet',      type: 'wallet',      balance: 0, icon: '👛', color: '#D97706' },
 ];
 
+const getCachedTheme = (): 'light' | 'dark' | 'system' => {
+  try {
+    return (localStorage.getItem('finova_theme') as any) || 'light';
+  } catch {
+    return 'light';
+  }
+};
+
 export const DEFAULT_SETTINGS: AppSettings = {
   currency: 'INR',
   currencySymbol: '₹',
-  theme: 'light',
+  theme: getCachedTheme(),
   pinEnabled: false,
   dailyReminderEnabled: false,
   budgetAlertsEnabled: true,

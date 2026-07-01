@@ -25,7 +25,7 @@ import { to24h } from './utils/format';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, goals, plannerSchedules, refresh } = useApp();
+  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, categories, goals, plannerSchedules, refresh } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
   const [showReminderToast, setShowReminderToast] = useState(false);
@@ -50,12 +50,19 @@ const AppContent: React.FC = () => {
     }
   }, [accounts, habitSpendAccount]);
 
-  // Auto set default account and goal ID when habitToLog or celebrationSavings changes
+  // Auto set default account and goal ID when habitToLog changes
   useEffect(() => {
-    if (habitToLog && visibleAccounts && visibleAccounts.length > 0) {
-      setHabitSpendAccount(visibleAccounts[0].id);
+    if (habitToLog) {
+      const raw = localStorage.getItem('finova_hidden_accounts');
+      const hiddenIds = raw ? JSON.parse(raw) : [];
+      const filtered = accounts.filter((a: any) => !hiddenIds.includes(a.id));
+      if (filtered.length > 0) {
+        setHabitSpendAccount(filtered[0].id);
+      } else if (accounts.length > 0) {
+        setHabitSpendAccount(accounts[0].id);
+      }
     }
-  }, [habitToLog, visibleAccounts]);
+  }, [habitToLog, accounts]);
 
   useEffect(() => {
     if (celebrationSavings && goals && goals.length > 0) {
@@ -541,10 +548,15 @@ const AppContent: React.FC = () => {
                   }
                   const todayStr = new Date().toISOString().split('T')[0];
                   
+                  // Resolve category ID: prefer the task's linked category if it's a valid category ID
+                  const resolvedCat = categories.find((c: any) => c.id === habitToLog.category || c.id.startsWith(habitToLog.category + '_'));
+                  const fallbackCat = categories.find((c: any) => c.type === 'expense' || c.type === 'both');
+                  const txnCategoryId = resolvedCat?.id || fallbackCat?.id || 'food';
+
                   await db.addTransaction({
                     type: 'expense',
                     amount: spentVal,
-                    category: habitToLog.category || 'food',
+                    category: txnCategoryId,
                     account: habitSpendAccount || 'cash',
                     date: new Date().toISOString(),
                     note: `${habitToLog.title} Habit Log (Budget: ₹${habitToLog.budgetLimit})`
