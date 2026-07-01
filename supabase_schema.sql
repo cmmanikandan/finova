@@ -308,6 +308,8 @@ CREATE TABLE IF NOT EXISTS public.settings (
     daily_limit              NUMERIC(15,2) NOT NULL DEFAULT 0,
     weekly_limit_enabled     BOOLEAN NOT NULL DEFAULT false,
     weekly_limit             NUMERIC(15,2) NOT NULL DEFAULT 0,
+    monthly_limit_enabled    BOOLEAN NOT NULL DEFAULT false,
+    monthly_limit            NUMERIC(15,2) NOT NULL DEFAULT 0,
     savings_goal_percent     NUMERIC(5,2) NOT NULL DEFAULT 20.00,
     upi_id                   TEXT
 );
@@ -326,6 +328,8 @@ ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_limit_enabled      BO
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS daily_limit              NUMERIC(15,2) NOT NULL DEFAULT 0;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit_enabled     BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS weekly_limit             NUMERIC(15,2) NOT NULL DEFAULT 0;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS monthly_limit_enabled    BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS monthly_limit            NUMERIC(15,2) NOT NULL DEFAULT 0;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS savings_goal_percent     NUMERIC(5,2) NOT NULL DEFAULT 20.00;
 ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS upi_id                  TEXT;
 

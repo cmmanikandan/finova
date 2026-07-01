@@ -234,6 +234,8 @@ function mapSettingsToDb(s: AppSettings): any {
     daily_limit: s.dailyLimit,
     weekly_limit_enabled: s.weeklyLimitEnabled,
     weekly_limit: s.weeklyLimit,
+    monthly_limit_enabled: s.monthlyLimitEnabled,
+    monthly_limit: s.monthlyLimit,
     savings_goal_percent: s.savingsGoalPercent,
     upi_id: s.upiId || null,
   };
@@ -253,6 +255,8 @@ function mapSettingsFromDb(row: any): AppSettings {
     dailyLimit: Number(row.daily_limit),
     weeklyLimitEnabled: row.weekly_limit_enabled,
     weeklyLimit: Number(row.weekly_limit),
+    monthlyLimitEnabled: row.monthly_limit_enabled ?? false,
+    monthlyLimit: Number(row.monthly_limit ?? 12000),
     savingsGoalPercent: Number(row.savings_goal_percent),
     dailyReminderTime: row.daily_reminder_time || '21:00',
     upiId: row.upi_id || undefined,
@@ -1542,6 +1546,34 @@ export function getWeeklyLimitStatus(): LimitStatus {
   };
 }
 
+export function getMonthlyLimitStatus(): LimitStatus {
+  const now = new Date();
+  const spent = getMonthlyStats(now.getFullYear(), now.getMonth()).expense;
+  const limit = _settings.monthlyLimit || 0;
+  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+  return {
+    spent,
+    limit,
+    pct: Math.min(pct, 999),
+    over: pct > 100,
+    warn: pct >= 80 && pct <= 100,
+    remaining: Math.max(0, limit - spent),
+  };
+}
+
+export function isTaskScheduledOnDay(task: DailyTask, dayOfWeek: number, schedTaskIds: string[]): boolean {
+  if (task.repeatSchedule === 'daily') {
+    return true;
+  }
+  if (task.repeatSchedule === 'weekdays') {
+    return dayOfWeek >= 1 && dayOfWeek <= 5;
+  }
+  if (task.repeatSchedule === 'weekends') {
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  }
+  return schedTaskIds.includes(task.id);
+}
+
 export function getSavingsRate(year: number, month: number): number {
   const { income, savings, expense } = getMonthlyStats(year, month);
   if (income === 0) {
@@ -1756,7 +1788,7 @@ export async function deleteChallenge(id: string): Promise<void> {
 // ─── Split Bill Operations ────────────────────────────────────────────────────
 
 export function getSplitBills(): SplitBillItem[] {
-  return _splitBills;
+  return [..._splitBills];
 }
 
 export async function addSplitBill(data: Omit<SplitBillItem, 'id'>): Promise<SplitBillItem> {
@@ -2265,16 +2297,23 @@ export async function recalculateTaskBudgetSpent(category: string, dateStr: stri
       await supabase.from('daily_task_logs').update({ spent_amount: totalSpent }).eq('id', updatedLog.id);
       _dailyTaskLogs[logIdx] = updatedLog;
     } else if (totalSpent > 0) {
-      const newLog: DailyTaskLog = {
-        id: uuidv4(),
-        taskId: t.id,
-        date: dateStr,
-        status: 'pending',
-        spentAmount: totalSpent,
-        xpEarned: 0,
-      };
-      await supabase.from('daily_task_logs').insert({ ...mapDailyTaskLogToDb(newLog), user_id: uid });
-      _dailyTaskLogs.push(newLog);
+      // Check if task is scheduled for this day
+      const d = new Date(dateStr);
+      const dayOfWeek = d.getDay();
+      const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+      const schedTaskIds = schedule ? schedule.taskIds : [];
+      if (isTaskScheduledOnDay(t, dayOfWeek, schedTaskIds)) {
+        const newLog: DailyTaskLog = {
+          id: uuidv4(),
+          taskId: t.id,
+          date: dateStr,
+          status: 'pending',
+          spentAmount: totalSpent,
+          xpEarned: 0,
+        };
+        await supabase.from('daily_task_logs').insert({ ...mapDailyTaskLogToDb(newLog), user_id: uid });
+        _dailyTaskLogs.push(newLog);
+      }
     }
   }
   notifyWrite();
@@ -2294,11 +2333,10 @@ export async function recalculateAllTaskBudgetsForDate(dateStr: string): Promise
     return tDateStr === dateStr && t.type === 'expense';
   });
 
-  // For every daily task that has a log for that date, recalculate spentAmount
+  // For every daily task, recalculate spentAmount
   // by matching transactions: by task note containing taskId, or by category match
   for (const task of _dailyTasks) {
     const logIdx = _dailyTaskLogs.findIndex(l => l.taskId === task.id && l.date === dateStr);
-    if (logIdx === -1) continue; // No log exists for this task today, skip
 
     // Find category UUID for this task (handle slug → UUID resolution)
     const taskCatObj = _categories.find(c =>
@@ -2317,12 +2355,32 @@ export async function recalculateAllTaskBudgetsForDate(dateStr: string): Promise
     });
 
     const newSpent = matchingTxns.reduce((sum, t) => sum + t.amount, 0);
-    const currentLog = _dailyTaskLogs[logIdx];
 
-    if (currentLog.spentAmount !== newSpent) {
-      const updatedLog = { ...currentLog, spentAmount: newSpent };
-      await supabase.from('daily_task_logs').update({ spent_amount: newSpent }).eq('id', currentLog.id);
-      _dailyTaskLogs[logIdx] = updatedLog;
+    if (logIdx !== -1) {
+      const currentLog = _dailyTaskLogs[logIdx];
+      if (currentLog.spentAmount !== newSpent) {
+        const updatedLog = { ...currentLog, spentAmount: newSpent };
+        await supabase.from('daily_task_logs').update({ spent_amount: newSpent }).eq('id', currentLog.id);
+        _dailyTaskLogs[logIdx] = updatedLog;
+      }
+    } else if (newSpent > 0) {
+      // Check if task is scheduled for this day
+      const d = new Date(dateStr);
+      const dayOfWeek = d.getDay();
+      const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+      const schedTaskIds = schedule ? schedule.taskIds : [];
+      if (isTaskScheduledOnDay(task, dayOfWeek, schedTaskIds)) {
+        const newLog: DailyTaskLog = {
+          id: uuidv4(),
+          taskId: task.id,
+          date: dateStr,
+          status: 'pending',
+          spentAmount: newSpent,
+          xpEarned: 0,
+        };
+        await supabase.from('daily_task_logs').insert({ ...mapDailyTaskLogToDb(newLog), user_id: uid });
+        _dailyTaskLogs.push(newLog);
+      }
     }
   }
   notifyWrite();
@@ -2339,12 +2397,12 @@ export async function checkPlannerDailyCompletion(dateStr: string): Promise<void
   const d = new Date(dateStr);
   const dayOfWeek = d.getDay();
   const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
-  if (!schedule || schedule.taskIds.length === 0) return;
+  const schedTaskIds = schedule ? schedule.taskIds : [];
 
-  const scheduledTasks = _dailyTasks.filter(t => schedule.taskIds.includes(t.id));
+  const scheduledTasks = _dailyTasks.filter(t => isTaskScheduledOnDay(t, dayOfWeek, schedTaskIds));
   if (scheduledTasks.length === 0) return;
 
-  const todayLogs = _dailyTaskLogs.filter(l => l.date === dateStr && schedule.taskIds.includes(l.taskId));
+  const todayLogs = _dailyTaskLogs.filter(l => l.date === dateStr && scheduledTasks.some(st => st.id === l.taskId));
   const completedCount = todayLogs.filter(l => l.status === 'completed').length;
   
   if (completedCount === scheduledTasks.length) {
@@ -2537,49 +2595,8 @@ export function getXPHistory(): XPHistory[] {
 }
 
 export async function addXP(amount: number, reason: string, referenceId?: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  const auth = getAuth(app);
-  const uid = auth.currentUser?.uid;
-  if (!uid) return;
-
-  const xpItem: XPHistory = {
-    id: uuidv4(),
-    amount,
-    reason,
-    referenceId,
-    createdAt: new Date().toISOString(),
-  };
-
-  const { error: xpErr } = await supabase
-    .from('xp_history')
-    .insert({ ...mapXPHistoryToDb(xpItem), user_id: uid });
-  if (xpErr) {
-    console.error('Failed to log XP history:', xpErr);
-    return;
-  }
-
-  _xpHistory.unshift(xpItem);
-
-  const nextXP = _userLevels.currentXP + amount;
-  const nextLevel = xpToLevel(nextXP);
-  
-  const updatedLevelObj: UserLevel = {
-    currentLevel: nextLevel,
-    currentXP: nextXP,
-  };
-
-  const { error: lvlErr } = await supabase
-    .from('user_levels')
-    .update(mapUserLevelToDb(updatedLevelObj))
-    .eq('user_id', uid);
-  
-  if (!lvlErr) {
-    _userLevels = updatedLevelObj;
-  }
-
-  triggerFloatingXPNotification(amount);
-
-  notifyWrite();
+  // XP features disabled
+  return;
 }
 
 function triggerFloatingXPNotification(amount: number) {
@@ -2711,11 +2728,13 @@ export function getPlannerAnalytics(): PlannerAnalytics {
     const d = new Date(dateStr);
     const dayOfWeek = d.getDay();
     const schedule = _plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
-    const scheduledTaskCount = schedule ? schedule.taskIds.length : 0;
+    const schedTaskIds = schedule ? schedule.taskIds : [];
+    const scheduledTasks = _dailyTasks.filter(t => isTaskScheduledOnDay(t, dayOfWeek, schedTaskIds));
+    const scheduledTaskCount = scheduledTasks.length;
     
     if (scheduledTaskCount === 0) return { name: d.toLocaleDateString(undefined, { weekday: 'short' }), pct: 0 };
     
-    const logs = _dailyTaskLogs.filter(l => l.date === dateStr && schedule?.taskIds.includes(l.taskId));
+    const logs = _dailyTaskLogs.filter(l => l.date === dateStr && scheduledTasks.some(st => st.id === l.taskId));
     const completed = logs.filter(l => l.status === 'completed').length;
     const pct = Math.round((completed / scheduledTaskCount) * 100);
     

@@ -83,11 +83,13 @@ export interface AppSettings {
   dailyReminderEnabled: boolean;
   budgetAlertsEnabled: boolean;
   language: string;
-  // Daily & Weekly limits
+  // Daily, Weekly & Monthly limits
   dailyLimitEnabled: boolean;
   dailyLimit: number;
   weeklyLimitEnabled: boolean;
   weeklyLimit: number;
+  monthlyLimitEnabled: boolean;
+  monthlyLimit: number;
   // Savings
   savingsGoalPercent: number; // Target savings rate %
   dailyReminderTime?: string; // e.g. "21:00"

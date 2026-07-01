@@ -141,9 +141,9 @@ const Dashboard: React.FC<DashboardProps> = ({ deferredPrompt, isInstalled, onIn
   }, [plannerSchedules, todayWeekday]);
 
   const todayTasks = useMemo(() => {
-    if (!todaySchedule) return [];
-    return dailyTasks.filter(t => todaySchedule.taskIds.includes(t.id));
-  }, [dailyTasks, todaySchedule]);
+    const schedTaskIds = todaySchedule ? todaySchedule.taskIds : [];
+    return dailyTasks.filter(t => db.isTaskScheduledOnDay(t, todayWeekday, schedTaskIds));
+  }, [dailyTasks, todaySchedule, todayWeekday]);
 
   const todayLogsMap = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];

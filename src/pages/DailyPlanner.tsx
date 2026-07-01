@@ -122,9 +122,9 @@ const DailyPlanner: React.FC = () => {
   }, [plannerSchedules, todayWeekday]);
 
   const todayTasks = useMemo(() => {
-    if (!todaySchedule) return [];
-    return dailyTasks.filter(t => todaySchedule.taskIds.includes(t.id));
-  }, [dailyTasks, todaySchedule]);
+    const schedTaskIds = todaySchedule ? todaySchedule.taskIds : [];
+    return dailyTasks.filter(t => db.isTaskScheduledOnDay(t, todayWeekday, schedTaskIds));
+  }, [dailyTasks, todaySchedule, todayWeekday]);
 
   const todayLogsMap = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -215,8 +215,7 @@ const DailyPlanner: React.FC = () => {
         const taskIds = currentSched ? [...currentSched.taskIds, newTask.id] : [newTask.id];
         await db.savePlannerSchedule(selectedDayOfWeek, taskIds);
         
-        triggerToast('New task added successfully! +20 XP');
-        await db.addXP(20, `Created task: ${formTitle}`);
+        triggerToast('New task added successfully!');
       }
       setIsFormOpen(false);
       refresh();
@@ -274,19 +273,59 @@ const DailyPlanner: React.FC = () => {
   // Weekly scheduler routines builder
   const weeklyDayTasks = useMemo(() => {
     const sched = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
-    if (!sched) return [];
-    return dailyTasks.filter(t => sched.taskIds.includes(t.id));
+    const schedTaskIds = sched ? sched.taskIds : [];
+    return dailyTasks.filter(t => db.isTaskScheduledOnDay(t, selectedDayOfWeek, schedTaskIds));
   }, [dailyTasks, plannerSchedules, selectedDayOfWeek]);
 
   const handleToggleWeekdayTask = async (taskId: string) => {
-    const sched = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
-    let taskIds = sched ? [...sched.taskIds] : [];
-    if (taskIds.includes(taskId)) {
-      taskIds = taskIds.filter(id => id !== taskId);
+    const task = dailyTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const currentSchedule = plannerSchedules.find(s => s.dayOfWeek === selectedDayOfWeek);
+    const currentTaskIds = currentSchedule ? currentSchedule.taskIds : [];
+    const isCurrentlyActive = db.isTaskScheduledOnDay(task, selectedDayOfWeek, currentTaskIds);
+
+    if (task.repeatSchedule === 'custom') {
+      // Toggle in current day's schedule
+      let nextTaskIds = [...currentTaskIds];
+      if (isCurrentlyActive) {
+        nextTaskIds = nextTaskIds.filter(id => id !== taskId);
+      } else {
+        nextTaskIds.push(taskId);
+      }
+      await db.savePlannerSchedule(selectedDayOfWeek, nextTaskIds);
     } else {
-      taskIds.push(taskId);
+      // It is recurring ('daily', 'weekdays', 'weekends')
+      // 1. Convert task to 'custom'
+      const updatedTask = { ...task, repeatSchedule: 'custom' as const };
+      await db.saveDailyTask(updatedTask);
+
+      // 2. Populate other days with the task ID based on the old recurrence schedule
+      for (let day = 0; day < 7; day++) {
+        const daySchedule = plannerSchedules.find(s => s.dayOfWeek === day);
+        let dayTaskIds = daySchedule ? [...daySchedule.taskIds] : [];
+        
+        let shouldBeActive = false;
+        if (day === selectedDayOfWeek) {
+          // Toggle it to the opposite of its current status
+          shouldBeActive = !isCurrentlyActive;
+        } else {
+          // Keep its previous active status on other days
+          if (task.repeatSchedule === 'daily') shouldBeActive = true;
+          else if (task.repeatSchedule === 'weekdays') shouldBeActive = day >= 1 && day <= 5;
+          else if (task.repeatSchedule === 'weekends') shouldBeActive = day === 0 || day === 6;
+        }
+
+        const isCurrentlyInIds = dayTaskIds.includes(taskId);
+        if (shouldBeActive && !isCurrentlyInIds) {
+          dayTaskIds.push(taskId);
+          await db.savePlannerSchedule(day, dayTaskIds);
+        } else if (!shouldBeActive && isCurrentlyInIds) {
+          dayTaskIds = dayTaskIds.filter(id => id !== taskId);
+          await db.savePlannerSchedule(day, dayTaskIds);
+        }
+      }
     }
-    await db.savePlannerSchedule(selectedDayOfWeek, taskIds);
     refresh();
   };
 
@@ -319,8 +358,10 @@ const DailyPlanner: React.FC = () => {
       const d = new Date(dateStr);
       const dayOfWeek = d.getDay();
       const schedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
-      const scheduledTaskIds = schedule ? schedule.taskIds : [];
-      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
+      const schedTaskIds = schedule ? schedule.taskIds : [];
+      const scheduledTasks = dailyTasks.filter(t => db.isTaskScheduledOnDay(t, dayOfWeek, schedTaskIds));
+      
+      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTasks.some(st => st.id === l.taskId));
       
       let savings = 0;
       logs.forEach(log => {
@@ -353,18 +394,18 @@ const DailyPlanner: React.FC = () => {
       const d = new Date(dateStr);
       const dayOfWeek = d.getDay();
       const schedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
-      const scheduledTaskIds = schedule ? schedule.taskIds : [];
+      const schedTaskIds = schedule ? schedule.taskIds : [];
+      const scheduledTasks = dailyTasks.filter(t => db.isTaskScheduledOnDay(t, dayOfWeek, schedTaskIds));
       
       // Sum scheduled budget limits
-      scheduledTaskIds.forEach(tid => {
-        const task = dailyTasks.find(t => t.id === tid);
-        if (task && task.budgetLimit > 0) {
+      scheduledTasks.forEach(task => {
+        if (task.budgetLimit > 0) {
           totalBudget7Days += task.budgetLimit;
         }
       });
 
       // Sum spent amount for logged tasks on this day
-      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTaskIds.includes(l.taskId));
+      const logs = dailyTaskLogs.filter(l => l.date === dateStr && scheduledTasks.some(st => st.id === l.taskId));
       logs.forEach(log => {
         const task = dailyTasks.find(t => t.id === log.taskId);
         if (task && log.status === 'completed' && task.budgetLimit > 0) {
@@ -378,7 +419,6 @@ const DailyPlanner: React.FC = () => {
     const potentialMonthlySavings = Math.max(0, monthlyForecastBudget - monthlyForecastSpent);
 
     return {
-      totalSpent7Days,
       monthlyForecastSpent,
       monthlyForecastBudget,
       potentialMonthlySavings
@@ -1016,7 +1056,7 @@ const DailyPlanner: React.FC = () => {
                               </div>
                               {isOverLimit && (
                                 <span style={{ fontSize: '0.5625rem', color: '#EF4444', fontWeight: 800 }}>
-                                  ⚠️ Limit Exceeded! Streak XP deduction active.
+                                  ⚠️ Limit Exceeded!
                                 </span>
                               )}
                             </div>
@@ -1487,7 +1527,7 @@ const DailyPlanner: React.FC = () => {
                 onClick={async () => {
                   const todayStr = new Date().toISOString().split('T')[0];
                   await db.setTaskStatus(habitToLog.id, todayStr, 'completed');
-                  triggerToast('Completed! +10 XP');
+                  triggerToast('Completed!');
                   setHabitToLog(null);
                   refresh();
                 }}

@@ -112,14 +112,17 @@ const LimitsTab: React.FC = () => {
 
   const daily  = useMemo(() => db.getDailyLimitStatus(),  [settings, transactions, budgets]);
   const weekly = useMemo(() => db.getWeeklyLimitStatus(), [settings, transactions, budgets]);
+  const monthly = useMemo(() => db.getMonthlyLimitStatus(), [settings, transactions, budgets]);
   const streakData = useMemo(() => db.getStreakData(), [settings, transactions]);
   const now = new Date();
   const savingsRate = useMemo(() => db.getSavingsRate(now.getFullYear(), now.getMonth()), [transactions]);
 
   const [editingDaily, setEditingDaily]   = useState(false);
   const [editingWeekly, setEditingWeekly] = useState(false);
+  const [editingMonthly, setEditingMonthly] = useState(false);
   const [dailyInput, setDailyInput]       = useState('');
   const [weeklyInput, setWeeklyInput]     = useState('');
+  const [monthlyInput, setMonthlyInput]   = useState('');
 
   // ── Streak animations & UI state ──
   const [animatedStreak, setAnimatedStreak] = useState(0);
@@ -229,6 +232,12 @@ const LimitsTab: React.FC = () => {
     refresh();
   };
 
+  const toggleMonthlyLimit = () => {
+    const updated = { ...settings, monthlyLimitEnabled: !settings.monthlyLimitEnabled };
+    saveSettings(updated);
+    refresh();
+  };
+
   const saveDailyLimit = () => {
     const val = parseFloat(dailyInput);
     if (!isNaN(val) && val > 0) {
@@ -247,8 +256,18 @@ const LimitsTab: React.FC = () => {
     setEditingWeekly(false);
   };
 
+  const saveMonthlyLimit = () => {
+    const val = parseFloat(monthlyInput);
+    if (!isNaN(val) && val > 0) {
+      saveSettings({ ...settings, monthlyLimit: val, monthlyLimitEnabled: true });
+      refresh();
+    }
+    setEditingMonthly(false);
+  };
+
   const dailyColor  = settings.dailyLimitEnabled  ? ringColor(daily.pct)  : '#94A3B8';
   const weeklyColor = settings.weeklyLimitEnabled ? ringColor(weekly.pct) : '#94A3B8';
+  const monthlyColor = settings.monthlyLimitEnabled ? ringColor(monthly.pct) : '#94A3B8';
 
   // Get color based on streak count
   const getStreakColor = (days: number) => {
@@ -612,6 +631,89 @@ const LimitsTab: React.FC = () => {
               <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>Remaining</div>
               <div style={{ fontSize: '1rem', fontWeight: 700, color: weekly.over ? '#DC2626' : '#16A34A' }}>
                 {weekly.over ? `−${cs}${formatCurrency(weekly.spent - weekly.limit).replace(cs, '')}` : `${cs}${formatCurrency(weekly.remaining).replace(cs, '')}`}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Limit Card */}
+      <div style={{
+        background: 'var(--color-card)', border: '1.5px solid var(--color-border)',
+        borderRadius: '20px', padding: '20px', boxShadow: 'var(--shadow-card)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>Monthly Limit</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Monthly spending cap</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => { setMonthlyInput(String(settings.monthlyLimit)); setEditingMonthly(true); }}
+              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '10px', padding: '6px 12px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <Edit3 size={13} /> Edit
+            </button>
+            <button
+              onClick={toggleMonthlyLimit}
+              style={{
+                width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                background: settings.monthlyLimitEnabled ? '#2563EB' : '#CBD5E1',
+                position: 'relative', transition: 'background 0.2s',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: '2px',
+                left: settings.monthlyLimitEnabled ? '22px' : '2px',
+                width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+                transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
+        </div>
+
+        {editingMonthly ? (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)', fontWeight: 700 }}>{cs}</span>
+              <input
+                type="number" value={monthlyInput} onChange={e => setMonthlyInput(e.target.value)}
+                autoFocus
+                style={{ width: '100%', paddingLeft: '30px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '12px', border: '2px solid var(--color-primary)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '1rem', fontWeight: 700, boxSizing: 'border-box' }}
+              />
+            </div>
+            <button onClick={saveMonthlyLimit} style={{ padding: '10px 16px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 700 }}>
+              <Save size={16} />
+            </button>
+            <button onClick={() => setEditingMonthly(false)} style={{ padding: '10px 12px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px', cursor: 'pointer' }}>
+              <X size={16} />
+            </button>
+          </div>
+        ) : null}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <Ring pct={settings.monthlyLimitEnabled ? monthly.pct : 0} size={110} stroke={10} color={monthlyColor} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: monthlyColor, lineHeight: 1 }}>
+                {settings.monthlyLimitEnabled ? Math.round(monthly.pct) : 0}%
+              </div>
+              <div style={{ fontSize: '0.6rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>used</div>
+            </div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>Spent (this month)</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)' }}>{cs}{formatCurrency(monthly.spent).replace(cs, '')}</div>
+            </div>
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>Monthly limit</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-secondary)' }}>{cs}{formatCurrency(settings.monthlyLimit).replace(cs, '')}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>Remaining</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: monthly.over ? '#DC2626' : '#16A34A' }}>
+                {monthly.over ? `−${cs}${formatCurrency(monthly.spent - monthly.limit).replace(cs, '')}` : `${cs}${formatCurrency(monthly.remaining).replace(cs, '')}`}
               </div>
             </div>
           </div>

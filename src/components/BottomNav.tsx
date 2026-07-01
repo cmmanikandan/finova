@@ -15,7 +15,7 @@ const TABS: { id: NavTab; label: string; path: string; icon: React.ComponentType
 ];
 
 const BottomNav: React.FC = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { settings } = useApp();
   const isDark = settings.theme === 'dark';
@@ -24,7 +24,7 @@ const BottomNav: React.FC = () => {
   const rippleTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isPrimaryTab = TABS.some(t => pathname === t.path) || pathname === '/';
-  if (!isPrimaryTab) return null;
+  if (!isPrimaryTab || search.includes('filter=true')) return null;
 
   const handleTabClick = (tab: typeof TABS[0], e: React.MouseEvent<HTMLButtonElement>) => {
     if (pathname === tab.path) return;

@@ -97,7 +97,7 @@ const SplitBill: React.FC = () => {
 
   const loadData = () => {
     // Only loads user-owned splits from Supabase (no mock data fallback!)
-    setSplits(db.getSplitBills());
+    setSplits([...db.getSplitBills()]);
     const settings = db.getSettings();
     if (settings.upiId) {
       setUpiId(settings.upiId);

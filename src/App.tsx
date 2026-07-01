@@ -25,7 +25,7 @@ import { to24h } from './utils/format';
 import './index.css';
 
 const AppContent: React.FC = () => {
-  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, goals, refresh } = useApp();
+  const { user, loading, settings, dailyTasks, dailyTaskLogs, accounts, goals, plannerSchedules, refresh } = useApp();
   const [splashDone, setSplashDone] = useState(false);
   const [unlocked, setUnlocked]     = useState(false);
   const [showReminderToast, setShowReminderToast] = useState(false);
@@ -68,7 +68,7 @@ const AppContent: React.FC = () => {
 
   // Routine Alert background check (runs every minute)
   useEffect(() => {
-    if (!user || !dailyTasks) return;
+    if (!user || !dailyTasks || !plannerSchedules) return;
 
     const checkRoutines = () => {
       const now = new Date();
@@ -79,12 +79,17 @@ const AppContent: React.FC = () => {
         return `${y}-${m}-${day}`;
       };
       const todayStr = formatLocalDate(now);
+      const dayOfWeek = now.getDay();
+      const todaySchedule = plannerSchedules.find(s => s.dayOfWeek === dayOfWeek);
+      const schedTaskIds = todaySchedule ? todaySchedule.taskIds : [];
+
       const currentHours = now.getHours();
       const currentMinutes = now.getMinutes();
       const currentMinutesOfDay = currentHours * 60 + currentMinutes;
 
       dailyTasks.forEach(task => {
         if (!task.reminderTime) return;
+        if (!db.isTaskScheduledOnDay(task, dayOfWeek, schedTaskIds)) return;
 
         const task24h = to24h(task.reminderTime);
         if (!task24h) return;
@@ -126,7 +131,7 @@ const AppContent: React.FC = () => {
     checkRoutines();
     const interval = setInterval(checkRoutines, 30000); // check every 30s
     return () => clearInterval(interval);
-  }, [user, dailyTasks, dailyTaskLogs]);
+  }, [user, dailyTasks, dailyTaskLogs, plannerSchedules]);
 
   // ─── PWA States ───────────────────────────────────────────────────────────
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);

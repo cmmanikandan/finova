@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, Trash2, X, Filter, ChevronDown, ArrowLeft, Edit2, ArrowUpDown, Download, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as db from '../services/db';
 import * as exportSvc from '../services/export';
 import { formatCurrency, formatTime, groupTransactionsByDate } from '../utils/format';
@@ -242,7 +242,16 @@ const Transactions: React.FC = () => {
   const [sortBy, setSortBy]             = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'>('date_desc');
 
   // Advanced Filters State (renders as a full-screen sub-view)
-  const [showFiltersPage, setShowFiltersPage]   = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showFiltersPage = searchParams.get('filter') === 'true';
+  const setShowFiltersPage = (val: boolean) => {
+    if (val) {
+      setSearchParams({ filter: 'true' });
+    } else {
+      searchParams.delete('filter');
+      setSearchParams(searchParams);
+    }
+  };
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedAccount, setSelectedAccount]   = useState('all');
   const [minAmount, setMinAmount]               = useState('');
