@@ -1860,10 +1860,18 @@ export async function addSplitBill(data: Omit<SplitBillItem, 'id'>): Promise<Spl
   })}]`;
   const noteContent = s.description ? `${s.description} ${metaString}` : metaString;
 
+  // Resolve the category string ('food', 'transport', etc.) to a valid category ID
+  // in _categories (which are stored as 'food_<uid>', 'transport_<uid>', etc.)
+  const resolvedCategory =
+    _categories.find(c => c.id === s.category)?.id ||
+    _categories.find(c => c.id.startsWith(s.category + '_'))?.id ||
+    _categories.find(c => c.type === 'expense' || (c as any).type === 'both')?.id ||
+    s.category;
+
   await addTransaction({
     type: 'expense',
     amount: myShare,
-    category: s.category,
+    category: resolvedCategory,
     account: s.accountId || 'cash',
     date: new Date(s.date).toISOString(),
     note: noteContent,
